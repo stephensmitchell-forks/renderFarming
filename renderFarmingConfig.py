@@ -24,7 +24,7 @@ class Configuration:
 
         self._username = os.getenv('username')
 
-        self._version = "0020"
+        self._version = "0021"
 
         # Reading Config from Disk
 
@@ -329,6 +329,11 @@ class TokenizedString:
     # Assumes token format as ${section:option} and returns value
     def __init__(self, raw_string, cfg):
         self._cfg = cfg
+
+        self._tokenDict = {"code": Token("project", "code", self._cfg),
+                           "project": Token("paths", "projects_directory", self._cfg)
+                           }
+
         self._raw_string = raw_string
         self._expanded_string = str()
 
@@ -339,7 +344,7 @@ class TokenizedString:
         self._expand()
 
     def __str__(self):
-        return str(self._array)
+        return
 
     def _split_tokens(self, tokenized_string):
         """
@@ -355,7 +360,10 @@ class TokenizedString:
                 split_array = i.replace('{', '').split('}')
 
                 # Creates token object
-                tk = Token(split_array[0], self._cfg)
+                tk = self._tokenDict.get(split_array[0])
+
+                if tk is None:
+                    Token("split_array[0]", "ERROR", self._cfg)
 
                 string_array.append(tk)
                 string_array = string_array + split_array[1:]
@@ -383,20 +391,13 @@ class TokenizedString:
 class Token:
     # Class for handling Tokens
     # Assumes token format as section:option and returns value
-    # Must be expanded after creation
-    def __init__(self, raw_string, cfg):
-        self._raw_string = raw_string
-        self._cfg = cfg
+    def __init__(self, section, option, cfg):
         self._value = str()
+        self._section = section
+        self._option = option
+        self._cfg = cfg
 
-        if ':'in raw_string:
-            string_array = self._raw_string.split(':')
-
-            self._section = string_array[0]
-            self._option = string_array[1]
-            self._expand()
-        else:
-            self._value = "{0}:MISSING".format(raw_string)
+        self._expand()
 
     def __str__(self):
         return self._value
@@ -425,7 +426,7 @@ class Token:
 
 
 # config = Configuration()
-
+#
 # print (config.get_projects_path())
 # print (config.get_irradiance_cache_path())
 # print (config)

@@ -46,12 +46,22 @@ class SpinachJob:
         self._ready = False
 
     def _cycle_render_dialog(self, dialog):
+        """
+        Attempts to cycle through the tabs in Max's Render Dialog.  Doesn't work
+        :param dialog: a 3DS Max Tabbed Dialog
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach._cycle_render_dialog")
         flg.debug("Cycling tabs of render dialog")
         for i in range(0, len(dialog.get_tabs)):
             dialog.set_current_tab(i)
 
     def _verify_paths(self, *args):
+        """
+        A wrapper for verify_dir() in the render Farming Tools
+        :param args: A list containing multiple file system paths
+        :return: True for success, False for failure
+        """
         flg = logging.getLogger("renderFarming.Spinach._verify_paths")
 
         for p in args:
@@ -61,16 +71,28 @@ class SpinachJob:
         return True
 
     def _rsd_open(self):
+        """
+        Opens the 3DS Max render dialog
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach._rsd_open")
         flg.debug("Opening \"Render Scene Dialog\" if closed")
         self._rt.renderSceneDialog.open()
 
     def _rsd_close(self):
+        """
+        Closes the 3DS Max render dialog
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach._rsd_close")
         flg.debug("Closing \"Render Scene Dialog\" if open")
         self._rt.renderSceneDialog.close()
 
     def _set_gi_paths(self):
+        """
+        Sets GI paths to ones stored in the Job
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach._set_gi_paths")
         flg.debug("Applying Irradiance Map paths")
 
@@ -83,6 +105,10 @@ class SpinachJob:
         self._vr.lightcache_loadFileName = self._lc_file
 
     def _set_gi_type(self):
+        """
+        Sets the GI type to IR LC
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach._set_gi_prepass")
 
         flg.debug("Setting Gi Engines to Irradiance Map and Light Cache")
@@ -91,6 +117,10 @@ class SpinachJob:
         self._vr.gi_secondary_type = 3
 
     def _set_gi_save_to_frame(self):
+        """
+        Sets the GI options to save frame
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach._set_gi_prepass")
 
         flg.debug("Setting Irradiance Map to save single frame mode")
@@ -110,6 +140,10 @@ class SpinachJob:
         self._vr.lightcache_multipleViews = True
 
     def _verify_vray(self):
+        """
+        Checks that VRAY is the current renderer and if not, attempts to set it as such
+        :return: True for success, False for failure
+        """
         flg = logging.getLogger("renderFarming.Spinach.verify_vray")
         if not rFT.verify_vray(self._rt):
             flg.error("Cannot set renderer to VRay")
@@ -118,6 +152,10 @@ class SpinachJob:
             return True
 
     def _set_output(self):
+        """
+        Sets the output to the frames folder stored in the job
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach._set_output")
         self._rt.rendSaveFile = True
 
@@ -131,11 +169,20 @@ class SpinachJob:
     # ---------------------------------------------------
 
     def cycle_render_dialog(self):
+        """
+        Opens cycles through the tabs and then closes the 3DS Max render dialog
+        Doesn't work
+        :return: None
+        """
         self._rsd_open()
         self._cycle_render_dialog(rFC.TabbedDialog("#render", self._rt))
         self._rsd_close()
 
     def prepare_job(self):
+        """
+        Does all of the prep work to set up a job to run
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach.prepare_job")
         self._cam = self.get_cam()
 
@@ -166,6 +213,10 @@ class SpinachJob:
         self._ready = True
 
     def get_cam(self):
+        """
+        Gets the active 3DS Max camera
+        :return: a 3DS Max Camera object
+        """
         flg = logging.getLogger("renderFarming.Spinach._get_cam")
         cam = self._rt.getActiveCamera()
         if cam is None:
@@ -175,6 +226,10 @@ class SpinachJob:
         return cam
 
     def single_frame_prepass(self):
+        """
+        Sets up a job to run an Irradiance Map job using single frame
+        :return:
+        """
         flg = logging.getLogger("renderFarming.Spinach.single_frame_prepass")
 
         if not self._ready:
@@ -204,6 +259,10 @@ class SpinachJob:
         self._rsd_open()
 
     def from_file(self):
+        """
+        Sets up a job to run using a pre-baked Irradiance Map and Light Cache
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach.from_file")
 
         if not self._ready:
@@ -241,9 +300,17 @@ class SpinachJob:
         flg.debug("File Ready for Final Render")
 
     def get_ready_status(self):
+        """
+        Ascertains if the job has cleared and is ready to be rendered
+        :return: Boolean: Status
+        """
         return self._ready
 
     def submit(self):
+        """
+        Submits the current file to Backburner
+        :return: None
+        """
         flg = logging.getLogger("renderFarming.Spinach.submit")
         flg.debug("Submitting file to Backburner")
         rFNR.submit_current_file()
