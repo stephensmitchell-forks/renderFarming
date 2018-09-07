@@ -47,7 +47,8 @@ class SpinachJob:
 
     def _cycle_render_dialog(self, dialog):
         """
-        Attempts to cycle through the tabs in Max's Render Dialog.  Doesn't work
+        Attempts to cycle through the tabs in Max's Render Dialog.
+        Doesn't work, don't use.  Just keeping it here for posterity's sake
         :param dialog: a 3DS Max Tabbed Dialog
         :return: None
         """
@@ -65,6 +66,7 @@ class SpinachJob:
         flg = logging.getLogger("renderFarming.Spinach._verify_paths")
 
         for p in args:
+            # If any of the paths can't be found or made, returns false
             if not rFT.verify_dir(p):
                 flg.error("Path Error: {} does not resolve and cannot be created".format(p))
                 return False
@@ -73,6 +75,7 @@ class SpinachJob:
     def _rsd_open(self):
         """
         Opens the 3DS Max render dialog
+        Wraps the pymxs function in order to log that it was done, but this is probably super unnecessary
         :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._rsd_open")
@@ -82,6 +85,7 @@ class SpinachJob:
     def _rsd_close(self):
         """
         Closes the 3DS Max render dialog
+        Wraps the pymxs function in order to log that it was done, but this is probably super unnecessary
         :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._rsd_close")
@@ -305,6 +309,14 @@ class SpinachJob:
         :return: Boolean: Status
         """
         return self._ready
+
+    def check_camera(self):
+        """
+        Makes sure that camera updates trigger a job reset
+        :return: None
+        """
+        if self.get_cam() is not self._cam:
+            self._ready = False
 
     def submit(self):
         """

@@ -53,6 +53,9 @@ class RenderSettings:
 
 
 class TabbedDialogPage:
+    # One page of a tabbed dialog
+    # Used for interfacing with Max's goofy tabbed dialog system
+    # Stores the class id that max needs to find a tab because an array is too hard I guess
     def __init__(self):
 
         self._class_id = None
@@ -78,6 +81,10 @@ class TabbedDialogPage:
 
 
 class TabbedDialog:
+    # Interfaces with max's tabbed dialog system.
+    # There is no way to do this directly through python, so it jankily MaxScript instead and picks up
+    # variables with the runtime.  Doesn't work more than once apparently, probably because Max's
+    # garbage collection is crap.  Don't use this
     def __init__(self, class_id, rt):
         self._rt = rt
 

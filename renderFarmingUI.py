@@ -185,7 +185,10 @@ class RenderFarmingUI(QObject):
         flg = logging.getLogger("renderFarming.UI._spinach_execute_handler")
         flg.debug("Executing Spinach")
 
-        self._spinach.prepare_job()
+        self._spinach.check_camera()
+        if not self._spinach.get_ready_status():
+            self._spinach.prepare_job()
+
         self._spinach.single_frame_prepass()
         self._spinach.from_file()
 
@@ -205,13 +208,17 @@ class RenderFarmingUI(QObject):
         return
 
     def _single_frame_prepass_handler(self):
+        self._spinach.check_camera()
         if not self._spinach.get_ready_status():
             self._spinach.prepare_job()
+
         self._spinach.single_frame_prepass()
 
     def _single_frame_beauty_pass_handler(self):
+        self._spinach.check_camera()
         if not self._spinach.get_ready_status():
             self._spinach.prepare_job()
+
         self._spinach.from_file()
 
     def _edit_handler(self):
