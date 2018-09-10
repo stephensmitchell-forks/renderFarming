@@ -54,8 +54,6 @@ class RenderFarmingUI(QObject):
 
         self._window_title = self.window.window().windowTitle()
 
-        self._spinach = rFS.SpinachJob(self._rt, self._cfg)
-
         # ---------------------------------------------------
         #                 Button Definitions
         # ---------------------------------------------------
@@ -69,6 +67,12 @@ class RenderFarmingUI(QObject):
         # Config
         self._cfg_save_btn = self.window.findChild(QtW.QPushButton, 'config_save_btn')
         self._cfg_reset_btn = self.window.findChild(QtW.QPushButton, 'config_reset_btn')
+
+        # ---------------------------------------------------
+        #               Label Definitions
+        # ---------------------------------------------------
+
+        self._spinach_status_lb = self.window.findChild(QtW.QLabel, 'label_spinach_status')
 
         # ---------------------------------------------------
         #               Line Edit Definitions
@@ -127,9 +131,13 @@ class RenderFarmingUI(QObject):
 
         self._cfg_lg_loggingLevel_cmbx.cmbx.activated.connect(self._edit_handler)
 
-        self._config_setup()
+        # ---------------------------------------------------
+        #               Final Initializing
+        # ---------------------------------------------------
 
-        self.window.show()
+        self._spinach = rFS.SpinachJob(self._rt, self._cfg)
+        self._spinach_status(self._spinach.get_status_message())
+        self._config_setup()
 
     # ---------------------------------------------------
     #                   Setup Functions
@@ -181,17 +189,6 @@ class RenderFarmingUI(QObject):
     #                  Handler Function
     # ---------------------------------------------------
 
-    def _single_frame_auto_handler(self):
-        flg = logging.getLogger("renderFarming.UI._spinach_execute_handler")
-        flg.debug("Executing Spinach")
-
-        self._spinach.check_camera()
-        if not self._spinach.get_ready_status():
-            self._spinach.prepare_job()
-
-        self._spinach.single_frame_prepass()
-        self._spinach.from_file()
-
     def _config_save_handler(self):
         flg = logging.getLogger("renderFarming.UI._config_save_handler")
         flg.debug("Applying User edits to configuration and saving changes to the configuration file")
@@ -207,24 +204,48 @@ class RenderFarmingUI(QObject):
         self.window.window().setWindowTitle(self._window_title)
         return
 
-    def _single_frame_prepass_handler(self):
+    def _single_frame_auto_handler(self):
+        flg = logging.getLogger("renderFarming.UI._spinach_execute_handler")
+        flg.debug("Executing Spinach")
+        self._spinach_status(self._spinach.get_status_message())
+
         self._spinach.check_camera()
+        self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             self._spinach.prepare_job()
 
-        self._spinach.single_frame_prepass()
+        if self._spinach.get_ready_status():
+            self._spinach.single_frame_prepass()
+            self._spinach.from_file()
+            self._spinach_status(self._spinach.get_status_message())
+
+    def _single_frame_prepass_handler(self):
+        self._spinach.check_camera()
+        self._spinach_status(self._spinach.get_status_message())
+        if not self._spinach.get_ready_status():
+            self._spinach.prepare_job()
+
+        if self._spinach.get_ready_status():
+            self._spinach.single_frame_prepass()
+            self._spinach_status(self._spinach.get_status_message())
 
     def _single_frame_beauty_pass_handler(self):
         self._spinach.check_camera()
+        self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             self._spinach.prepare_job()
 
-        self._spinach.from_file()
+        if self._spinach.get_ready_status():
+            self._spinach.from_file()
+            self._spinach_status(self._spinach.get_status_message())
 
     def _edit_handler(self):
         if self._saved:
             self.window.window().setWindowTitle("{} *".format(self._window_title))
             self._saved = False
+
+    def _spinach_status(self, text):
+        self._spinach_status_lb.setText("Status: {}".format(text))
 
 
 class LogLevelComboBox:

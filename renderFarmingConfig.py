@@ -24,7 +24,7 @@ class Configuration:
 
         self._username = os.getenv('username')
 
-        self._version = "0021"
+        self._version = "0022"
 
         # Reading Config from Disk
 
@@ -117,21 +117,14 @@ class Configuration:
                 config_dict[o] = None
         return config_dict
 
-    def get_config_by_section(self, section, option):
-        """
-        Wrapper for _config_by_section
-        :param section: The section which data is trying to be read from
-        :param option: The option within that section
-        :return: The value recorded for that option
-        """
-        return self._config_by_section(section)[option]
-
     def _process_path(self, path):
         """
         Processes paths from the config file, accounts for tokens
         :param path: A string containing the path to be processed
         :return: An os.path with resolved tokens
         """
+
+        print(path)
 
         server_path = False
 
@@ -147,6 +140,8 @@ class Configuration:
 
         if server_path:
             dir_joined = "\\\\{0}".format(dir_joined)
+
+        print(dir_joined)
 
         return dir_joined
 
@@ -209,6 +204,15 @@ class Configuration:
     #                       Getters
     # ---------------------------------------------------
 
+    def get_config_by_section(self, section, option):
+        """
+        Wrapper for _config_by_section
+        :param section: The section which data is trying to be read from
+        :param option: The option within that section
+        :return: The value recorded for that option
+        """
+        return self._config_by_section(section)[option]
+
     def _get_path_option(self, section, option, raw=False):
         path = self._Config.get(section, option)
         if not raw:
@@ -259,6 +263,9 @@ class Configuration:
     def get_net_render_manager(self):
         return self._Config.get("netrender", "manager")
 
+    def get_user_scripts_path(self):
+        return self._get_path_option("paths", "user_scripts", True)
+
     def __str__(self):
         cfg_str = ""
         cfg_array = list()
@@ -296,6 +303,16 @@ class Configuration:
     #                       Setters
     # ---------------------------------------------------
 
+    def set_max_system_directories(self, rt):
+        """
+        Gets some environment variables from max and saves them for future use
+        :param rt: The PYMXS runtime environment
+        :return:
+        """
+        user_scripts = os.path.abspath(rt.getDir(rt.name('userScripts')))
+        self._set_user_scripts_path(user_scripts)
+        self._save_config()
+
     def set_project_code(self, code):
         self._set_config_by_section("project", "code", code)
 
@@ -323,6 +340,9 @@ class Configuration:
     def set_irradiance_cache_path(self, path):
         self._set_config_by_section("paths", "projects_directory", path)
 
+    def _set_user_scripts_path(self, path):
+        self._set_config_by_section("paths", "user_scripts", path)
+
 
 class TokenizedString:
     # Class for handling tokenized strings
@@ -331,7 +351,8 @@ class TokenizedString:
         self._cfg = cfg
 
         self._tokenDict = {"code": Token("project", "code", self._cfg),
-                           "project": Token("paths", "projects_directory", self._cfg)
+                           "project": Token("paths", "projects_directory", self._cfg),
+                           "userScripts": Token("paths", "user_scripts", self._cfg)
                            }
 
         self._raw_string = raw_string

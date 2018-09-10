@@ -45,7 +45,19 @@ class SpinachJob:
 
         self._ready = False
 
-    def _cycle_render_dialog(self, dialog):
+        self._status_message = "Initialized"
+        self._log_status(clg)
+
+    def _log_status(self, handler=logging.getLogger("renderFarming.Spinach")):
+        """
+        Logs the current program status to the debug level
+        :param handler: The logging handler
+        :return: None
+        """
+        flg = handler
+        flg.debug("Spinach Status: {}".format(self._status_message))
+
+    def _rsd_cycle(self, dialog):
         """
         Attempts to cycle through the tabs in Max's Render Dialog.
         Doesn't work, don't use.  Just keeping it here for posterity's sake
@@ -69,6 +81,7 @@ class SpinachJob:
             # If any of the paths can't be found or made, returns false
             if not rFT.verify_dir(p):
                 flg.error("Path Error: {} does not resolve and cannot be created".format(p))
+                self._status_message = "ERROR: One or more paths are invalid"
                 return False
         return True
 
@@ -91,6 +104,16 @@ class SpinachJob:
         flg = logging.getLogger("renderFarming.Spinach._rsd_close")
         flg.debug("Closing \"Render Scene Dialog\" if open")
         self._rt.renderSceneDialog.close()
+
+    def _rsd_commit(self):
+        """
+        Closes the 3DS Max render dialog
+        Wraps the pymxs function in order to log that it was done, but this is probably super unnecessary
+        :return: None
+        """
+        flg = logging.getLogger("renderFarming.Spinach._rsd_commit")
+        flg.debug("Committing changes to the \"Render Scene Dialog\" if open")
+        self._rt.renderSceneDialog.commit()
 
     def _set_gi_paths(self):
         """
@@ -151,6 +174,7 @@ class SpinachJob:
         flg = logging.getLogger("renderFarming.Spinach.verify_vray")
         if not rFT.verify_vray(self._rt):
             flg.error("Cannot set renderer to VRay")
+            self._status_message = "ERROR: Cannot set renderer to VRay"
             return False
         else:
             return True
@@ -179,7 +203,7 @@ class SpinachJob:
         :return: None
         """
         self._rsd_open()
-        self._cycle_render_dialog(rFC.TabbedDialog("#render", self._rt))
+        self._rsd_cycle(rFC.TabbedDialog("#render", self._rt))
         self._rsd_close()
 
     def prepare_job(self):
@@ -192,6 +216,7 @@ class SpinachJob:
 
         if self._cam is None:
             self._cam_name = "viewport"
+            self._status_message = "Invalid Camera"
             return
         else:
             self._cam_name = self._cam.name
@@ -229,6 +254,9 @@ class SpinachJob:
             flg.debug("Active camera selected: {}".format(cam.name))
         return cam
 
+    def get_status_message(self):
+        return self._status_message
+
     def single_frame_prepass(self):
         """
         Sets up a job to run an Irradiance Map job using single frame
@@ -238,6 +266,7 @@ class SpinachJob:
 
         if not self._ready:
             flg.info("Spinach reports not ready, job submission cannot continue")
+            self._status_message = "Not Ready"
             return
 
         self._rsd_close()
@@ -262,6 +291,8 @@ class SpinachJob:
 
         self._rsd_open()
 
+        self._status_message = "Ready - Single Frame Prepass"
+
     def from_file(self):
         """
         Sets up a job to run using a pre-baked Irradiance Map and Light Cache
@@ -271,6 +302,7 @@ class SpinachJob:
 
         if not self._ready:
             flg.info("Spinach reports not ready, job submission cannot continue")
+            self._status_message = "Not Ready"
             return
 
         self._rsd_close()
@@ -302,6 +334,7 @@ class SpinachJob:
         self._rsd_open()
 
         flg.debug("File Ready for Final Render")
+        self._status_message = "Ready - Beauty - GI From File"
 
     def get_ready_status(self):
         """
@@ -316,6 +349,7 @@ class SpinachJob:
         :return: None
         """
         if self.get_cam() is not self._cam:
+            self._status_message = "Invalid Camera"
             self._ready = False
 
     def submit(self):
