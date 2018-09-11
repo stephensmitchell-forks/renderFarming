@@ -1,37 +1,37 @@
 # import sys
 import logging
 
-# import renderFarmingConfig as rFCfg
+import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
 
-# import MaxPlus
-# import pymxs
+import MaxPlus
+import pymxs
 
 from PySide2.QtUiTools import QUiLoader
 # from PySide2.QtGui import QCloseEvent
 import PySide2.QtWidgets as QtW
-from PySide2.QtCore import QFile, QObject
+from PySide2.QtCore import QFile
 
 uif = 'renderFarmingUI.ui'
 
-# cfg = rFCfg.config
-# rt = pymxs.runtime
-#
-#
-# lg = logging.getLogger("renderFarming")
-# lg.setLevel(cfg.get_log_level())
-#
-# log_file = cfg.get_log_file()
-# fh = logging.FileHandler(log_file)
-# formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# fh.setFormatter(formatter)
-# lg.addHandler(fh)
-# lg.info("Render Farming: Starting")
+cfg = rFCfg.Configuration()
+rt = pymxs.runtime
 
 
-class RenderFarmingUI(QObject):
+lg = logging.getLogger("renderFarming")
+lg.setLevel(cfg.get_log_level())
 
-    def __init__(self, ui_file, runtime, configuration, lg, parent=None):
+log_file = cfg.get_log_file()
+fh = logging.FileHandler(log_file)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+fh.setFormatter(formatter)
+lg.addHandler(fh)
+lg.info("Render Farming: Starting")
+
+
+class RenderFarmingUI(QtW.QDialog):
+
+    def __init__(self, ui_file, runtime, configuration, log, parent=MaxPlus.GetQMaxMainWindow()):
         super(RenderFarmingUI, self).__init__(parent)
 
         clg = logging.getLogger("renderFarming.UI")
@@ -44,35 +44,42 @@ class RenderFarmingUI(QObject):
 
         self._rt = runtime
         self._cfg = configuration
-        self._lg = lg
+        self._lg = log
 
         self._saved = True
 
         loader = QUiLoader()
-        self.window = loader.load(ui_file)
+        tabbed_widget = loader.load(ui_file)
         ui_file.close()
 
-        self._window_title = self.window.window().windowTitle()
+        main_layout = QtW.QVBoxLayout()
+        main_layout.addWidget(tabbed_widget)
+
+        self.setLayout(main_layout)
+
+        self._window_title = "Render Farming - v{}".format(self._cfg.get_version())
+
+        self.setWindowTitle(self._window_title)
 
         # ---------------------------------------------------
         #                 Button Definitions
         # ---------------------------------------------------
 
         # Spinach
-        self._single_frame_prepass_btn = self.window.findChild(QtW.QPushButton, 'single_frame_prepass_btn')
-        self._single_frame_beauty_pass_handler_btn = self.window.findChild(QtW.QPushButton,
-                                                                           'single_frame_beauty_pass_handler_btn')
-        self._single_frame_auto_btn = self.window.findChild(QtW.QPushButton, 'single_frame_auto_btn')
+        self._single_frame_prepass_btn = self.findChild(QtW.QPushButton, 'single_frame_prepass_btn')
+        self._single_frame_beauty_pass_handler_btn = self.findChild(QtW.QPushButton,
+                                                                    'single_frame_beauty_pass_handler_btn')
+        self._single_frame_auto_btn = self.findChild(QtW.QPushButton, 'single_frame_auto_btn')
 
         # Config
-        self._cfg_save_btn = self.window.findChild(QtW.QPushButton, 'config_save_btn')
-        self._cfg_reset_btn = self.window.findChild(QtW.QPushButton, 'config_reset_btn')
+        self._cfg_save_btn = self.findChild(QtW.QPushButton, 'config_save_btn')
+        self._cfg_reset_btn = self.findChild(QtW.QPushButton, 'config_reset_btn')
 
         # ---------------------------------------------------
         #               Label Definitions
         # ---------------------------------------------------
 
-        self._spinach_status_lb = self.window.findChild(QtW.QLabel, 'label_spinach_status')
+        self._spinach_status_lb = self.findChild(QtW.QLabel, 'label_spinach_status')
 
         # ---------------------------------------------------
         #               Line Edit Definitions
@@ -80,20 +87,19 @@ class RenderFarmingUI(QObject):
 
         # Config
         # Projects
-        self._cfg_prj_projectCode_le = self.window.findChild(QtW.QLineEdit, 'config_project_projectCode_le')
-        self._cfg_prj_fullName_le = self.window.findChild(QtW.QLineEdit, 'config_project_fullName_le')
+        self._cfg_prj_projectCode_le = self.findChild(QtW.QLineEdit, 'config_project_projectCode_le')
+        self._cfg_prj_fullName_le = self.findChild(QtW.QLineEdit, 'config_project_fullName_le')
 
         # Paths
-        self._cfg_pth_projectsDirectory_le = self.window.findChild(QtW.QLineEdit, 'config_paths_projectsDirectory_le')
-        self._cfg_pth_logDirectory_le = self.window.findChild(QtW.QLineEdit, 'config_paths_logDirectory_le')
-        self._cfg_pth_framesDirectory_le = self.window.findChild(QtW.QLineEdit, 'config_paths_framesDirectory_le')
-        self._cfg_pth_irradianceMapDirectory_le = self.window.findChild(QtW.QLineEdit,
-                                                                        'config_paths_irradianceMapDirectory_le')
-        self._cfg_pth_lightCacheDirectory_le = self.window.findChild(QtW.QLineEdit,
-                                                                     'config_paths_lightCacheDirectory_le')
+        self._cfg_pth_projectsDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_projectsDirectory_le')
+        self._cfg_pth_logDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_logDirectory_le')
+        self._cfg_pth_framesDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_framesDirectory_le')
+        self._cfg_pth_irradianceMapDirectory_le = self.findChild(QtW.QLineEdit,
+                                                                 'config_paths_irradianceMapDirectory_le')
+        self._cfg_pth_lightCacheDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_lightCacheDirectory_le')
 
         # Backburner
-        self._cfg_bb_manager_le = self.window.findChild(QtW.QLineEdit, 'config_backburner_manager_le')
+        self._cfg_bb_manager_le = self.findChild(QtW.QLineEdit, 'config_backburner_manager_le')
 
         # ---------------------------------------------------
         #               Combo Box Connections
@@ -101,8 +107,8 @@ class RenderFarmingUI(QObject):
 
         # Config
         # Logs
-        self._cfg_lg_loggingLevel_cmbx = LogLevelComboBox(self.window.findChild(QtW.QComboBox,
-                                                                                'config_logging_loggingLevel_cmbx'))
+        self._cfg_lg_loggingLevel_cmbx = LogLevelComboBox(self.findChild(QtW.QComboBox,
+                                                                         'config_logging_loggingLevel_cmbx'))
 
         # ---------------------------------------------------
         #               Function Connections
@@ -181,7 +187,7 @@ class RenderFarmingUI(QObject):
             flg.info("Saving Configuration file")
             self._cfg.save_config()
             self._saved = True
-            self.window.window().setWindowTitle(self._window_title)
+            self.setWindowTitle(self._window_title)
         else:
             flg.debug("Nothing to Save")
 
@@ -201,7 +207,7 @@ class RenderFarmingUI(QObject):
         self._config_setup()
 
         self._saved = True
-        self.window.window().setWindowTitle(self._window_title)
+        self.setWindowTitle(self._window_title)
         return
 
     def _single_frame_auto_handler(self):
@@ -241,7 +247,7 @@ class RenderFarmingUI(QObject):
 
     def _edit_handler(self):
         if self._saved:
-            self.window.window().setWindowTitle("{} *".format(self._window_title))
+            self.setWindowTitle("{} *".format(self._window_title))
             self._saved = False
 
     def _spinach_status(self, text):
@@ -286,6 +292,6 @@ class LogLevelComboBox:
 #     form = RenderFarmingUI(uif, rt, cfg)
 #     sys.exit(app.exec_())
 
-# app = MaxPlus.GetQMaxMainWindow()
-# form = RenderFarmingUI(uif, rt, cfg)
+# app = QtW.QApplication(sys.argv)
+# form = RenderFarmingUI(uif, rt, cfg, lg, app)
 # sys.exit(app.exec_())

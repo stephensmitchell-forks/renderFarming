@@ -57,18 +57,6 @@ class SpinachJob:
         flg = handler
         flg.debug("Spinach Status: {}".format(self._status_message))
 
-    def _rsd_cycle(self, dialog):
-        """
-        Attempts to cycle through the tabs in Max's Render Dialog.
-        Doesn't work, don't use.  Just keeping it here for posterity's sake
-        :param dialog: a 3DS Max Tabbed Dialog
-        :return: None
-        """
-        flg = logging.getLogger("renderFarming.Spinach._cycle_render_dialog")
-        flg.debug("Cycling tabs of render dialog")
-        for i in range(0, len(dialog.get_tabs)):
-            dialog.set_current_tab(i)
-
     def _verify_paths(self, *args):
         """
         A wrapper for verify_dir() in the render Farming Tools
@@ -195,16 +183,6 @@ class SpinachJob:
     # ---------------------------------------------------
     #                       Public
     # ---------------------------------------------------
-
-    def cycle_render_dialog(self):
-        """
-        Opens cycles through the tabs and then closes the 3DS Max render dialog
-        Doesn't work
-        :return: None
-        """
-        self._rsd_open()
-        self._rsd_cycle(rFC.TabbedDialog("#render", self._rt))
-        self._rsd_close()
 
     def prepare_job(self):
         """

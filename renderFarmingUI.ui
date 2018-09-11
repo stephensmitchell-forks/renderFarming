@@ -146,6 +146,13 @@
      </spacer>
     </item>
     <item>
+     <widget class="Line" name="line_3">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QLabel" name="label_spinach_status">
       <property name="text">
        <string>Status:</string>
@@ -189,6 +196,9 @@
           <property name="text">
            <string>Project Code</string>
           </property>
+          <property name="buddy">
+           <cstring>config_project_projectCode_le</cstring>
+          </property>
          </widget>
         </item>
         <item row="1" column="1">
@@ -228,6 +238,9 @@
           <property name="text">
            <string>Projects Directory</string>
           </property>
+          <property name="buddy">
+           <cstring>config_paths_projectsDirectory_le</cstring>
+          </property>
          </widget>
         </item>
         <item row="4" column="1">
@@ -257,6 +270,9 @@
           <property name="text">
            <string>Frames Directory</string>
           </property>
+          <property name="buddy">
+           <cstring>config_paths_framesDirectory_le</cstring>
+          </property>
          </widget>
         </item>
         <item row="5" column="1">
@@ -279,6 +295,9 @@
           </property>
           <property name="text">
            <string>Irradiance Map Directory</string>
+          </property>
+          <property name="buddy">
+           <cstring>config_paths_irradianceMapDirectory_le</cstring>
           </property>
          </widget>
         </item>
@@ -303,6 +322,9 @@
           <property name="text">
            <string>Light Cache Directory</string>
           </property>
+          <property name="buddy">
+           <cstring>config_paths_lightCacheDirectory_le</cstring>
+          </property>
          </widget>
         </item>
         <item row="7" column="1">
@@ -325,6 +347,9 @@
           </property>
           <property name="text">
            <string>Log Directory</string>
+          </property>
+          <property name="buddy">
+           <cstring>config_paths_logDirectory_le</cstring>
           </property>
          </widget>
         </item>
@@ -358,6 +383,9 @@
           <property name="text">
            <string>Full Project Name</string>
           </property>
+          <property name="buddy">
+           <cstring>config_project_fullName_le</cstring>
+          </property>
          </widget>
         </item>
         <item row="10" column="1">
@@ -380,6 +408,9 @@
           </property>
           <property name="text">
            <string>Manager</string>
+          </property>
+          <property name="buddy">
+           <cstring>config_backburner_manager_le</cstring>
           </property>
          </widget>
         </item>
@@ -425,6 +456,9 @@
           </property>
           <property name="text">
            <string>Logging Level</string>
+          </property>
+          <property name="buddy">
+           <cstring>config_logging_loggingLevel_cmbx</cstring>
           </property>
          </widget>
         </item>

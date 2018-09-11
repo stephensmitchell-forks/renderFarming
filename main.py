@@ -40,12 +40,4 @@ def shutdown():
 
 app = MaxPlus.GetQMaxMainWindow()
 form = rFUI.RenderFarmingUI(uif, rt, cfg, lg, app)
-form.window.show()
-
-# spinach = rFS.SpinachJob(rt, cfg)
-#
-# spinach.single_frame_prepass()
-#
-# spinach.from_file()
-
-# print("*** ! ***")
+form.show()

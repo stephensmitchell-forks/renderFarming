@@ -119,31 +119,11 @@ class Configuration:
 
     def _process_path(self, path):
         """
-        Processes paths from the config file, accounts for tokens
+        A wrapper for os.path.normpath()
         :param path: A string containing the path to be processed
-        :return: An os.path with resolved tokens
+        :return: a normalized path
         """
-
-        print(path)
-
-        server_path = False
-
-        if '\\\\' in path[0:2]:
-            server_path = True
-
-        dir_list = path.split('\\')
-
-        dir_joined = ''
-
-        for l in dir_list:
-            dir_joined = os.path.join(dir_joined, l)
-
-        if server_path:
-            dir_joined = "\\\\{0}".format(dir_joined)
-
-        print(dir_joined)
-
-        return dir_joined
+        return os.path.normpath(path)
 
     def _expand_tokens(self, path):
         """
@@ -309,7 +289,7 @@ class Configuration:
         :param rt: The PYMXS runtime environment
         :return:
         """
-        user_scripts = os.path.abspath(rt.getDir(rt.name('userScripts')))
+        user_scripts = os.path.realpath(rt.getDir(rt.name('userScripts')))
         self._set_user_scripts_path(user_scripts)
         self._save_config()
 
