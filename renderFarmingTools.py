@@ -25,6 +25,10 @@ def str_to_dir(path):
     return dir_joined
 
 
+def html_color_text(text, color):
+    return " <font color=\"{1}\">{0}</font>".format(text, color)
+
+
 def verify_dir(directory):
     """
     Verifies that a folder exists and creates it if it doesn't

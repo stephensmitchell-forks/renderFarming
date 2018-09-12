@@ -1,32 +1,33 @@
 # import sys
 import logging
+import cStringIO
 
-import renderFarmingConfig as rFCfg
+# import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
 
 import MaxPlus
-import pymxs
+# import pymxs
 
 from PySide2.QtUiTools import QUiLoader
 # from PySide2.QtGui import QCloseEvent
 import PySide2.QtWidgets as QtW
 from PySide2.QtCore import QFile
 
-uif = 'renderFarmingUI.ui'
-
-cfg = rFCfg.Configuration()
-rt = pymxs.runtime
-
-
-lg = logging.getLogger("renderFarming")
-lg.setLevel(cfg.get_log_level())
-
-log_file = cfg.get_log_file()
-fh = logging.FileHandler(log_file)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-fh.setFormatter(formatter)
-lg.addHandler(fh)
-lg.info("Render Farming: Starting")
+# uif = 'renderFarmingUI.ui'
+#
+# cfg = rFCfg.Configuration()
+# rt = pymxs.runtime
+#
+#
+# lg = logging.getLogger("renderFarming")
+# lg.setLevel(cfg.get_log_level())
+#
+# log_file = cfg.get_log_file()
+# fh = logging.FileHandler(log_file)
+# formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# fh.setFormatter(formatter)
+# lg.addHandler(fh)
+# lg.info("Render Farming: Starting")
 
 
 class RenderFarmingUI(QtW.QDialog):
@@ -34,9 +35,17 @@ class RenderFarmingUI(QtW.QDialog):
     def __init__(self, ui_file, runtime, configuration, log, parent=MaxPlus.GetQMaxMainWindow()):
         super(RenderFarmingUI, self).__init__(parent)
 
-        clg = logging.getLogger("renderFarming.UI")
+        self._clg = logging.getLogger("renderFarming.UI")
 
-        clg.debug("Reading UI definition from {}".format(ui_file))
+        # Log display handler
+        self._log_stream = cStringIO.StringIO()
+
+        printable_log = logging.StreamHandler(self._log_stream)
+        printable_log.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+
+        logging.getLogger().addHandler(printable_log)
+
+        self._clg.debug("Reading UI definition from {}".format(ui_file))
 
         ui_file = QFile(ui_file)
 
@@ -66,14 +75,17 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
 
         # Spinach
-        self._single_frame_prepass_btn = self.findChild(QtW.QPushButton, 'single_frame_prepass_btn')
-        self._single_frame_beauty_pass_handler_btn = self.findChild(QtW.QPushButton,
-                                                                    'single_frame_beauty_pass_handler_btn')
-        self._single_frame_auto_btn = self.findChild(QtW.QPushButton, 'single_frame_auto_btn')
+        self._sp_1f_man_prepass_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_prepass_btn')
+        self._sp_1f_man_beauty_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_beauty_btn')
+        self._sp_1f_auto_btn = self.findChild(QtW.QPushButton, 'sp_1f_auto_btn')
 
         # Config
         self._cfg_save_btn = self.findChild(QtW.QPushButton, 'config_save_btn')
         self._cfg_reset_btn = self.findChild(QtW.QPushButton, 'config_reset_btn')
+
+        # Log
+        self._lg_refresh_btn = self.findChild(QtW.QPushButton, 'lg_refresh_btn')
+        self._lg_open_explorer_btn = self.findChild(QtW.QPushButton, 'lg_open_explorer_btn')
 
         # ---------------------------------------------------
         #               Label Definitions
@@ -86,11 +98,11 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
 
         # Config
-        # Projects
+        # - Projects
         self._cfg_prj_projectCode_le = self.findChild(QtW.QLineEdit, 'config_project_projectCode_le')
         self._cfg_prj_fullName_le = self.findChild(QtW.QLineEdit, 'config_project_fullName_le')
 
-        # Paths
+        # - Paths
         self._cfg_pth_projectsDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_projectsDirectory_le')
         self._cfg_pth_logDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_logDirectory_le')
         self._cfg_pth_framesDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_framesDirectory_le')
@@ -98,15 +110,22 @@ class RenderFarmingUI(QtW.QDialog):
                                                                  'config_paths_irradianceMapDirectory_le')
         self._cfg_pth_lightCacheDirectory_le = self.findChild(QtW.QLineEdit, 'config_paths_lightCacheDirectory_le')
 
-        # Backburner
+        # - Backburner
         self._cfg_bb_manager_le = self.findChild(QtW.QLineEdit, 'config_backburner_manager_le')
+
+        # ---------------------------------------------------
+        #             Plain Text Edit Definitions
+        # ---------------------------------------------------
+
+        # Logs
+        self._lg_text_pte = self.findChild(QtW.QPlainTextEdit, 'lg_text_pte')
 
         # ---------------------------------------------------
         #               Combo Box Connections
         # ---------------------------------------------------
 
         # Config
-        # Logs
+        # - Logs
         self._cfg_lg_loggingLevel_cmbx = LogLevelComboBox(self.findChild(QtW.QComboBox,
                                                                          'config_logging_loggingLevel_cmbx'))
 
@@ -115,9 +134,9 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
 
         # Spinach
-        self._single_frame_prepass_btn.clicked.connect(self._single_frame_prepass_handler)
-        self._single_frame_beauty_pass_handler_btn.clicked.connect(self._single_frame_beauty_pass_handler)
-        self._single_frame_auto_btn.clicked.connect(self._single_frame_auto_handler)
+        self._sp_1f_man_prepass_btn.clicked.connect(self._single_frame_prepass_handler)
+        self._sp_1f_man_beauty_btn.clicked.connect(self._single_frame_beauty_pass_handler)
+        self._sp_1f_auto_btn.clicked.connect(self._single_frame_auto_handler)
 
         # config
 
@@ -136,6 +155,10 @@ class RenderFarmingUI(QtW.QDialog):
         self._cfg_bb_manager_le.textEdited.connect(self._edit_handler)
 
         self._cfg_lg_loggingLevel_cmbx.cmbx.activated.connect(self._edit_handler)
+
+        # Log
+        self._lg_refresh_btn.clicked.connect(self._log_refresh_handler)
+        self._lg_open_explorer_btn.clicked.connect(self._log_open_explorer_handler)
 
         # ---------------------------------------------------
         #               Final Initializing
@@ -167,7 +190,7 @@ class RenderFarmingUI(QtW.QDialog):
 
     def _config_apply(self):
         flg = logging.getLogger("renderFarming.UI._config_apply")
-        flg.debug("Current Configuration:\n{}".format(self._cfg))
+        flg.debug("Current Configuration:\n{0}\n{1}\n{0}".format('*'*20, self._cfg))
         if not self._saved:
             self._cfg.set_project_code(self._cfg_prj_projectCode_le.text())
             self._cfg.set_project_full_name(self._cfg_prj_fullName_le.text())
@@ -189,26 +212,14 @@ class RenderFarmingUI(QtW.QDialog):
             self._saved = True
             self.setWindowTitle(self._window_title)
         else:
-            flg.debug("Nothing to Save")
+            flg.info("Nothing to Save")
 
     # ---------------------------------------------------
     #                  Handler Function
     # ---------------------------------------------------
 
-    def _config_save_handler(self):
-        flg = logging.getLogger("renderFarming.UI._config_save_handler")
-        flg.debug("Applying User edits to configuration and saving changes to the configuration file")
-        self._config_apply()
-        return
-
-    def _config_reset_handler(self):
-        flg = logging.getLogger("renderFarming.UI._config_reset_handler")
-        flg.debug("Resetting Configuration to Stored")
-        self._config_setup()
-
-        self._saved = True
-        self.setWindowTitle(self._window_title)
-        return
+    # Spinach
+    # ---------------------------------------------------
 
     def _single_frame_auto_handler(self):
         flg = logging.getLogger("renderFarming.UI._spinach_execute_handler")
@@ -245,13 +256,47 @@ class RenderFarmingUI(QtW.QDialog):
             self._spinach.from_file()
             self._spinach_status(self._spinach.get_status_message())
 
+    def _spinach_status(self, text):
+        self._spinach_status_lb.setText("Status: {}".format(text))
+
+    # Config
+    # ---------------------------------------------------
+
+    def _config_save_handler(self):
+        flg = logging.getLogger("renderFarming.UI._config_save_handler")
+        flg.debug("Applying User edits to configuration and saving changes to the configuration file")
+        self._config_apply()
+        return
+
+    def _config_reset_handler(self):
+        flg = logging.getLogger("renderFarming.UI._config_reset_handler")
+        flg.debug("Resetting Configuration to Stored")
+        self._config_setup()
+
+        self._saved = True
+        self.setWindowTitle(self._window_title)
+        return
+
     def _edit_handler(self):
         if self._saved:
             self.setWindowTitle("{} *".format(self._window_title))
             self._saved = False
 
-    def _spinach_status(self, text):
-        self._spinach_status_lb.setText("Status: {}".format(text))
+    # Log
+    # ---------------------------------------------------
+
+    def _log_refresh_handler(self):
+        return self._refresh_log()
+
+    def _log_open_explorer_handler(self):
+        self._rt.ShellLaunch("explorer.exe", self._cfg.get_log_path())
+        return
+
+    def _refresh_log(self):
+        log_value = self._log_stream.getvalue()
+        print(log_value)
+        self._lg_text_pte.setPlainText(log_value)
+        return
 
 
 class LogLevelComboBox:

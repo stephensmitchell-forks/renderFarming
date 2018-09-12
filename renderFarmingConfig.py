@@ -24,11 +24,11 @@ class Configuration:
 
         self._username = os.getenv('username')
 
-        self._version = "0022"
+        self._version = "0023"
 
         # Reading Config from Disk
 
-        self._read_config(self.__directory__, self.__configFile__, self._version)
+        self._read_config(self.__directory__, self.__configFile__)
 
         # Project Related Variables
 
@@ -46,23 +46,22 @@ class Configuration:
 
         self._pathOptions = self._config_by_section("paths")
 
-    def _read_config(self, directory, filename, version, attempts=0):
+    def _read_config(self, directory, filename, attempts=0):
         """
         Reads the Config File from the Appdata Directory.
         Will initiate creation of this file if it is found not to exist
         :param directory: The path to the folder in which the config file belongs
         :param filename: The name of the Config File
-        :param version: The version of RenderFarming that is running
         :param attempts: Recursive depth limit
         :return: None
         """
-        config_path = os.path.join(directory, "{0}_{1}.ini".format(filename, version))
+        config_path = os.path.join(directory, "{0}_{1}.ini".format(filename, self._version))
 
         if not os.path.isfile(config_path):
-            if not self._create_default_config(directory, filename, version):
+            if not self._create_default_config(directory, filename):
                 print('Error')
         if self._default:
-            if not self._create_default_config(directory, filename, version):
+            if not self._create_default_config(directory, filename):
                 print('Error')
         try:
             self._Config.read(config_path)
@@ -72,14 +71,13 @@ class Configuration:
             else:
                 print("IO Error, Failed to read default config: {} \n Attempting to load again...".format(e))
                 attempts = attempts + 1
-                self._read_config(directory, filename, version, attempts)
+                self._read_config(directory, filename, attempts)
 
-    def _create_default_config(self, directory, filename, version):
+    def _create_default_config(self, directory, filename):
         """
         Copies the the Config file to the specified directory
         :param directory: The path to the Appdata Folder
         :param filename: The name of the Default config, which must be in the same directory as the python library
-        :param version: The version of RenderFarming that is running
         :return: True for success, False for failure
         """
         try:
@@ -87,7 +85,7 @@ class Configuration:
                 os.makedirs(directory)
             location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
             shutil.copy2(os.path.join(location, "{0}.ini".format(filename)),
-                         os.path.join(directory, "{0}_{1}.ini".format(filename, version)))
+                         os.path.join(directory, "{0}_{1}.ini".format(filename, self._version)))
             return True
         except IOError as e:
             print("IO Error, Failed to create default config: {}".format(e))
@@ -116,14 +114,6 @@ class Configuration:
                 print("exception on {0}:\n{e!".format(o, e))
                 config_dict[o] = None
         return config_dict
-
-    def _process_path(self, path):
-        """
-        A wrapper for os.path.normpath()
-        :param path: A string containing the path to be processed
-        :return: a normalized path
-        """
-        return os.path.normpath(path)
 
     def _expand_tokens(self, path):
         """
@@ -163,6 +153,7 @@ class Configuration:
             print("IO Error, Failed to save config: {}".format(e))
             return False
 
+    # noinspection PyMethodMayBeStatic
     def _verify_dir(self, directory):
         """
         Verifies that a folder exists and creates it if it doesn't
@@ -197,7 +188,7 @@ class Configuration:
         path = self._Config.get(section, option)
         if not raw:
             path = self._expand_tokens(path)
-        return self._process_path(path)
+        return os.path.normpath(path)
 
     def get_project_code(self):
         return self._Config.get("project", "code")
@@ -303,7 +294,7 @@ class Configuration:
         self._set_config_by_section("paths", "projects_directory", path)
 
     def set_log_path(self, path):
-        self._set_config_by_section("paths", "projects_directory", path)
+        self._set_config_by_section("paths", "log_directory", path)
 
     def set_log_level(self, level):
         self._set_config_by_section("logging", "level", level)
@@ -312,13 +303,13 @@ class Configuration:
         self._set_config_by_section("netrender", "manager", manager)
 
     def set_frames_path(self, path):
-        self._set_config_by_section("paths", "projects_directory", path)
+        self._set_config_by_section("paths", "frames_directory", path)
 
     def set_light_cache_path(self, path):
-        self._set_config_by_section("paths", "projects_directory", path)
+        self._set_config_by_section("paths", "light_cache_directory", path)
 
     def set_irradiance_cache_path(self, path):
-        self._set_config_by_section("paths", "projects_directory", path)
+        self._set_config_by_section("paths", "irradiance_cache_directory", path)
 
     def _set_user_scripts_path(self, path):
         self._set_config_by_section("paths", "user_scripts", path)

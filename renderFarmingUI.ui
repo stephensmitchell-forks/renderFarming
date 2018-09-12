@@ -45,7 +45,7 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QPushButton" name="single_frame_prepass_btn">
+       <widget class="QPushButton" name="sp_1f_man_prepass_btn">
         <property name="minimumSize">
          <size>
           <width>0</width>
@@ -63,7 +63,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="single_frame_beauty_pass_handler_btn">
+       <widget class="QPushButton" name="sp_1f_man_beauty_btn">
         <property name="minimumSize">
          <size>
           <width>0</width>
@@ -105,7 +105,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="single_frame_auto_btn">
+     <widget class="QPushButton" name="sp_1f_auto_btn">
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -630,6 +630,61 @@
          </widget>
         </item>
        </layout>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="log">
+   <attribute name="title">
+    <string>Log</string>
+   </attribute>
+   <layout class="QHBoxLayout" name="horizontalLayout_3">
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QPushButton" name="lg_refresh_btn">
+          <property name="text">
+           <string>Refresh</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="lg_open_explorer_btn">
+          <property name="text">
+           <string>Open Log Folder</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QPlainTextEdit" name="lg_text_pte">
+        <property name="lineWrapMode">
+         <enum>QPlainTextEdit::NoWrap</enum>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="plainText">
+         <string notr="true">Press refresh to display the log</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>

@@ -27,8 +27,8 @@ import logging
 
 class SpinachJob:
     def __init__(self, rt, cfg):
-        clg = logging.getLogger("renderFarming.Spinach")
-        clg.debug("Running Spinach")
+        self._clg = logging.getLogger("renderFarming.Spinach")
+        self._clg.debug("Running Spinach")
 
         self._rt = rt
 
@@ -46,7 +46,11 @@ class SpinachJob:
         self._ready = False
 
         self._status_message = "Initialized"
-        self._log_status(clg)
+        self._log_status(self._clg)
+
+        self._rd_er_tx = rFT.html_color_text("ERROR:", "#ff3232")
+        self._grn_rdy_tx = rFT.html_color_text("Ready!", "#4ca64c")
+        self._org_n_rdy_tx = rFT.html_color_text("Not Ready:", "#FFA500")
 
     def _log_status(self, handler=logging.getLogger("renderFarming.Spinach")):
         """
@@ -69,7 +73,8 @@ class SpinachJob:
             # If any of the paths can't be found or made, returns false
             if not rFT.verify_dir(p):
                 flg.error("Path Error: {} does not resolve and cannot be created".format(p))
-                self._status_message = "ERROR: One or more paths are invalid"
+                self._status_message = "{} One or more paths are invalid".format(self._rd_er_tx)
+                self._log_status(flg)
                 return False
         return True
 
@@ -79,8 +84,7 @@ class SpinachJob:
         Wraps the pymxs function in order to log that it was done, but this is probably super unnecessary
         :return: None
         """
-        flg = logging.getLogger("renderFarming.Spinach._rsd_open")
-        flg.debug("Opening \"Render Scene Dialog\" if closed")
+        self._clg.debug("Opening \"Render Scene Dialog\" if closed")
         self._rt.renderSceneDialog.open()
 
     def _rsd_close(self):
@@ -89,8 +93,7 @@ class SpinachJob:
         Wraps the pymxs function in order to log that it was done, but this is probably super unnecessary
         :return: None
         """
-        flg = logging.getLogger("renderFarming.Spinach._rsd_close")
-        flg.debug("Closing \"Render Scene Dialog\" if open")
+        self._clg.debug("Closing \"Render Scene Dialog\" if open")
         self._rt.renderSceneDialog.close()
 
     def _rsd_commit(self):
@@ -99,8 +102,7 @@ class SpinachJob:
         Wraps the pymxs function in order to log that it was done, but this is probably super unnecessary
         :return: None
         """
-        flg = logging.getLogger("renderFarming.Spinach._rsd_commit")
-        flg.debug("Committing changes to the \"Render Scene Dialog\" if open")
+        self._clg.debug("Committing changes to the \"Render Scene Dialog\" if open")
         self._rt.renderSceneDialog.commit()
 
     def _set_gi_paths(self):
@@ -119,39 +121,168 @@ class SpinachJob:
         self._vr.lightcache_autoSaveFileName = self._lc_file
         self._vr.lightcache_loadFileName = self._lc_file
 
-    def _set_gi_type(self):
+    def _set_animation_prepass_path(self):
+        self._ir_file = os.path.join(self._cfg.get_irradiance_cache_path(), self._cam_name)
+        if rFT.verify_dir(self._ir_file):
+            self._ir_file = self._cfg.get_irradiance_cache_path() + "{0}_frame_.vrmap".format(self._cam_name)
+        else:
+            self._status_message = "Unable to find or create path for animation prepass rendering"
+            self._log_status(self._clg)
+            self._ready = False
+            return
+
+    def _set_gi_engine(self, render_type=6):
         """
-        Sets the GI type to IR LC
+        Sets the GI type to the one specified
+        :param render_type: The combination of Gi settings used by the renderer
+        Types supported:
+            -0:   Single Frame Irradiance Map, Light Cache
+            -1:   From File Single Frame Irradiance Map, Light Cache
+            -2:   Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+            -3:   From File Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+            -4:   Animation Prepass Irradiance Map, Light Cache
+            -5:   Animation Interpolated Irradiance Map, no secondary
+            -6:   Brute Force, Light Cache
+            -7:   From File Brute Force, Light Cache
+            -8:   Brute Force, Light Cache with a new Light Cache every frame
+            -9:   Brute Force, Brute Force
         :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._set_gi_prepass")
 
-        flg.debug("Setting Gi Engines to Irradiance Map and Light Cache")
+        if render_type in (0, 1, 2, 3, 4):
+            flg.debug("Setting Gi Engines to Irradiance Map and Light Cache")
+            self._vr.gi_primary_type = 0
+            self._vr.gi_secondary_type = 3
 
-        self._vr.gi_primary_type = 0
-        self._vr.gi_secondary_type = 3
+        elif render_type is 5:
+            flg.debug("Setting Gi Engines to Irradiance Map and None")
+            self._vr.gi_primary_type = 0
+            self._vr.gi_secondary_type = 0
 
-    def _set_gi_save_to_frame(self):
+        elif render_type in (6, 7, 8):
+            flg.debug("Setting Gi Engines to Brute Force and Light Cache")
+            self._vr.gi_primary_type = 2
+            self._vr.gi_secondary_type = 3
+
+        elif render_type is 9:
+            flg.debug("Setting Gi Engines to Brute Force and Brute Force")
+            self._vr.gi_primary_type = 2
+            self._vr.gi_secondary_type = 2
+
+    def _set_frame_time_type(self, render_type=6, multi_frame_increment=50):
+        """
+        Sets the frame settings based on type
+        :param render_type: The combination of Gi settings used by the renderer
+        Types supported:
+            -0:   Single Frame Irradiance Map, Light Cache
+            -1:   From File Single Frame Irradiance Map, Light Cache
+            -2:   Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+            -3:   From File Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+            -4:   Animation Prepass Irradiance Map, Light Cache
+            -5:   Animation Interpolated Irradiance Map, no secondary
+            -6:   Brute Force, Light Cache
+            -7:   From File Brute Force, Light Cache
+            -8:   Brute Force, Light Cache with a new Light Cache every frame
+            -9:   Brute Force, Brute Force
+        :return: None
+        """
+        flg = logging.getLogger("renderFarming.Spinach._set_gi_prepass")
+
+        if render_type is 2:
+            flg.debug("Setting time to every Nth frame with an increment of {}".format(multi_frame_increment))
+            self._rt.rendTimeType = 2
+            self._rt.rendNThFrame = multi_frame_increment
+
+        elif render_type in (0, 6):
+            flg.debug("Setting time to single frame")
+            self._rt.rendTimeType = 1
+            self._rt.rendNThFrame = 1
+
+        elif render_type in (1, 3, 4, 5, 7, 8, 9):
+            flg.debug("Setting time to Active Segment frame")
+            self._rt.rendTimeType = 2
+            self._rt.rendNThFrame = 1
+            return
+
+    def _set_gi_save_to_frame(self, render_type=6):
         """
         Sets the GI options to save frame
+        :param render_type: The combination of Gi settings used by the renderer
+        Types supported:
+            -0:   Single Frame Irradiance Map, Light Cache
+            -1:   From File Single Frame Irradiance Map, Light Cache
+            -2:   Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+            -3:   From File Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+            -4:   Animation Prepass Irradiance Map, Light Cache
+            -5:   Animation Interpolated Irradiance Map, no secondary
+            -6:   Brute Force, Light Cache
+            -7:   From File Brute Force, Light Cache
+            -8:   Brute Force, Light Cache with a new Light Cache every frame
+            -9:   Brute Force, Brute Force
         :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._set_gi_prepass")
 
-        flg.debug("Setting Irradiance Map to save single frame mode")
+        # ----------------
+        # Irradiance Cache
+        # ----------------
 
-        self._vr.adv_irradmap_mode = 0
+        if render_type is 0:
+            flg.debug("Setting Irradiance Map to save single frame mode")
+            self._vr.adv_irradmap_mode = 0
+            self._vr.adv_irradmap_autoSave = True
+
+        if render_type in (1, 3):
+            flg.debug("Setting Irradiance Map to read From File mode")
+            self._vr.adv_irradmap_mode = 2
+            self._vr.adv_irradmap_autoSave = False
+
+        elif render_type is 2:
+            flg.debug("Setting Irradiance Map to Multi Frame Incremental Mode")
+            self._vr.adv_irradmap_mode = 1
+            self._vr.adv_irradmap_autoSave = True
+
+        elif render_type is 4:
+            flg.debug("Setting Irradiance Map to Animation Prepass Mode")
+            self._vr.adv_irradmap_mode = 6
+            self._vr.adv_irradmap_autoSave = True
+
+        elif render_type is 5:
+            flg.debug("Setting Irradiance Map to Animation Rendering Mode")
+            self._vr.adv_irradmap_mode = 7
+            self._vr.adv_irradmap_autoSave = False
+
+        # -----------
+        # Light Cache
+        # -----------
+
+        if render_type in (0, 2, 6):
+            flg.debug("Setting Light Cache to save single frame mode")
+            self._vr.lightcache_mode = 0
+            self._vr.lightcache_autoSave = True
+
+        elif render_type in (1, 3, 7):
+            flg.debug("Setting Light Cache to read from file mode")
+            self._vr.lightcache_mode = 2
+            self._vr.lightcache_autoSave = True
+
+        elif render_type is 4:
+            flg.debug("Setting Light Cache to prepass single frame mode")
+            self._vr.lightcache_mode = 0
+            self._vr.lightcache_autoSave = False
+
+        elif 8 is render_type:
+            flg.debug("Setting Light Cache to calculate each frame mode")
+            self._vr.lightcache_mode = 0
+            self._vr.lightcache_autoSave = False
+
         self._vr.adv_irradmap_dontDelete = False
-        self._vr.adv_irradmap_autoSave = True
-        self._vr.adv_irradmap_switchToSavedMap = True
+        self._vr.adv_irradmap_switchToSavedMap = False
         self._vr.gi_irradmap_multipleViews = True
 
-        flg.debug("Setting Irradiance Map to save single frame mode")
-
-        self._vr.lightcache_mode = 0
         self._vr.lightcache_dontDelete = False
-        self._vr.lightcache_autoSave = True
-        self._vr.lightcache_switchToSavedMap = True
+        self._vr.lightcache_switchToSavedMap = False
         self._vr.lightcache_multipleViews = True
 
     def _verify_vray(self):
@@ -162,7 +293,8 @@ class SpinachJob:
         flg = logging.getLogger("renderFarming.Spinach.verify_vray")
         if not rFT.verify_vray(self._rt):
             flg.error("Cannot set renderer to VRay")
-            self._status_message = "ERROR: Cannot set renderer to VRay"
+            self._status_message = "{} Cannot set renderer to VRay".format(self._rd_er_tx)
+            self._log_status(flg)
             return False
         else:
             return True
@@ -194,7 +326,6 @@ class SpinachJob:
 
         if self._cam is None:
             self._cam_name = "viewport"
-            self._status_message = "Invalid Camera"
             return
         else:
             self._cam_name = self._cam.name
@@ -210,13 +341,17 @@ class SpinachJob:
         flg.debug("Light Cache: {}".format(self._lc_file))
         flg.debug("Frames Directory: {}".format(self._frames_dir))
 
-        self._verify_paths(self._cfg.get_irradiance_cache_path(), self._cfg.get_light_cache_path(), self._frames_dir)
+        if not self._verify_paths(self._cfg.get_irradiance_cache_path(),
+                                  self._cfg.get_light_cache_path(),
+                                  self._frames_dir):
+            return
 
         flg.debug("Capturing Original Render Settings")
 
         orig_settings = rFC.RenderSettings(self._rt, self._frames_dir, self._cfg.get_project_code(), self._cam)
         orig_settings.capture()
 
+        self._status_message = self._grn_rdy_tx
         self._ready = True
 
     def get_cam(self):
@@ -227,7 +362,9 @@ class SpinachJob:
         flg = logging.getLogger("renderFarming.Spinach._get_cam")
         cam = self._rt.getActiveCamera()
         if cam is None:
-            flg.error("No camera viewpoint")
+            flg.error("Active view is not a valid camera")
+            self._status_message = "{} Active view is not a valid camera".format(self._rd_er_tx)
+            self._log_status(flg)
         else:
             flg.debug("Active camera selected: {}".format(cam.name))
         return cam
@@ -240,18 +377,55 @@ class SpinachJob:
         Sets up a job to run an Irradiance Map job using single frame
         :return:
         """
-        flg = logging.getLogger("renderFarming.Spinach.single_frame_prepass")
+        self._rsd_close()
+
+        self.prepare_prepass(0)
+
+        self._rsd_open()
+
+    def from_file(self):
+        """
+        Sets up a job to run using a pre-baked Irradiance Map and Light Cache
+        :return: None
+        """
+        self._rsd_close()
+
+        self.prepare_beauty_pass(1)
+
+        self._rsd_open()
+
+    def prepare_prepass(self, render_type):
+        """
+        Sets up the render for a prepass
+        :param render_type: The combination of Gi settings used by the renderer
+        Types supported:
+                -0:   Single Frame Irradiance Map, Light Cache
+                -2:   Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+                -4:   Animation Prepass Irradiance Map, Light Cache
+                -6:   Brute Force, Light Cache
+        :return: None
+        """
+        flg = logging.getLogger("renderFarming.Spinach.prepare_prepass")
+
+        if render_type in (1, 3, 5, 7, 8, 9):
+            flg.error("Attempting to render a beauty pass as a prepass")
+            self._status_message = "{} Attempting to render a beauty pass as a prepass".format(self._rd_er_tx)
+            self._log_status(flg)
+            return
 
         if not self._ready:
             flg.info("Spinach reports not ready, job submission cannot continue")
-            self._status_message = "Not Ready"
+            self._status_message = "{0}: {1}".format(self._org_n_rdy_tx, self._status_message)
+            self._log_status(flg)
             return
 
-        self._rsd_close()
+        # if is an Animation Prepass Irradiance Map, Light Cache, the ir path must be changed
+        if render_type is 4:
+            self._set_animation_prepass_path()
 
         self._set_gi_paths()
-        self._set_gi_type()
-        self._set_gi_save_to_frame()
+        self._set_gi_engine(render_type)
+        self._set_gi_save_to_frame(render_type)
 
         flg.debug("Setting VRay to render only GI")
 
@@ -263,33 +437,45 @@ class SpinachJob:
 
         flg.debug("Setting render time output to \"Single Frame\"")
 
-        self._rt.rendTimeType = 1
+        self._set_frame_time_type(render_type)
 
-        flg.debug("\"Render Time Type\" is set to: {}".format(self._rt.rendTimeType))
+        self._status_message = "{} - Single Frame Prepass".format(self._grn_rdy_tx)
+        self._log_status(flg)
 
-        self._rsd_open()
-
-        self._status_message = "Ready - Single Frame Prepass"
-
-    def from_file(self):
+    def prepare_beauty_pass(self, render_type):
         """
-        Sets up a job to run using a pre-baked Irradiance Map and Light Cache
+        Sets up the render for the beauty pass
+        :param render_type: The combination of Gi settings used by the renderer
+        Types supported:
+                -1:   From File Single Frame Irradiance Map, Light Cache
+                -3:   From File Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+                -5:   Animation Interpolated Irradiance Map, no secondary
+                -7:   From File Brute Force, Light Cache
+                -8:   Brute Force, Light Cache with a new Light Cache every frame
+                -9:   Brute Force, Brute Force
         :return: None
         """
-        flg = logging.getLogger("renderFarming.Spinach.from_file")
+        flg = logging.getLogger("renderFarming.Spinach.prepare_beauty")
 
         if not self._ready:
             flg.info("Spinach reports not ready, job submission cannot continue")
-            self._status_message = "Not Ready"
+            self._status_message = "{0}: {1}".format(self._org_n_rdy_tx, self._status_message)
+            self._log_status(flg)
             return
 
-        self._rsd_close()
+        if render_type in (0, 2, 4, 6):
+            flg.error("Attempting to render a prepass as a beauty pass")
+            self._status_message = "{} Attempting to render a prepass as a beauty pass".format(self._rd_er_tx)
+            self._log_status(flg)
+            return
 
-        flg.debug("Setting Irradiance Map to from file mode")
-        flg.debug("Setting Light Cache to from file mode")
+            # if is an Animation Prepass Irradiance Map, Light Cache, the ir path must be changed
+        if render_type is 5:
+            self._set_animation_prepass_path()
 
-        self._vr.lightcache_mode = 2
-        self._vr.adv_irradmap_mode = 2
+        self._set_gi_paths()
+        self._set_gi_engine(render_type)
+        self._set_gi_save_to_frame(render_type)
 
         flg.debug("Setting VRay to render final image")
 
@@ -299,20 +485,15 @@ class SpinachJob:
 
         self._vr.output_on = False
 
-        flg.debug("Setting render time output to \"User Range\"")
-
-        self._rt.rendTimeType = 3
-
-        flg.debug("\"Render Time Type\" is set to: {}".format(self._rt.rendTimeType))
+        self._set_frame_time_type(render_type)
 
         flg.debug("Setting \"Save File\" on")
 
         self._set_output()
 
-        self._rsd_open()
-
         flg.debug("File Ready for Final Render")
-        self._status_message = "Ready - Beauty - GI From File"
+        self._status_message = "{} - Beauty - GI From File".format(self._grn_rdy_tx)
+        self._log_status(flg)
 
     def get_ready_status(self):
         """
@@ -327,9 +508,9 @@ class SpinachJob:
         :return: None
         """
         if self.get_cam() is not self._cam:
-            self._status_message = "Invalid Camera"
             self._ready = False
 
+    # noinspection PyMethodMayBeStatic
     def submit(self):
         """
         Submits the current file to Backburner

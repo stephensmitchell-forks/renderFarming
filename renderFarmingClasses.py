@@ -51,8 +51,6 @@ class RenderSettings:
                 flg.error("Error, Failed to load Render Presets: {0}, file: {1}".format(e, self._path))
 
 
-
-
 class Camera:
     def __init__(self, name):
         self._name = name
