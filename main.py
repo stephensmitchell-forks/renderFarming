@@ -11,9 +11,6 @@ import renderFarmingUI as rFUI
 
 rt = pymxs.runtime
 
-rt.renderSceneDialog.open()
-rt.renderSceneDialog.close()
-
 cfg = renderFarmingConfig.Configuration()
 cfg.set_max_system_directories(rt)
 
@@ -38,6 +35,14 @@ def shutdown():
     sys.exit()
 
 
+# Destroys instances of the dialog before recreating it
+# noinspection PyBroadException
+try:
+    # noinspection PyUnboundLocalVariable
+    ui.close()
+except:
+    pass
+
 app = MaxPlus.GetQMaxMainWindow()
-form = rFUI.RenderFarmingUI(uif, rt, cfg, lg, app)
-form.show()
+ui = rFUI.RenderFarmingUI(uif, rt, cfg, lg, app)
+ui.show()

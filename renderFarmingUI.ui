@@ -28,7 +28,61 @@
    </attribute>
    <layout class="QVBoxLayout" name="verticalLayout_3">
     <item>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="label_GI_mode">
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>GI Mode</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="sp_gi_mode_cmbx">
+      <property name="font">
+       <font>
+        <italic>false</italic>
+       </font>
+      </property>
+      <item>
+       <property name="text">
+        <string>Single Frame Irradiance Map / Light Cache</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Multi Frame Incremental Irradiance Map / Light Cache</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Animation Prepass Irradiance Map / Light Cache</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Brute Force / Light Cache</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Brute Force Per Frame / Light Cache</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Brute Force / Brute Force</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="label_manual_gi">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -60,6 +114,18 @@
         <property name="text">
          <string>Prepare Prepass</string>
         </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
+        </property>
+        <property name="default">
+         <bool>false</bool>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
        </widget>
       </item>
       <item>
@@ -90,7 +156,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_2">
+     <widget class="QLabel" name="label_auto_gi">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -645,13 +711,6 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QPushButton" name="lg_refresh_btn">
-          <property name="text">
-           <string>Refresh</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QPushButton" name="lg_open_explorer_btn">
           <property name="text">
            <string>Open Log Folder</string>
@@ -675,6 +734,9 @@
       </item>
       <item>
        <widget class="QPlainTextEdit" name="lg_text_pte">
+        <property name="documentTitle">
+         <string notr="true"/>
+        </property>
         <property name="lineWrapMode">
          <enum>QPlainTextEdit::NoWrap</enum>
         </property>
@@ -682,7 +744,16 @@
          <bool>true</bool>
         </property>
         <property name="plainText">
-         <string notr="true">Press refresh to display the log</string>
+         <string notr="true">*** Log ***</string>
+        </property>
+        <property name="maximumBlockCount">
+         <number>1024</number>
+        </property>
+        <property name="centerOnScroll">
+         <bool>false</bool>
+        </property>
+        <property name="placeholderText">
+         <string notr="true"/>
         </property>
        </widget>
       </item>

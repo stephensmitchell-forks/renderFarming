@@ -4,6 +4,7 @@ import cStringIO
 
 # import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
+import renderFarmingTools as rFT
 
 import MaxPlus
 # import pymxs
@@ -40,10 +41,7 @@ class RenderFarmingUI(QtW.QDialog):
         # Log display handler
         self._log_stream = cStringIO.StringIO()
 
-        printable_log = logging.StreamHandler(self._log_stream)
-        printable_log.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
-
-        logging.getLogger().addHandler(printable_log)
+        self._log_to_stream()
 
         self._clg.debug("Reading UI definition from {}".format(ui_file))
 
@@ -58,11 +56,11 @@ class RenderFarmingUI(QtW.QDialog):
         self._saved = True
 
         loader = QUiLoader()
-        tabbed_widget = loader.load(ui_file)
+        self._tabbed_widget = loader.load(ui_file)
         ui_file.close()
 
         main_layout = QtW.QVBoxLayout()
-        main_layout.addWidget(tabbed_widget)
+        main_layout.addWidget(self._tabbed_widget)
 
         self.setLayout(main_layout)
 
@@ -75,8 +73,8 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
 
         # Spinach
-        self._sp_1f_man_prepass_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_prepass_btn')
-        self._sp_1f_man_beauty_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_beauty_btn')
+        self._sp_man_prepass_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_prepass_btn')
+        self._sp_man_beauty_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_beauty_btn')
         self._sp_1f_auto_btn = self.findChild(QtW.QPushButton, 'sp_1f_auto_btn')
 
         # Config
@@ -84,7 +82,6 @@ class RenderFarmingUI(QtW.QDialog):
         self._cfg_reset_btn = self.findChild(QtW.QPushButton, 'config_reset_btn')
 
         # Log
-        self._lg_refresh_btn = self.findChild(QtW.QPushButton, 'lg_refresh_btn')
         self._lg_open_explorer_btn = self.findChild(QtW.QPushButton, 'lg_open_explorer_btn')
 
         # ---------------------------------------------------
@@ -124,6 +121,9 @@ class RenderFarmingUI(QtW.QDialog):
         #               Combo Box Connections
         # ---------------------------------------------------
 
+        # Spinach
+        self._sp_gi_mode_cmbx = GIModeComboBox(self.findChild(QtW.QComboBox, 'sp_gi_mode_cmbx'))
+
         # Config
         # - Logs
         self._cfg_lg_loggingLevel_cmbx = LogLevelComboBox(self.findChild(QtW.QComboBox,
@@ -134,9 +134,11 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
 
         # Spinach
-        self._sp_1f_man_prepass_btn.clicked.connect(self._single_frame_prepass_handler)
-        self._sp_1f_man_beauty_btn.clicked.connect(self._single_frame_beauty_pass_handler)
-        self._sp_1f_auto_btn.clicked.connect(self._single_frame_auto_handler)
+        self._sp_gi_mode_cmbx.cmbx.activated.connect(self._sp_gi_mode_cmbx_handler)
+        self._sp_man_prepass_btn.clicked.connect(self._sp_man_prepass_btn_handler)
+        self._sp_man_beauty_btn.clicked.connect(self._sp_man_beauty_btn_handler)
+        # self._sp_1f_auto_btn.clicked.connect(self._single_frame_auto_handler)
+        self._sp_1f_auto_btn.setEnabled(False)
 
         # config
 
@@ -157,8 +159,10 @@ class RenderFarmingUI(QtW.QDialog):
         self._cfg_lg_loggingLevel_cmbx.cmbx.activated.connect(self._edit_handler)
 
         # Log
-        self._lg_refresh_btn.clicked.connect(self._log_refresh_handler)
         self._lg_open_explorer_btn.clicked.connect(self._log_open_explorer_handler)
+
+        # General
+        self._tabbed_widget.currentChanged.connect(self._tab_change_handler)
 
         # ---------------------------------------------------
         #               Final Initializing
@@ -188,7 +192,7 @@ class RenderFarmingUI(QtW.QDialog):
 
         return
 
-    def _config_apply(self):
+    def _config_apply(self, save_file=True):
         flg = logging.getLogger("renderFarming.UI._config_apply")
         flg.debug("Current Configuration:\n{0}\n{1}\n{0}".format('*'*20, self._cfg))
         if not self._saved:
@@ -207,10 +211,13 @@ class RenderFarmingUI(QtW.QDialog):
             self._cfg.set_log_level(log_level)
             self._lg.setLevel(log_level)
 
-            flg.info("Saving Configuration file")
-            self._cfg.save_config()
-            self._saved = True
-            self.setWindowTitle(self._window_title)
+            if save_file:
+                flg.info("Saving Configuration file")
+                self._cfg.save_config()
+                self._saved = True
+                self.setWindowTitle(self._window_title)
+            else:
+                flg.debug("Applying without saving")
         else:
             flg.info("Nothing to Save")
 
@@ -221,40 +228,51 @@ class RenderFarmingUI(QtW.QDialog):
     # Spinach
     # ---------------------------------------------------
 
-    def _single_frame_auto_handler(self):
-        flg = logging.getLogger("renderFarming.UI._spinach_execute_handler")
-        flg.debug("Executing Spinach")
-        self._spinach_status(self._spinach.get_status_message())
+    def _sp_auto_btn_handler(self):
+        self._clg.error("Automatic submission not implemented")
 
+        er = rFT.html_color_text("ERROR:", "#ff3232")
+        self._spinach_status("{} Automatic submission not implemented".format(er))
+        return
+
+        # self._spinach.check_camera()
+        # self._spinach_status(self._spinach.get_status_message())
+        # if not self._spinach.get_ready_status():
+        #     self._spinach.prepare_job()
+        #
+        # if self._spinach.get_ready_status():
+        #     self._spinach.single_frame_prepass()
+        #     self._spinach.from_file()
+        #     self._spinach_status(self._spinach.get_status_message())
+
+    def _sp_man_prepass_btn_handler(self):
         self._spinach.check_camera()
         self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             self._spinach.prepare_job()
 
         if self._spinach.get_ready_status():
-            self._spinach.single_frame_prepass()
-            self._spinach.from_file()
-            self._spinach_status(self._spinach.get_status_message())
+            self._spinach.prepare_prepass(self._sp_gi_mode_cmbx.get_prepass_mode())
 
-    def _single_frame_prepass_handler(self):
+        self._spinach_status(self._spinach.get_status_message())
+
+    def _sp_man_beauty_btn_handler(self):
         self._spinach.check_camera()
         self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             self._spinach.prepare_job()
 
         if self._spinach.get_ready_status():
-            self._spinach.single_frame_prepass()
-            self._spinach_status(self._spinach.get_status_message())
+            self._spinach.prepare_beauty_pass(self._sp_gi_mode_cmbx.get_beauty_mode())
 
-    def _single_frame_beauty_pass_handler(self):
-        self._spinach.check_camera()
         self._spinach_status(self._spinach.get_status_message())
-        if not self._spinach.get_ready_status():
-            self._spinach.prepare_job()
 
-        if self._spinach.get_ready_status():
-            self._spinach.from_file()
-            self._spinach_status(self._spinach.get_status_message())
+    def _sp_gi_mode_cmbx_handler(self):
+        self._clg.debug("Gi mode changed, index is: {}".format(self._sp_gi_mode_cmbx))
+        if self._sp_gi_mode_cmbx.get_prepass_mode() is -1:
+            self._sp_man_prepass_btn.setEnabled(False)
+        else:
+            self._sp_man_prepass_btn.setEnabled(True)
 
     def _spinach_status(self, text):
         self._spinach_status_lb.setText("Status: {}".format(text))
@@ -285,18 +303,29 @@ class RenderFarmingUI(QtW.QDialog):
     # Log
     # ---------------------------------------------------
 
-    def _log_refresh_handler(self):
-        return self._refresh_log()
-
     def _log_open_explorer_handler(self):
         self._rt.ShellLaunch("explorer.exe", self._cfg.get_log_path())
         return
 
     def _refresh_log(self):
         log_value = self._log_stream.getvalue()
-        print(log_value)
-        self._lg_text_pte.setPlainText(log_value)
+        self._lg_text_pte.appendPlainText(log_value)
+        self._log_stream = cStringIO.StringIO()
+        self._log_to_stream()
         return
+
+    def _log_to_stream(self):
+        printable_log = logging.StreamHandler(self._log_stream)
+        printable_log.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+
+        logging.getLogger().addHandler(printable_log)
+
+    # General
+    # ---------------------------------------------------
+
+    def _tab_change_handler(self):
+        if self._tabbed_widget.currentIndex() is 2:
+            return self._refresh_log()
 
 
 class LogLevelComboBox:
@@ -330,6 +359,66 @@ class LogLevelComboBox:
         else:
             debug_level = "CRITICAL"
         return debug_level
+
+
+class GIModeComboBox:
+    """
+        Gi Modes
+            -0:   Single Frame Irradiance Map, Light Cache: 0
+            -1:   From File Single Frame Irradiance Map, Light Cache: 0
+            -2:   Multi Frame Incremental Irradiance Map, Single Frame Light Cache: 1
+            -3:   From File Multi Frame Incremental Irradiance Map, Light Cache (Duplicate of 1): 1
+            -4:   Animation Prepass Irradiance Map, Light Cache: 2
+            -5:   Animation Interpolated Irradiance Map, no secondary: 2
+            -6:   Brute Force, Light Cache: 3
+            -7:   Brute Force, From File Light Cache: 3
+            -8:   Brute Force, Light Cache with a new Light Cache every frame: 4
+            -9:   Brute Force, Brute Force: 5
+    """
+    def __init__(self, combo_box):
+        self.cmbx = combo_box
+
+    def get_prepass_mode(self):
+        index = self.cmbx.currentIndex()
+        if index == 5:
+            prepass_mode = -1
+        elif index == 4:
+            prepass_mode = -1
+        elif index == 3:
+            prepass_mode = 6
+        elif index == 2:
+            prepass_mode = 4
+        elif index == 1:
+            prepass_mode = 2
+        elif index == 0:
+            prepass_mode = 0
+        else:
+            prepass_mode = 0
+        return prepass_mode
+
+    def get_beauty_mode(self):
+        index = self.cmbx.currentIndex()
+        if index == 5:
+            beauty_mode = 9
+        elif index == 4:
+            beauty_mode = 8
+        elif index == 3:
+            beauty_mode = 7
+        elif index == 2:
+            beauty_mode = 5
+        elif index == 1:
+            beauty_mode = 3
+        elif index == 0:
+            beauty_mode = 1
+        else:
+            beauty_mode = 1
+        return beauty_mode
+
+    def __str__(self):
+        return self.cmbx.currentText()
+
+    def __repr__(self):
+        return self.__str__()
 
 
 # if __name__ == '__main__':

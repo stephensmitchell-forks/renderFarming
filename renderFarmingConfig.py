@@ -24,7 +24,7 @@ class Configuration:
 
         self._username = os.getenv('username')
 
-        self._version = "0023"
+        self._version = "0024"
 
         # Reading Config from Disk
 
@@ -280,9 +280,10 @@ class Configuration:
         :param rt: The PYMXS runtime environment
         :return:
         """
-        user_scripts = os.path.realpath(rt.getDir(rt.name('userScripts')))
-        self._set_user_scripts_path(user_scripts)
-        self._save_config()
+        if self.get_user_scripts_path() is "INIT":
+            user_scripts = os.path.realpath(rt.getDir(rt.name('userScripts')))
+            self._set_user_scripts_path(user_scripts)
+            self._save_config()
 
     def set_project_code(self, code):
         self._set_config_by_section("project", "code", code)
