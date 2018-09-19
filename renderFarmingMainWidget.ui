@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>492</width>
-    <height>445</height>
+    <width>682</width>
+    <height>847</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -79,6 +79,13 @@
         <string>Brute Force / Brute Force</string>
        </property>
       </item>
+     </widget>
+    </item>
+    <item>
+     <widget class="Line" name="line_6">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
      </widget>
     </item>
     <item>
@@ -193,6 +200,128 @@
     </item>
     <item>
      <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="sp_settings_gb">
+      <property name="title">
+       <string>Settings</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_5">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <layout class="QFormLayout" name="formLayout_2">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_frames_sub_folder">
+             <property name="text">
+              <string>Frames Sub-Folder</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="sp_frm_subFolder_le">
+             <property name="text">
+              <string>$(cam)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_vfb_save_type">
+             <property name="text">
+              <string>VFB Save Type</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="sp_vfb_type_cmbx">
+             <item>
+              <property name="text">
+               <string>Max</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRay</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_image_filter_override">
+             <property name="text">
+              <string>Image Filter Override</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QComboBox" name="sp_img_filt_ovr_cmbx">
+             <item>
+              <property name="text">
+               <string>None</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Quadratic</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRayLanczosFilter</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_time_segment_prompt">
+             <property name="text">
+              <string>Time Segment Prompt</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QComboBox" name="sp_sats_prompt_cmbx">
+             <item>
+              <property name="text">
+               <string>None</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Prepass</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Beauty</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Both</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="Line" name="line_4">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>

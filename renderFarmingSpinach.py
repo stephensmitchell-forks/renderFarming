@@ -218,6 +218,14 @@ class SpinachJob:
         flg = logging.getLogger("renderFarming.Spinach._set_gi_save_to_frame")
         flg.debug("Using Render Type {}".format(render_type))
 
+        self._vr.adv_irradmap_dontDelete = False
+        self._vr.adv_irradmap_switchToSavedMap = False
+        self._vr.gi_irradmap_multipleViews = True
+
+        self._vr.lightcache_switchToSavedMap = False
+        self._vr.lightcache_dontDelete = False
+        self._vr.lightcache_multipleViews = True
+
         # ----------------
         # Irradiance Cache
         # ----------------
@@ -251,10 +259,16 @@ class SpinachJob:
         # Light Cache
         # -----------
 
-        if render_type in (0, 2, 6):
+        if render_type in (0, 6):
             flg.debug("Setting Light Cache to save single frame mode")
             self._vr.lightcache_mode = 0
             self._vr.lightcache_autoSave = True
+
+        elif render_type is 2:
+            flg.debug("Setting Light Cache to save single frame mode")
+            self._vr.lightcache_mode = 0
+            self._vr.lightcache_autoSave = True
+            self._vr.lightcache_switchToSavedMap = True
 
         elif render_type in (1, 3, 7):
             flg.debug("Setting Light Cache to read from file mode")
@@ -270,14 +284,7 @@ class SpinachJob:
             flg.debug("Setting Light Cache to calculate each frame mode")
             self._vr.lightcache_mode = 0
             self._vr.lightcache_autoSave = False
-
-        self._vr.adv_irradmap_dontDelete = False
-        self._vr.adv_irradmap_switchToSavedMap = False
-        self._vr.gi_irradmap_multipleViews = True
-
-        self._vr.lightcache_dontDelete = False
-        self._vr.lightcache_switchToSavedMap = False
-        self._vr.lightcache_multipleViews = True
+            self._vr.lightcache_dontDelete = True
 
     def _verify_vray(self):
         """

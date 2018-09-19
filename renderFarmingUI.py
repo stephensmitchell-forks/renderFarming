@@ -1,16 +1,16 @@
 # import sys
 import logging
 import cStringIO
+import os
 
 # import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
 import renderFarmingTools as rFT
+import renderFarmingSATSDialogUI as rFSATS
 
 import MaxPlus
-# import pymxs
 
 from PySide2.QtUiTools import QUiLoader
-# from PySide2.QtGui import QCloseEvent
 import PySide2.QtWidgets as QtW
 from PySide2.QtCore import QFile
 
@@ -33,30 +33,29 @@ from PySide2.QtCore import QFile
 
 class RenderFarmingUI(QtW.QDialog):
 
-    def __init__(self, ui_file, runtime, configuration, log, parent=MaxPlus.GetQMaxMainWindow()):
+    def __init__(self, ui_path, runtime, configuration, parent=MaxPlus.GetQMaxMainWindow()):
         super(RenderFarmingUI, self).__init__(parent)
 
         self._clg = logging.getLogger("renderFarming.UI")
+
+        self._ui_path = ui_path
+        self._rt = runtime
+        self._cfg = configuration
+        self._parent = parent
 
         # Log display handler
         self._log_stream = cStringIO.StringIO()
 
         self._log_to_stream()
 
-        self._clg.debug("Reading UI definition from {}".format(ui_file))
+        self._clg.debug("Reading UI definition from {}".format(self._ui_path))
 
-        ui_file = QFile(ui_file)
-
+        ui_file = QFile(os.path.join(self._ui_path, "renderFarmingMainWidget.ui"))
         ui_file.open(QFile.ReadOnly)
-
-        self._rt = runtime
-        self._cfg = configuration
-        self._lg = log
-
-        self._saved = True
 
         loader = QUiLoader()
         self._tabbed_widget = loader.load(ui_file)
+
         ui_file.close()
 
         main_layout = QtW.QVBoxLayout()
@@ -65,8 +64,9 @@ class RenderFarmingUI(QtW.QDialog):
         self.setLayout(main_layout)
 
         self._window_title = "Render Farming - v{}".format(self._cfg.get_version())
-
         self.setWindowTitle(self._window_title)
+
+        self._saved = True
 
         # ---------------------------------------------------
         #                 Button Definitions
@@ -93,6 +93,11 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
         #               Line Edit Definitions
         # ---------------------------------------------------
+
+        # Spinach
+        self._sp_frm_subFolder_le = self.findChild(QtW.QLineEdit, 'sp_frm_subFolder_le')
+
+        self._sp_frm_subFolder_le.setEnabled(False)
 
         # Config
         # - Projects
@@ -123,6 +128,13 @@ class RenderFarmingUI(QtW.QDialog):
 
         # Spinach
         self._sp_gi_mode_cmbx = GIModeComboBox(self.findChild(QtW.QComboBox, 'sp_gi_mode_cmbx'))
+
+        self._sp_vfb_type_cmbx = SATSPromptComboBox(self.findChild(QtW.QComboBox, 'sp_vfb_type_cmbx'))
+        self._sp_img_filt_ovr_cmbx = SATSPromptComboBox(self.findChild(QtW.QComboBox, 'sp_img_filt_ovr_cmbx'))
+        self._sp_sats_prompt_cmbx = SATSPromptComboBox(self.findChild(QtW.QComboBox, 'sp_sats_prompt_cmbx'))
+
+        self._sp_vfb_type_cmbx.cmbx.setEnabled(False)
+        self._sp_img_filt_ovr_cmbx.cmbx.setEnabled(False)
 
         # Config
         # - Logs
@@ -170,13 +182,17 @@ class RenderFarmingUI(QtW.QDialog):
 
         self._spinach = rFS.SpinachJob(self._rt, self._cfg)
         self._spinach_status(self._spinach.get_status_message())
-        self._config_setup()
+        self._config_setup_all()
 
     # ---------------------------------------------------
     #                   Setup Functions
     # ---------------------------------------------------
 
-    def _config_setup(self):
+    def _config_setup_all(self):
+        self._config_page_setup()
+        self._spinach_page_setup()
+
+    def _config_page_setup(self):
         self._cfg_prj_projectCode_le.setText(self._cfg.get_project_code())
         self._cfg_prj_fullName_le.setText(self._cfg.get_project_full_name())
 
@@ -192,24 +208,47 @@ class RenderFarmingUI(QtW.QDialog):
 
         return
 
-    def _config_apply(self, save_file=True):
+    def _spinach_page_setup(self):
+        cmbx_set_cur_ind(self._sp_gi_mode_cmbx.cmbx, (self._cfg.get_interface_setting("sp_gi_mode_cmbx_ind")))
+        self._sp_gi_mode_cmbx_handler()
+
+        cmbx_set_cur_ind(self._sp_vfb_type_cmbx.cmbx, (self._cfg.get_interface_setting("sp_vfb_type_cmbx_ind")))
+        cmbx_set_cur_ind(self._sp_img_filt_ovr_cmbx.cmbx, (self._cfg.get_interface_setting("sp_img_filt_ovr_cmbx_ind")))
+        cmbx_set_cur_ind(self._sp_sats_prompt_cmbx.cmbx, (self._cfg.get_interface_setting("sp_sats_prompt_cmbx_ind")))
+
+        self._sp_frm_subFolder_le.setText(self._cfg.get_interface_setting("sp_frm_subFolder_le_str"))
+
+    def _config_apply_config_page(self):
+        self._cfg.set_project_code(self._cfg_prj_projectCode_le.text())
+        self._cfg.set_project_full_name(self._cfg_prj_fullName_le.text())
+
+        self._cfg.set_projects_path(self._cfg_pth_projectsDirectory_le.text())
+        self._cfg.set_frames_path(self._cfg_pth_framesDirectory_le.text())
+        self._cfg.set_irradiance_cache_path(self._cfg_pth_irradianceMapDirectory_le.text())
+        self._cfg.set_light_cache_path(self._cfg_pth_lightCacheDirectory_le.text())
+        self._cfg.set_log_path(self._cfg_pth_logDirectory_le.text())
+
+        self._cfg.set_net_render_manager(self._cfg_bb_manager_le.text())
+
+        log_level = self._cfg_lg_loggingLevel_cmbx.get_level()
+        self._cfg.set_log_level(log_level)
+        self._lg.setLevel(log_level)
+
+    def _config_apply_spinach_page(self):
+        self._cfg.set_interface_setting("sp_gi_mode_cmbx_ind", self._sp_gi_mode_cmbx.cmbx.currentIndex())
+        self._cfg.set_interface_setting("sp_vfb_type_cmbx_ind", self._sp_vfb_type_cmbx.cmbx.currentIndex())
+        self._cfg.set_interface_setting("sp_img_filt_ovr_cmbx_ind", self._sp_img_filt_ovr_cmbx.cmbx.currentIndex())
+        self._cfg.set_interface_setting("sp_sats_prompt_cmbx_ind", self._sp_sats_prompt_cmbx.cmbx.currentIndex())
+
+        self._cfg.set_interface_setting("sp_frm_subFolder_le_str", self._sp_frm_subFolder_le.text())
+
+    def _config_apply_all(self, save_file=True):
         flg = logging.getLogger("renderFarming.UI._config_apply")
         flg.debug("Current Configuration:\n{0}\n{1}\n{0}".format('*'*20, self._cfg))
+
         if not self._saved:
-            self._cfg.set_project_code(self._cfg_prj_projectCode_le.text())
-            self._cfg.set_project_full_name(self._cfg_prj_fullName_le.text())
-
-            self._cfg.set_projects_path(self._cfg_pth_projectsDirectory_le.text())
-            self._cfg.set_frames_path(self._cfg_pth_framesDirectory_le.text())
-            self._cfg.set_irradiance_cache_path(self._cfg_pth_irradianceMapDirectory_le.text())
-            self._cfg.set_light_cache_path(self._cfg_pth_lightCacheDirectory_le.text())
-            self._cfg.set_log_path(self._cfg_pth_logDirectory_le.text())
-
-            self._cfg.set_net_render_manager(self._cfg_bb_manager_le.text())
-
-            log_level = self._cfg_lg_loggingLevel_cmbx.get_level()
-            self._cfg.set_log_level(log_level)
-            self._lg.setLevel(log_level)
+            self._config_apply_config_page()
+            self._config_apply_spinach_page()
 
             if save_file:
                 flg.info("Saving Configuration file")
@@ -246,6 +285,9 @@ class RenderFarmingUI(QtW.QDialog):
         #     self._spinach_status(self._spinach.get_status_message())
 
     def _sp_man_prepass_btn_handler(self):
+        if self._sp_sats_prompt_cmbx.prepass():
+            if not self._sats_dialog_opener():
+                return
         self._spinach.check_camera()
         self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
@@ -257,6 +299,9 @@ class RenderFarmingUI(QtW.QDialog):
         self._spinach_status(self._spinach.get_status_message())
 
     def _sp_man_beauty_btn_handler(self):
+        if self._sp_sats_prompt_cmbx.beauty():
+            if not self._sats_dialog_opener():
+                return
         self._spinach.check_camera()
         self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
@@ -283,13 +328,13 @@ class RenderFarmingUI(QtW.QDialog):
     def _config_save_handler(self):
         flg = logging.getLogger("renderFarming.UI._config_save_handler")
         flg.debug("Applying User edits to configuration and saving changes to the configuration file")
-        self._config_apply()
+        self._config_apply_all()
         return
 
     def _config_reset_handler(self):
         flg = logging.getLogger("renderFarming.UI._config_reset_handler")
         flg.debug("Resetting Configuration to Stored")
-        self._config_setup()
+        self._config_page_setup()
 
         self._saved = True
         self.setWindowTitle(self._window_title)
@@ -326,6 +371,31 @@ class RenderFarmingUI(QtW.QDialog):
     def _tab_change_handler(self):
         if self._tabbed_widget.currentIndex() is 2:
             return self._refresh_log()
+
+    # ---------------------------------------------------
+    #                    Dialogs
+    # ---------------------------------------------------
+
+    def _sats_dialog_opener(self):
+        self._clg.debug("Opening the \"Set Active Time Segment\" dialog")
+        dialog = rFSATS.RenderFarmingSATSDialogUI(self._ui_path, self._rt, self._parent)
+        if not dialog.exec_():
+            self._spinach_status(dialog.get_status_message())
+            dialog.destroy()
+            return False
+        else:
+            dialog.destroy()
+            return True
+
+    # ---------------------------------------------------
+    #                    Overrides
+    # ---------------------------------------------------
+
+    def closeEvent(self, event):
+        self._config_reset_handler()
+        self._config_apply_all()
+        logging.shutdown()
+        event.accept()
 
 
 class LogLevelComboBox:
@@ -419,6 +489,62 @@ class GIModeComboBox:
 
     def __repr__(self):
         return self.__str__()
+
+
+class SATSPromptComboBox:
+    def __init__(self, combo_box):
+        self.cmbx = combo_box
+
+    def prepass(self):
+        index = self.cmbx.currentIndex()
+        if index == 3:
+            prepass = True
+        elif index == 2:
+            prepass = False
+        elif index == 1:
+            prepass = True
+        elif index == 0:
+            prepass = False
+        else:
+            prepass = False
+        return prepass
+
+    def beauty(self):
+        index = self.cmbx.currentIndex()
+        if index == 3:
+            prepass = True
+        elif index == 2:
+            prepass = True
+        elif index == 1:
+            prepass = False
+        elif index == 0:
+            prepass = False
+        else:
+            prepass = False
+        return prepass
+
+    def __str__(self):
+        return self.cmbx.currentText()
+
+    def __repr__(self):
+        return self.__str__()
+
+
+def cmbx_set_cur_ind(cmbx, index):
+    """
+    Prevents a QComboBox from being assigned an index outside of it's range
+    :param cmbx: the QComboBox to operate on
+    :param index: The integer being assigned to the QComboBox
+    :return: None
+    """
+    index = int(index)
+    max_ind = cmbx.maxVisibleItems()
+    if index > max_ind:
+        cmbx.setCurrentIndex(max_ind)
+    elif index >= 0:
+        cmbx.setCurrentIndex(index)
+    else:
+        cmbx.setCurrentIndex(0)
 
 
 # if __name__ == '__main__':

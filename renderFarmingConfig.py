@@ -24,7 +24,7 @@ class Configuration:
 
         self._username = os.getenv('username')
 
-        self._version = "0024"
+        self._version = "0026"
 
         # Reading Config from Disk
 
@@ -237,6 +237,9 @@ class Configuration:
     def get_user_scripts_path(self):
         return self._get_path_option("paths", "user_scripts", True)
 
+    def get_interface_setting(self, option):
+        return self._Config.get("interface", option)
+
     def __str__(self):
         cfg_str = ""
         cfg_array = list()
@@ -314,6 +317,9 @@ class Configuration:
 
     def _set_user_scripts_path(self, path):
         self._set_config_by_section("paths", "user_scripts", path)
+
+    def set_interface_setting(self, option, value):
+        return self._set_config_by_section("interface", option, value)
 
 
 class TokenizedString:

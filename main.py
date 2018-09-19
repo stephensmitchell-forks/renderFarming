@@ -27,13 +27,7 @@ lg.info("Render Farming: Starting")
 
 lg.debug("Executing Spinach")
 
-uif = "E:\\dump\\scripts\\renderFarming\\renderFarmingUI.ui"
-
-
-def shutdown():
-    logging.shutdown()
-    sys.exit()
-
+uif = "E:\\dump\\scripts\\renderFarming"
 
 # Destroys instances of the dialog before recreating it
 # noinspection PyBroadException
@@ -44,5 +38,5 @@ except:
     pass
 
 app = MaxPlus.GetQMaxMainWindow()
-ui = rFUI.RenderFarmingUI(uif, rt, cfg, lg, app)
+ui = rFUI.RenderFarmingUI(uif, rt, cfg, app)
 ui.show()
