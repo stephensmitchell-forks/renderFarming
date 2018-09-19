@@ -96,6 +96,10 @@ class RenderFarmingUI(QtW.QDialog):
 
         self._saved = True
 
+        # Spinach
+
+        self._spinach = rFS.SpinachJob(self._rt, self._cfg)
+
         # ---------------------------------------------------
         #                 Button Definitions
         # ---------------------------------------------------
@@ -125,8 +129,6 @@ class RenderFarmingUI(QtW.QDialog):
 
         # Spinach
         self._sp_frm_subFolder_le = self.findChild(QtW.QLineEdit, 'sp_frm_subFolder_le')
-
-        self._sp_frm_subFolder_le.setEnabled(False)
 
         # Config
         # - Projects
@@ -172,6 +174,7 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
 
         # Spinach
+        self._sp_frm_subFolder_le.editingFinished.connect(self._sp_settings_change_handler)
         self._sp_gi_mode_cmbx.cmbx.activated.connect(self._sp_gi_mode_cmbx_handler)
 
         self._sp_man_prepass_btn.clicked.connect(self._sp_man_prepass_btn_handler)
@@ -213,8 +216,8 @@ class RenderFarmingUI(QtW.QDialog):
         #               Final Initializing
         # ---------------------------------------------------
 
-        self._spinach = rFS.SpinachJob(self._rt, self._cfg)
         self._spinach_status(self._spinach.get_status_message())
+
         self._config_setup_all()
 
     # ---------------------------------------------------
@@ -363,6 +366,7 @@ class RenderFarmingUI(QtW.QDialog):
     def _sp_settings_change_handler(self):
         self._spinach.set_frame_buffer_type(self._sp_vfb_type_cmbx.get_index())
         self._spinach.set_image_filter_override(self._sp_img_filt_ovr_cmbx.get_index())
+        self._spinach.set_frames_sub_folder(self._sp_frm_subFolder_le.text())
 
     # Config
     # ---------------------------------------------------

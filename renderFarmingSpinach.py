@@ -445,6 +445,10 @@ class SpinachJob:
                 flg.debug("Area")
                 self._vr.filter_kernel = self._rt.Area()
 
+    def _expand_frames_sub_folder(self):
+        self._clg.debug("Sub Folder Edited")
+        return self._frames_sub_folder.replace("$(cam)", self._cam_name)
+
     # ---------------------------------------------------
     #                       Public
     # ---------------------------------------------------
@@ -469,7 +473,7 @@ class SpinachJob:
 
         self._ir_file = self._cfg.get_irradiance_cache_path() + "\\{0}.vrmap".format(self._cam_name)
         self._lc_file = self._cfg.get_light_cache_path() + "\\{0}.vrlmap".format(self._cam_name)
-        self._frames_dir = os.path.join(self._cfg.get_frames_path(), self._cam_name)
+        self._frames_dir = os.path.join(self._cfg.get_frames_path(), self._expand_frames_sub_folder())
 
         flg.debug("Irradiance Map: {}".format(self._ir_file))
         flg.debug("Light Cache: {}".format(self._lc_file))
