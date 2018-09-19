@@ -191,7 +191,7 @@
        </font>
       </property>
       <property name="text">
-       <string>Single Frame</string>
+       <string>Submit</string>
       </property>
       <property name="checkable">
        <bool>false</bool>
@@ -265,9 +265,30 @@
            </item>
            <item row="2" column="1">
             <widget class="QComboBox" name="sp_img_filt_ovr_cmbx">
+             <property name="currentIndex">
+              <number>17</number>
+             </property>
+             <property name="maxVisibleItems">
+              <number>20</number>
+             </property>
              <item>
               <property name="text">
-               <string>None</string>
+               <string>Area</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Sharp Quadratic</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Catmull - Rom</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Plate Match/MAX R2</string>
               </property>
              </item>
              <item>
@@ -277,7 +298,72 @@
              </item>
              <item>
               <property name="text">
+               <string>Cubic</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Video</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Soften</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Cook Variable</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Blend</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Blackman</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Mitchell-Netravali</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
                <string>VRayLanczosFilter</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRaySincFilter</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRayBoxFilter</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRayTriangleFilter</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRayMitNetFilter</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>None</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Off</string>
               </property>
              </item>
             </widget>
@@ -339,6 +425,23 @@
        </size>
       </property>
      </spacer>
+    </item>
+    <item>
+     <widget class="Line" name="line_5">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="sp_reset_btn">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="text">
+       <string>Reset Render Setup</string>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="Line" name="line_3">

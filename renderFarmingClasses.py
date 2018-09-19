@@ -1,28 +1,29 @@
 import os
 import logging
 
+import renderFarmingTools as rFT
+
 mlg = logging.getLogger("renderFarming.Classes")
 
 
 class RenderSettings:
 
-    def __init__(self, rt, frames_dir, code, cam):
+    def __init__(self, rt, user_scripts, code):
 
         clg = logging.getLogger("renderFarming.Classes.RenderSettings")
 
         self._rt = rt
 
-        self._dir = frames_dir
+        self._dir = os.path.join(user_scripts, "bdf", "renderFarming", "rps")
+        rFT.verify_dir(self._dir)
+
         self._code = code
-        if cam is None:
-            self._cam_name = "viewport"
-        else:
-            self._cam_name = cam.name
         self._filename = "spinachLast.rps"
         self._path = os.path.join(self._dir, self._filename)
+
         self._written = False
         clg.debug("Created a copy of the Render Settings")
-        clg.debug("Camera: {0}, Project{1}, .RPS File: {2}".format(self._cam_name, self._code, self._path))
+        clg.debug("Project{0}, .RPS File: {1}".format(self._code, self._path))
 
     def capture(self):
         flg = logging.getLogger("renderFarming.Classes.RenderSettings.capture")

@@ -27,21 +27,29 @@ import logging
 
 class SpinachJob:
     def __init__(self, rt, cfg):
+        # Logging
         self._clg = logging.getLogger("renderFarming.Spinach")
         self._clg.debug("Running Spinach")
 
-        self._rt = rt
+        # Variables
 
+        self._rt = rt
         self._vr = self._rt.renderers.current
 
         self._cfg = cfg
+
+        # Paths
 
         self._ir_file = self._cfg.get_irradiance_cache_path()
         self._lc_file = self._cfg.get_light_cache_path()
         self._frames_dir = self._cfg.get_frames_path()
 
+        # Cameras
+
         self._cam = None
         self._cam_name = str()
+
+        # Messaging system attributes
 
         self._ready = False
 
@@ -49,9 +57,24 @@ class SpinachJob:
         self._log_status(self._clg)
         self._rsd_state = False
 
+        # HTML Message macros
+
         self._rd_er_tx = rFT.html_color_text("ERROR:", "#ff3232")
         self._grn_rdy_tx = rFT.html_color_text("Ready!", "#4ca64c")
         self._org_n_rdy_tx = rFT.html_color_text("Not Ready:", "#FFA500")
+
+        # UI Settings Attributes
+
+        self._frame_buffer_type = 0
+        self._image_filter_override = 17
+        self._frames_sub_folder = "$(cam)"
+
+        # Other Attributes
+
+        self._orig_settings = rFC.RenderSettings(self._rt,
+                                                 self._cfg.get_user_scripts_path(),
+                                                 self._cfg.get_project_code())
+        self._orig_settings.capture()
 
     def _log_status(self, handler=logging.getLogger("renderFarming.Spinach")):
         """
@@ -299,23 +322,128 @@ class SpinachJob:
         else:
             return True
 
-    def _set_output(self, on=True):
+    def _set_output(self, fb_type, beauty=True):
         """
         Sets the output to the frames folder stored in the job
         :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._set_output")
-        if on:
-            self._rt.rendSaveFile = True
+        if beauty:
+            if fb_type is 0:
+                self._rt.rendSaveFile = True
+                self._vr.output_on = False
+                flg.debug("3ds Max Frame Buffer is on")
 
-            flg.debug("Setting output directory to the folder specified for the camera")
-            flg.debug("{0}\\frame_.exr".format(self._frames_dir))
+                self._vr.output_splitgbuffer = False
 
-            self._rt.rendOutputFilename = "{0}\\frame_.exr".format(self._frames_dir)
+                flg.debug("Setting 3ds Max Frame Buffer output directory to the folder specified for the camera")
+                flg.debug("{0}\\frame_.exr".format(self._frames_dir))
+
+                self._rt.rendOutputFilename = "{0}\\frame_.exr".format(self._frames_dir)
+                self._vr.output_splitFileName = ""
+
+            elif fb_type is 1:
+                self._rt.rendSaveFile = False
+                self._vr.output_on = True
+                flg.debug("VRay Frame Buffer is on")
+
+                self._vr.output_splitgbuffer = True
+
+                flg.debug("Setting VRay Frame Buffer output directory to the folder specified for the camera")
+                flg.debug("{0}\\frame_.exr".format(self._frames_dir))
+
+                self._vr.output_splitFileName = "{0}\\frame_.exr".format(self._frames_dir)
+                self._rt.rendOutputFilename = ""
+
         else:
-            self._rt.rendSaveFile = False
-            flg.debug("Clearing Output Directory")
-            self._rt.rendOutputFilename = ""
+            if fb_type is 0:
+                self._rt.rendSaveFile = False
+                self._vr.output_on = False
+                flg.debug("3ds Max Frame Buffer is on")
+
+                self._vr.output_splitgbuffer = False
+
+                flg.debug("Clearing Output Directory")
+                self._rt.rendOutputFilename = ""
+                self._vr.output_splitFileName = ""
+
+            elif fb_type is 1:
+                self._rt.rendSaveFile = False
+                self._vr.output_on = True
+                flg.debug("VRay Frame Buffer is on")
+
+                self._vr.output_splitgbuffer = False
+
+                flg.debug("Clearing Output Directory")
+                self._rt.rendOutputFilename = ""
+                self._vr.output_splitFileName = ""
+
+    def _override_image_filter(self):
+        flg = logging.getLogger("renderFarming.Spinach.override_image_filter")
+        filt = self._image_filter_override
+
+        if filt is 18:
+            flg.debug("Image Filter set to Off")
+            self._vr.filter_on = False
+        elif filt is 17:
+            flg.debug("Image Filter will not be changed")
+        else:
+            self._vr.filter_on = True
+            flg.debug("Image Filter set to index {}".format(self._image_filter_override))
+            if filt is 16:
+                flg.debug("VRayMitNetFilter")
+                self._vr.filter_kernel = self._rt.VRayMitNetFilter()
+            elif filt is 15:
+                flg.debug("VRayTriangleFilter")
+                self._vr.filter_kernel = self._rt.VRayTriangleFilter()
+            elif filt is 14:
+                flg.debug("VRayBoxFilter")
+                self._vr.filter_kernel = self._rt.VRayBoxFilter()
+            elif filt is 13:
+                flg.debug("VRaySincFilter")
+                self._vr.filter_kernel = self._rt.VRaySincFilter()
+            elif filt is 12:
+                flg.debug("VRayLanczosFilter")
+                self._vr.filter_kernel = self._rt.VRayLanczosFilter()
+            elif filt is 11:
+                flg.debug("Mitchell Netravali")
+                self._vr.filter_kernel = self._rt.Mitchell_Netravali()
+            elif filt is 10:
+                flg.debug("Blackman")
+                self._vr.filter_kernel = self._rt.Blackman()
+            elif filt is 9:
+                flg.debug("Blend")
+                self._vr.filter_kernel = self._rt.Blend()
+            elif filt is 8:
+                flg.debug("Cook Variable")
+                self._vr.filter_kernel = self._rt.Cook_Variable()
+            elif filt is 7:
+                flg.debug("Soften")
+                self._vr.filter_kernel = self._rt.Soften()
+            elif filt is 6:
+                flg.debug("Video")
+                self._vr.filter_kernel = self._rt.Video()
+            elif filt is 5:
+                flg.debug("Cubic")
+                self._vr.filter_kernel = self._rt.Cubic()
+            elif filt is 4:
+                flg.debug("Quadratic")
+                self._vr.filter_kernel = self._rt.Quadratic()
+            elif filt is 3:
+                flg.debug("Plate Match/MAX R2")
+                self._vr.filter_kernel = self._rt.Plate_Match_MAX_R2()
+            elif filt is 2:
+                flg.debug("Catmull Rom")
+                self._vr.filter_kernel = self._rt.Catmull_Rom()
+            elif filt is 1:
+                flg.debug("Sharp Quadtratic")
+                self._vr.filter_kernel = self._rt.Sharp_Quadtratic()
+            elif filt is 0:
+                flg.debug("Area")
+                self._vr.filter_kernel = self._rt.Area()
+            else:
+                flg.debug("Area")
+                self._vr.filter_kernel = self._rt.Area()
 
     # ---------------------------------------------------
     #                       Public
@@ -337,6 +465,7 @@ class SpinachJob:
 
         if not self._verify_vray():
             return
+        self._vr = self._rt.renderers.current
 
         self._ir_file = self._cfg.get_irradiance_cache_path() + "\\{0}.vrmap".format(self._cam_name)
         self._lc_file = self._cfg.get_light_cache_path() + "\\{0}.vrlmap".format(self._cam_name)
@@ -350,11 +479,6 @@ class SpinachJob:
                                   self._cfg.get_light_cache_path(),
                                   self._frames_dir):
             return
-
-        flg.debug("Capturing Original Render Settings")
-
-        orig_settings = rFC.RenderSettings(self._rt, self._frames_dir, self._cfg.get_project_code(), self._cam)
-        orig_settings.capture()
 
         self._status_message = self._grn_rdy_tx
         self._ready = True
@@ -424,23 +548,19 @@ class SpinachJob:
         self._set_gi_save_to_frame(render_type)
 
         flg.debug("Setting VRay to render only GI")
-
         self._vr.options_dontRenderImage = True
 
-        flg.debug("Turning VRay Frame Buffer on")
-
-        self._vr.output_on = True
-
-        flg.debug("Setting render time output to \"Single Frame\"")
-
+        flg.debug("Setting render time output")
         self._set_frame_time_type(render_type)
+
+        flg.debug("Overriding Image Filter")
+        self._override_image_filter()
 
         self._status_message = "{} - Single Frame Prepass".format(self._grn_rdy_tx)
         self._log_status(flg)
 
-        flg.debug("Setting \"Save File\" off")
-
-        self._set_output(False)
+        flg.debug("Setting Output")
+        self._set_output(self._frame_buffer_type, False)
 
         self.rsd_toggle(True)
 
@@ -480,18 +600,16 @@ class SpinachJob:
         self._set_gi_save_to_frame(render_type)
 
         flg.debug("Setting VRay to render final image")
-
         self._vr.options_dontRenderImage = False
 
-        flg.debug("Turning VRay Frame Buffer off")
-
-        self._vr.output_on = False
-
+        flg.debug("Setting render time output")
         self._set_frame_time_type(render_type)
 
-        flg.debug("Setting \"Save File\" on")
+        flg.debug("Setting Output")
+        self._set_output(self._frame_buffer_type, True)
 
-        self._set_output()
+        flg.debug("Overriding Image Filter")
+        self._override_image_filter()
 
         flg.debug("File Ready for Final Render")
         self._status_message = "{} - Beauty - GI From File".format(self._grn_rdy_tx)
@@ -535,6 +653,10 @@ class SpinachJob:
                 self._clg.debug("Opening \"Render Scene Dialog\"")
                 self._rt.renderSceneDialog.open()
 
+    def restore_original_render_settings(self):
+        if self._orig_settings is not None:
+            self._orig_settings.set()
+
     # noinspection PyMethodMayBeStatic
     def submit(self):
         """
@@ -545,3 +667,38 @@ class SpinachJob:
         flg.debug("Submitting file to Backburner")
         rFNR.submit_current_file()
         flg.debug("File submitted to Backburner")
+
+    # ---------------------------------------------------
+    #                       Getters
+    # ---------------------------------------------------
+
+    # ---------------------------------------------------
+    #                       Setters
+    # ---------------------------------------------------
+
+    def set_frame_buffer_type(self, fb_type):
+        flg = logging.getLogger("renderFarming.Spinach.set_frame_buffer_type")
+        if fb_type > 1:
+            flg.error("Index Error: Index is greater than allowed")
+            self._frame_buffer_type = 0
+        elif fb_type < 0:
+            flg.error("Index Error: Index is less than 0")
+            self._frame_buffer_type = 0
+        else:
+            flg.debug("Changing Frame Buffer Type to {}".format("Max" if fb_type is 0 else "VRay"))
+            self._frame_buffer_type = fb_type
+
+    def set_image_filter_override(self, if_type):
+        flg = logging.getLogger("renderFarming.Spinach.set_frame_buffer_type")
+        if if_type > 18:
+            flg.error("Index Error: Index is greater than allowed")
+            self._image_filter_override = if_type
+        elif if_type < 0:
+            flg.error("Index Error: Index is less than 0")
+            self._image_filter_override = if_type
+        else:
+            flg.debug("Changing Image Filter to index: {}".format(if_type))
+            self._image_filter_override = if_type
+
+    def set_frames_sub_folder(self, fsf_string):
+        self._frames_sub_folder = fsf_string

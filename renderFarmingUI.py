@@ -1,47 +1,67 @@
+# General Built-ins
 # import sys
 import logging
 import cStringIO
 import os
 
+# Other Render Farming files
 # import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
 import renderFarmingTools as rFT
 import renderFarmingSATSDialogUI as rFSATS
 
+# 3DS Max Specific
 import MaxPlus
 
+# PySide 2
 from PySide2.QtUiTools import QUiLoader
 import PySide2.QtWidgets as QtW
 from PySide2.QtCore import QFile
-
-# uif = 'renderFarmingUI.ui'
-#
-# cfg = rFCfg.Configuration()
-# rt = pymxs.runtime
-#
-#
-# lg = logging.getLogger("renderFarming")
-# lg.setLevel(cfg.get_log_level())
-#
-# log_file = cfg.get_log_file()
-# fh = logging.FileHandler(log_file)
-# formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# fh.setFormatter(formatter)
-# lg.addHandler(fh)
-# lg.info("Render Farming: Starting")
 
 
 class RenderFarmingUI(QtW.QDialog):
 
     def __init__(self, ui_path, runtime, configuration, parent=MaxPlus.GetQMaxMainWindow()):
+        """
+        The Initialization of the main UI class
+        :param ui_path: The path to the .UI file from QDesigner
+        :param runtime: The pymxs runtime from max
+        :param configuration: a renderFarmingConfig object
+        :param parent: The main Max Window
+        """
         super(RenderFarmingUI, self).__init__(parent)
 
-        self._clg = logging.getLogger("renderFarming.UI")
+        # ---------------------------------------------------
+        #                    Variables
+        # ---------------------------------------------------
 
         self._ui_path = ui_path
         self._rt = runtime
         self._cfg = configuration
         self._parent = parent
+
+        # ---------------------------------------------------
+        #                      Logging
+        # ---------------------------------------------------
+
+        # Creates Log Stream
+
+        self._clg = logging.getLogger("renderFarming")
+        self._clg.setLevel(self._cfg.get_log_level())
+
+        # Log file Handling
+
+        log_file = self._cfg.get_log_file()
+        fh = logging.FileHandler(log_file)
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        fh.setFormatter(formatter)
+        self._clg.addHandler(fh)
+
+        self._clg.info("Render Farming: Starting")
+
+        # ---------------------------------------------------
+        #                     Main Init
+        # ---------------------------------------------------
 
         # Log display handler
         self._log_stream = cStringIO.StringIO()
@@ -49,6 +69,8 @@ class RenderFarmingUI(QtW.QDialog):
         self._log_to_stream()
 
         self._clg.debug("Reading UI definition from {}".format(self._ui_path))
+
+        # UI Loader
 
         ui_file = QFile(os.path.join(self._ui_path, "renderFarmingMainWidget.ui"))
         ui_file.open(QFile.ReadOnly)
@@ -58,13 +80,19 @@ class RenderFarmingUI(QtW.QDialog):
 
         ui_file.close()
 
+        # Attaches loaded UI to the dialog box
+
         main_layout = QtW.QVBoxLayout()
         main_layout.addWidget(self._tabbed_widget)
 
         self.setLayout(main_layout)
 
+        # Titling
+
         self._window_title = "Render Farming - v{}".format(self._cfg.get_version())
         self.setWindowTitle(self._window_title)
+
+        # General Attributes
 
         self._saved = True
 
@@ -76,6 +104,7 @@ class RenderFarmingUI(QtW.QDialog):
         self._sp_man_prepass_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_prepass_btn')
         self._sp_man_beauty_btn = self.findChild(QtW.QPushButton, 'sp_1f_man_beauty_btn')
         self._sp_1f_auto_btn = self.findChild(QtW.QPushButton, 'sp_1f_auto_btn')
+        self._sp_reset_btn = self.findChild(QtW.QPushButton, 'sp_reset_btn')
 
         # Config
         self._cfg_save_btn = self.findChild(QtW.QPushButton, 'config_save_btn')
@@ -129,12 +158,9 @@ class RenderFarmingUI(QtW.QDialog):
         # Spinach
         self._sp_gi_mode_cmbx = GIModeComboBox(self.findChild(QtW.QComboBox, 'sp_gi_mode_cmbx'))
 
-        self._sp_vfb_type_cmbx = SATSPromptComboBox(self.findChild(QtW.QComboBox, 'sp_vfb_type_cmbx'))
-        self._sp_img_filt_ovr_cmbx = SATSPromptComboBox(self.findChild(QtW.QComboBox, 'sp_img_filt_ovr_cmbx'))
+        self._sp_vfb_type_cmbx = IndexBasedComboBox(self.findChild(QtW.QComboBox, 'sp_vfb_type_cmbx'))
+        self._sp_img_filt_ovr_cmbx = IndexBasedComboBox(self.findChild(QtW.QComboBox, 'sp_img_filt_ovr_cmbx'))
         self._sp_sats_prompt_cmbx = SATSPromptComboBox(self.findChild(QtW.QComboBox, 'sp_sats_prompt_cmbx'))
-
-        self._sp_vfb_type_cmbx.cmbx.setEnabled(False)
-        self._sp_img_filt_ovr_cmbx.cmbx.setEnabled(False)
 
         # Config
         # - Logs
@@ -147,10 +173,17 @@ class RenderFarmingUI(QtW.QDialog):
 
         # Spinach
         self._sp_gi_mode_cmbx.cmbx.activated.connect(self._sp_gi_mode_cmbx_handler)
+
         self._sp_man_prepass_btn.clicked.connect(self._sp_man_prepass_btn_handler)
         self._sp_man_beauty_btn.clicked.connect(self._sp_man_beauty_btn_handler)
         # self._sp_1f_auto_btn.clicked.connect(self._single_frame_auto_handler)
+
+        self._sp_vfb_type_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
+        self._sp_img_filt_ovr_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
+
         self._sp_1f_auto_btn.setEnabled(False)
+
+        self._sp_reset_btn.clicked.connect(self._spinach_reset_handler)
 
         # config
 
@@ -215,8 +248,8 @@ class RenderFarmingUI(QtW.QDialog):
         cmbx_set_cur_ind(self._sp_vfb_type_cmbx.cmbx, (self._cfg.get_interface_setting("sp_vfb_type_cmbx_ind")))
         cmbx_set_cur_ind(self._sp_img_filt_ovr_cmbx.cmbx, (self._cfg.get_interface_setting("sp_img_filt_ovr_cmbx_ind")))
         cmbx_set_cur_ind(self._sp_sats_prompt_cmbx.cmbx, (self._cfg.get_interface_setting("sp_sats_prompt_cmbx_ind")))
-
         self._sp_frm_subFolder_le.setText(self._cfg.get_interface_setting("sp_frm_subFolder_le_str"))
+        self._sp_settings_change_handler()
 
     def _config_apply_config_page(self):
         self._cfg.set_project_code(self._cfg_prj_projectCode_le.text())
@@ -232,7 +265,7 @@ class RenderFarmingUI(QtW.QDialog):
 
         log_level = self._cfg_lg_loggingLevel_cmbx.get_level()
         self._cfg.set_log_level(log_level)
-        self._lg.setLevel(log_level)
+        self._clg.setLevel(log_level)
 
     def _config_apply_spinach_page(self):
         self._cfg.set_interface_setting("sp_gi_mode_cmbx_ind", self._sp_gi_mode_cmbx.cmbx.currentIndex())
@@ -274,40 +307,42 @@ class RenderFarmingUI(QtW.QDialog):
         self._spinach_status("{} Automatic submission not implemented".format(er))
         return
 
-        # self._spinach.check_camera()
-        # self._spinach_status(self._spinach.get_status_message())
-        # if not self._spinach.get_ready_status():
-        #     self._spinach.prepare_job()
-        #
-        # if self._spinach.get_ready_status():
-        #     self._spinach.single_frame_prepass()
-        #     self._spinach.from_file()
-        #     self._spinach_status(self._spinach.get_status_message())
-
     def _sp_man_prepass_btn_handler(self):
+        flg = logging.getLogger("renderFarming.UI._sp_man_prepass_btn_handler")
+        flg.debug("Executing Prepass")
         if self._sp_sats_prompt_cmbx.prepass():
+            flg.debug("SATS Dialog Requested")
             if not self._sats_dialog_opener():
+                flg.warning("SATS Dialog cancelled, interrupting prepass")
                 return
         self._spinach.check_camera()
         self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
+            flg.debug("Spinach reports not ready, attempting to prepare the Job")
             self._spinach.prepare_job()
 
         if self._spinach.get_ready_status():
+            flg.debug("Spinach reports ready, preparing the pass")
             self._spinach.prepare_prepass(self._sp_gi_mode_cmbx.get_prepass_mode())
 
         self._spinach_status(self._spinach.get_status_message())
 
     def _sp_man_beauty_btn_handler(self):
+        flg = logging.getLogger("renderFarming.UI._sp_man_beauty_btn_handler")
+        flg.debug("Executing Beauty Pass")
         if self._sp_sats_prompt_cmbx.beauty():
+            flg.debug("SATS Dialog Requested")
             if not self._sats_dialog_opener():
+                flg.warning("SATS Dialog cancelled, interrupting beauty pass")
                 return
         self._spinach.check_camera()
         self._spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
+            flg.debug("Spinach reports not ready, attempting to prepare the Job")
             self._spinach.prepare_job()
 
         if self._spinach.get_ready_status():
+            flg.debug("Spinach reports ready, preparing the pass")
             self._spinach.prepare_beauty_pass(self._sp_gi_mode_cmbx.get_beauty_mode())
 
         self._spinach_status(self._spinach.get_status_message())
@@ -321,6 +356,13 @@ class RenderFarmingUI(QtW.QDialog):
 
     def _spinach_status(self, text):
         self._spinach_status_lb.setText("Status: {}".format(text))
+
+    def _spinach_reset_handler(self):
+        self._spinach.restore_original_render_settings()
+
+    def _sp_settings_change_handler(self):
+        self._spinach.set_frame_buffer_type(self._sp_vfb_type_cmbx.get_index())
+        self._spinach.set_image_filter_override(self._sp_img_filt_ovr_cmbx.get_index())
 
     # Config
     # ---------------------------------------------------
@@ -393,13 +435,19 @@ class RenderFarmingUI(QtW.QDialog):
 
     def closeEvent(self, event):
         self._config_reset_handler()
-        self._config_apply_all()
+        self._saved = False
+        self._config_apply_all(True)
         logging.shutdown()
+        print("Spinach Closed")
         event.accept()
 
 
 class LogLevelComboBox:
     def __init__(self, combo_box):
+        """
+        Switches the Log Level Combo Box
+        :param combo_box: A QComboBox object
+        """
         self.cmbx = combo_box
 
     def set_by_level(self, debug_level):
@@ -432,7 +480,9 @@ class LogLevelComboBox:
 
 
 class GIModeComboBox:
-    """
+    def __init__(self, combo_box):
+        """
+        Switches between Gi Modes
         Gi Modes
             -0:   Single Frame Irradiance Map, Light Cache: 0
             -1:   From File Single Frame Irradiance Map, Light Cache: 0
@@ -444,8 +494,8 @@ class GIModeComboBox:
             -7:   Brute Force, From File Light Cache: 3
             -8:   Brute Force, Light Cache with a new Light Cache every frame: 4
             -9:   Brute Force, Brute Force: 5
-    """
-    def __init__(self, combo_box):
+        :param combo_box: A QComboBox object
+        """
         self.cmbx = combo_box
 
     def get_prepass_mode(self):
@@ -493,6 +543,10 @@ class GIModeComboBox:
 
 class SATSPromptComboBox:
     def __init__(self, combo_box):
+        """
+        Switches the SATS dialog on and off
+        :param combo_box: A QComboBox object
+        """
         self.cmbx = combo_box
 
     def prepass(self):
@@ -522,6 +576,25 @@ class SATSPromptComboBox:
         else:
             prepass = False
         return prepass
+
+    def __str__(self):
+        return self.cmbx.currentText()
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class IndexBasedComboBox:
+    def __init__(self, combo_box):
+        """
+        Switches the SATS dialog on and off
+        :param combo_box: A QComboBox object
+        """
+        self.cmbx = combo_box
+
+    def get_index(self):
+        index = self.cmbx.currentIndex()
+        return index
 
     def __str__(self):
         return self.cmbx.currentText()
