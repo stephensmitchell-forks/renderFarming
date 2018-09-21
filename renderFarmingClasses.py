@@ -26,7 +26,36 @@ class RenderSettings:
         clg.debug("Created a copy of the Render Settings")
         clg.debug("Project{0}, .RPS File: {1}".format(self._code, self._path))
 
+        self._settings_dict = dict()
+
     def capture(self):
+        cd = dict()
+        # Common
+        cd = cd.update(self._capture_common())
+
+        # V-Ray
+        cd = cd.update(self._capture_common())
+
+        # GI
+        cd = cd.update(self._capture_common())
+
+        # Settings
+        cd = cd.update(self._capture_common())
+
+        # Render Elements
+        cd = cd.update(self._capture_common())
+
+        # finishing
+        self._settings_dict = cd
+        return
+
+    def _capture_common(self):
+        com_cd = dict()
+        # Time Output
+        self._rt.rendTimeType = 1
+        return com_cd
+
+    def capture_rps(self):
         flg = logging.getLogger("renderFarming.Classes.RenderSettings.capture")
         flg.debug("Saving Render Preset")
         try:
@@ -40,7 +69,7 @@ class RenderSettings:
             flg.error("Error, Failed to save Render Presets: {0}, file: {1}".format(e, self._path))
             self._written = False
 
-    def set(self):
+    def set_rps(self):
         flg = logging.getLogger("renderFarming.Classes.RenderSettings.set")
         flg.debug("Loading Render Preset")
         if self._written:
@@ -158,3 +187,78 @@ class Token:
 
     def get_value(self):
         return self._value
+
+
+class VRayImageFilterSet:
+    def __init__(self, rt, filter_index):
+        """
+
+        :param rt: The pymxs Runtime
+        :param filter_index: The index of the filter in the VRay drop down menu
+        """
+        self._clg = logging.getLogger("renderFarming.Classes.VRayImageFilterSet")
+
+        self._rt = rt
+        self._filter_index = filter_index
+
+        if filter_index < 0 or filter_index > 16:
+            msg = "The filter index is outside of the acceptable range.  Index: {}".format(filter_index)
+            self._clg.error(msg)
+            raise IndexError(msg)
+
+    def get_filter(self):
+        filt = self._filter_index
+        if filt is 16:
+            self._clg.debug("VRayMitNetFilter")
+            return self._rt.VRayMitNetFilter()
+        elif filt is 15:
+            self._clg.debug("VRayTriangleFilter")
+            return self._rt.VRayTriangleFilter()
+        elif filt is 14:
+            self._clg.debug("VRayBoxFilter")
+            return self._rt.VRayBoxFilter()
+        elif filt is 13:
+            self._clg.debug("VRaySincFilter")
+            return self._rt.VRaySincFilter()
+        elif filt is 12:
+            self._clg.debug("VRayLanczosFilter")
+            return self._rt.VRayLanczosFilter()
+        elif filt is 11:
+            self._clg.debug("Mitchell Netravali")
+            return self._rt.Mitchell_Netravali()
+        elif filt is 10:
+            self._clg.debug("Blackman")
+            return self._rt.Blackman()
+        elif filt is 9:
+            self._clg.debug("Blend")
+            return self._rt.Blend()
+        elif filt is 8:
+            self._clg.debug("Cook Variable")
+            return self._rt.Cook_Variable()
+        elif filt is 7:
+            self._clg.debug("Soften")
+            return self._rt.Soften()
+        elif filt is 6:
+            self._clg.debug("Video")
+            return self._rt.Video()
+        elif filt is 5:
+            self._clg.debug("Cubic")
+            return self._rt.Cubic()
+        elif filt is 4:
+            self._clg.debug("Quadratic")
+            return self._rt.Quadratic()
+        elif filt is 3:
+            self._clg.debug("Plate Match/MAX R2")
+            return self._rt.Plate_Match_MAX_R2()
+        elif filt is 2:
+            self._clg.debug("Catmull Rom")
+            return self._rt.Catmull_Rom()
+        elif filt is 1:
+            self._clg.debug("Sharp Quadtratic")
+            return self._rt.Sharp_Quadtratic()
+        elif filt is 0:
+            self._clg.debug("Area")
+            return self._rt.Area()
+        else:
+            self._clg.debug("Area")
+            return self._rt.Area()

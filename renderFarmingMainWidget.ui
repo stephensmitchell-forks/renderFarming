@@ -2,12 +2,15 @@
 <ui version="4.0">
  <class>RenderFarmingUI</class>
  <widget class="QTabWidget" name="RenderFarmingUI">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>682</width>
-    <height>847</height>
+    <width>587</width>
+    <height>687</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -22,7 +25,10 @@
   <property name="currentIndex">
    <number>0</number>
   </property>
-  <widget class="QWidget" name="spinach">
+  <widget class="QWidget" name="spinach_tbdg">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <attribute name="title">
     <string>Spinach</string>
    </attribute>
@@ -401,6 +407,65 @@
            </item>
           </layout>
          </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <layout class="QFormLayout" name="formLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_multi_frame_increment">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="text">
+              <string>Multiframe Increment</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="sp_multi_frame_increment_sb">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="singleStep">
+              <number>10</number>
+             </property>
+             <property name="value">
+              <number>50</number>
+             </property>
+             <property name="displayIntegerBase">
+              <number>10</number>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="sp_pad_gi_range_ckbx">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="text">
+              <string>Pad GI Range</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
         </layout>
        </item>
       </layout>
@@ -436,7 +501,7 @@
     <item>
      <widget class="QPushButton" name="sp_reset_btn">
       <property name="enabled">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
       <property name="text">
        <string>Reset Render Setup</string>
@@ -459,7 +524,57 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="config">
+  <widget class="QWidget" name="kale_tbdg">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <attribute name="title">
+    <string>Kale</string>
+   </attribute>
+   <layout class="QVBoxLayout" name="verticalLayout_6">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_5">
+      <item>
+       <widget class="QPushButton" name="kl_run_btn">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Run Sanity Check</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QPlainTextEdit" name="kl_results_text_pte">
+      <property name="tabChangesFocus">
+       <bool>true</bool>
+      </property>
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+      <property name="placeholderText">
+       <string>Results will be displayed here:</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="config_tbdg">
    <attribute name="title">
     <string>Configuration</string>
    </attribute>
@@ -933,7 +1048,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="log">
+  <widget class="QWidget" name="log_tbdg">
    <attribute name="title">
     <string>Log</string>
    </attribute>
@@ -966,6 +1081,9 @@
       </item>
       <item>
        <widget class="QPlainTextEdit" name="lg_text_pte">
+        <property name="tabChangesFocus">
+         <bool>true</bool>
+        </property>
         <property name="documentTitle">
          <string notr="true"/>
         </property>

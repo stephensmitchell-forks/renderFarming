@@ -86,3 +86,14 @@ def verify_vray(rt):
             return False
         flg.debug("Renderer set to {0}".format(str(rt.renderers.current).split(':')[1]))
         return True
+
+
+def calculate_increment_padding(start, end, increment):
+    length = end - start
+    last_inc_length = length % increment
+    if last_inc_length is 0:
+        return end
+    else:
+        last_increment_start = end - last_inc_length
+        new_end = last_increment_start + increment
+        return new_end

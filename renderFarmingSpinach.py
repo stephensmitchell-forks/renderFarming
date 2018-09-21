@@ -69,12 +69,15 @@ class SpinachJob:
         self._image_filter_override = 17
         self._frames_sub_folder = "$(cam)"
 
+        self._multi_frame_increment = 50
+        self._pad_gi = False
+
         # Other Attributes
 
         self._orig_settings = rFC.RenderSettings(self._rt,
                                                  self._cfg.get_user_scripts_path(),
                                                  self._cfg.get_project_code())
-        self._orig_settings.capture()
+        self._orig_settings.capture_rps()
 
     def _log_status(self, handler=logging.getLogger("renderFarming.Spinach")):
         """
@@ -185,7 +188,7 @@ class SpinachJob:
             self._vr.gi_primary_type = 2
             self._vr.gi_secondary_type = 2
 
-    def _set_frame_time_type(self, render_type=6, multi_frame_increment=50):
+    def _set_frame_time_type(self, render_type=6):
         """
         Sets the frame settings based on type
         :param render_type: The combination of Gi settings used by the renderer
@@ -206,16 +209,47 @@ class SpinachJob:
         flg.debug("Using Render Type {}".format(render_type))
 
         if render_type is 2:
-            flg.debug("Setting time to every Nth frame with an increment of {}".format(multi_frame_increment))
-            self._rt.rendTimeType = 2
-            self._rt.rendNThFrame = multi_frame_increment
+            if not self._pad_gi:
+                flg.debug("Setting time to Active Segment frame")
+                self._rt.rendTimeType = 2
+            else:
+                flg.debug("Padding Multi Frame Incremental GI Range")
+                end = int(self._rt.animationRange.end)
+                start = int(self._rt.animationRange.start)
+                new_end = rFT.calculate_increment_padding(start, end, self._multi_frame_increment)
+
+                flg.debug("Range padded from frame {0} to frame {1}".format(end, new_end))
+
+                self._rt.rendTimeType = 3
+                self._rt.rendStart = start
+                self._rt.rendEnd = new_end
+
+            flg.debug("Setting time to every Nth frame with an increment of {}".format(self._multi_frame_increment))
+            self._rt.rendNThFrame = self._multi_frame_increment
 
         elif render_type in (0, 6):
             flg.debug("Setting time to single frame")
             self._rt.rendTimeType = 1
             self._rt.rendNThFrame = 1
 
-        elif render_type in (1, 3, 4, 5, 7, 8, 9):
+        elif render_type is 4:
+            if not self._pad_gi:
+                flg.debug("Setting time to Active Segment frame")
+                self._rt.rendTimeType = 2
+                self._rt.rendNThFrame = 1
+
+                interp_frames = self._vr.gi_irradmap_interpFrames
+
+                flg.debug("Padding Frame Range by {} Frames on either side".format(interp_frames))
+
+                self._rt.rendStart = int(self._rt.animationRange.start) - interp_frames
+                self._rt.rendEnd = int(self._rt.animationRange.end) + interp_frames
+
+            else:
+                flg.debug("Padding Animation Prepass GI Range")
+                self._rt.rendTimeType = 3
+
+        elif render_type in (1, 3, 5, 7, 8, 9):
             flg.debug("Setting time to Active Segment frame")
             self._rt.rendTimeType = 2
             self._rt.rendNThFrame = 1
@@ -390,60 +424,7 @@ class SpinachJob:
         else:
             self._vr.filter_on = True
             flg.debug("Image Filter set to index {}".format(self._image_filter_override))
-            if filt is 16:
-                flg.debug("VRayMitNetFilter")
-                self._vr.filter_kernel = self._rt.VRayMitNetFilter()
-            elif filt is 15:
-                flg.debug("VRayTriangleFilter")
-                self._vr.filter_kernel = self._rt.VRayTriangleFilter()
-            elif filt is 14:
-                flg.debug("VRayBoxFilter")
-                self._vr.filter_kernel = self._rt.VRayBoxFilter()
-            elif filt is 13:
-                flg.debug("VRaySincFilter")
-                self._vr.filter_kernel = self._rt.VRaySincFilter()
-            elif filt is 12:
-                flg.debug("VRayLanczosFilter")
-                self._vr.filter_kernel = self._rt.VRayLanczosFilter()
-            elif filt is 11:
-                flg.debug("Mitchell Netravali")
-                self._vr.filter_kernel = self._rt.Mitchell_Netravali()
-            elif filt is 10:
-                flg.debug("Blackman")
-                self._vr.filter_kernel = self._rt.Blackman()
-            elif filt is 9:
-                flg.debug("Blend")
-                self._vr.filter_kernel = self._rt.Blend()
-            elif filt is 8:
-                flg.debug("Cook Variable")
-                self._vr.filter_kernel = self._rt.Cook_Variable()
-            elif filt is 7:
-                flg.debug("Soften")
-                self._vr.filter_kernel = self._rt.Soften()
-            elif filt is 6:
-                flg.debug("Video")
-                self._vr.filter_kernel = self._rt.Video()
-            elif filt is 5:
-                flg.debug("Cubic")
-                self._vr.filter_kernel = self._rt.Cubic()
-            elif filt is 4:
-                flg.debug("Quadratic")
-                self._vr.filter_kernel = self._rt.Quadratic()
-            elif filt is 3:
-                flg.debug("Plate Match/MAX R2")
-                self._vr.filter_kernel = self._rt.Plate_Match_MAX_R2()
-            elif filt is 2:
-                flg.debug("Catmull Rom")
-                self._vr.filter_kernel = self._rt.Catmull_Rom()
-            elif filt is 1:
-                flg.debug("Sharp Quadtratic")
-                self._vr.filter_kernel = self._rt.Sharp_Quadtratic()
-            elif filt is 0:
-                flg.debug("Area")
-                self._vr.filter_kernel = self._rt.Area()
-            else:
-                flg.debug("Area")
-                self._vr.filter_kernel = self._rt.Area()
+            self._vr.filter_kernel = rFC.VRayImageFilterSet(self._rt, filt).get_filter()
 
     def _expand_frames_sub_folder(self):
         self._clg.debug("Sub Folder Edited")
@@ -659,7 +640,7 @@ class SpinachJob:
 
     def restore_original_render_settings(self):
         if self._orig_settings is not None:
-            self._orig_settings.set()
+            self._orig_settings.set_rps()
 
     # noinspection PyMethodMayBeStatic
     def submit(self):
@@ -706,3 +687,13 @@ class SpinachJob:
 
     def set_frames_sub_folder(self, fsf_string):
         self._frames_sub_folder = fsf_string
+
+    def set_pad_gi(self, is_checked):
+        self._pad_gi = is_checked
+
+    def set_multi_frame_increment(self, increment):
+        flg = logging.getLogger("renderFarming.Spinach.set_multi_frame_increment")
+        if increment < 1:
+            flg.error("Index Error: Index is less than 1")
+        else:
+            self._multi_frame_increment = increment

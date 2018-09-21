@@ -239,8 +239,25 @@ class Configuration:
     def get_user_scripts_path(self):
         return self._get_path_option("paths", "user_scripts", True)
 
-    def get_interface_setting(self, option):
-        return self._Config.get("interface", option)
+    def get_interface_setting(self, option, get_type=0):
+        """
+        Gets entries from the interface section which is not directly managed like the rest
+        :param option: String: the name of the option
+        :param get_type: Integer: the type of data
+            -0: Raw
+            -1: an integer
+            -2 a float
+            -3 a bool
+        :return: the data contained in the specified option
+        """
+        if get_type is 1:
+            return self._Config.getint("interface", option)
+        elif get_type is 2:
+            return self._Config.getfloat("interface", option)
+        elif get_type is 3:
+            return self._Config.getboolean("interface", option)
+        else:
+            return self._Config.get("interface", option)
 
     def __str__(self):
         cfg_str = ""
@@ -285,10 +302,9 @@ class Configuration:
         :param rt: The PYMXS runtime environment
         :return:
         """
-        if self.get_user_scripts_path() is "INIT":
-            user_scripts = os.path.realpath(rt.getDir(rt.name('userScripts')))
-            self._set_user_scripts_path(user_scripts)
-            self._save_config()
+        user_scripts = os.path.realpath(rt.getDir(rt.name('userScripts')))
+        self._set_user_scripts_path(user_scripts)
+        self._save_config()
 
     def set_project_code(self, code):
         self._set_config_by_section("project", "code", code)
