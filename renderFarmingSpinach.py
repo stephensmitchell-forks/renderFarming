@@ -238,16 +238,16 @@ class SpinachJob:
                 self._rt.rendTimeType = 2
                 self._rt.rendNThFrame = 1
 
+            else:
+                flg.debug("Padding Animation Prepass GI Range")
+                self._rt.rendTimeType = 3
+                
                 interp_frames = self._vr.gi_irradmap_interpFrames
 
                 flg.debug("Padding Frame Range by {} Frames on either side".format(interp_frames))
 
                 self._rt.rendStart = int(self._rt.animationRange.start) - interp_frames
                 self._rt.rendEnd = int(self._rt.animationRange.end) + interp_frames
-
-            else:
-                flg.debug("Padding Animation Prepass GI Range")
-                self._rt.rendTimeType = 3
 
         elif render_type in (1, 3, 5, 7, 8, 9):
             flg.debug("Setting time to Active Segment frame")
