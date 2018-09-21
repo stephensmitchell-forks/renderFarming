@@ -16,7 +16,7 @@ import MaxPlus
 # PySide 2
 from PySide2.QtUiTools import QUiLoader
 import PySide2.QtWidgets as QtW
-from PySide2.QtCore import QFile
+from PySide2.QtCore import QFile, QTimer
 
 
 class RenderFarmingUI(QtW.QDialog):
@@ -89,7 +89,7 @@ class RenderFarmingUI(QtW.QDialog):
 
         # Titling
 
-        self._window_title = "Render Farming - v{}".format(self._cfg.get_version())
+        self._window_title = self._generate_title()
         self.setWindowTitle(self._window_title)
 
         # General Attributes
@@ -119,6 +119,9 @@ class RenderFarmingUI(QtW.QDialog):
     #                   Setup Functions
     # ---------------------------------------------------
 
+    def _generate_title(self):
+        return "{1} - RenderFarming{0}".format(self._cfg.get_version(), self._cfg.get_project_code())
+
     def config_setup_all(self):
         self._config_tbdg.config_page_setup()
         self._spinach_tbdg.spinach_page_setup()
@@ -135,6 +138,7 @@ class RenderFarmingUI(QtW.QDialog):
                 flg.info("Saving Configuration file")
                 self._cfg.save_config()
                 self._saved = True
+                self._window_title = self._generate_title()
                 self.setWindowTitle(self._window_title)
             else:
                 flg.debug("Applying without saving")
@@ -189,6 +193,40 @@ class RenderFarmingUI(QtW.QDialog):
         else:
             dialog.destroy()
             return True
+
+    # ---------------------------------------------------
+    #                Layout Functions
+    # ---------------------------------------------------
+
+    def hide_qwidget(self, widget):
+        """
+        Hides a QWidget and then shrinks the QDialog to make up for the missing space
+        :param widget: A QWidget somewhere underneath self
+        :return:
+        """
+        if widget.isVisible():
+            widget.setVisible(False)
+
+            # Calculates the height without the widget
+            new_height = self.height() - widget.height()
+
+            # Waits on the minimumSizeHint to re-calculate before shrinking the QDialog
+            if new_height < self.minimumSizeHint().height():
+                _timer = QTimer()
+                _timer.singleShot(30, self._resize_height)
+            else:
+                self.resize(self.width(), new_height)
+        else:
+            # Un hides the widget and adds it's height to the
+            widget.setVisible(True)
+            self.resize(self.width(), self.height() + widget.height())
+
+    def _resize_height(self):
+        """
+        Shrinks the dialog height to the minimum size hint
+        :return:
+        """
+        self.resize(self.width(), self.minimumSizeHint().height())
 
     # ---------------------------------------------------
     #                    Overrides
@@ -467,6 +505,7 @@ class ConfigTBDG:
 
         self._cfg_save_btn = self._parent.findChild(QtW.QPushButton, 'config_save_btn')
         self._cfg_reset_btn = self._parent.findChild(QtW.QPushButton, 'config_reset_btn')
+        self._cfg_test_btn = self._parent.findChild(QtW.QPushButton, 'config_test_btn')
 
         # ---------------------------------------------------
         #               Line Edit Definitions
