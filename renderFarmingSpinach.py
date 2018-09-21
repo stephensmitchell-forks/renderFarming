@@ -241,7 +241,7 @@ class SpinachJob:
             else:
                 flg.debug("Padding Animation Prepass GI Range")
                 self._rt.rendTimeType = 3
-                
+
                 interp_frames = self._vr.gi_irradmap_interpFrames
 
                 flg.debug("Padding Frame Range by {} Frames on either side".format(interp_frames))
