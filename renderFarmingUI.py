@@ -111,7 +111,7 @@ class RenderFarmingUI(QtW.QDialog):
         self._config_tbdg = ConfigTBDG(self, self._rt, self._cfg)
         self._log_tbdg = LogTBDG(self, self._rt, self._cfg)
 
-        self._spinach_tbdg.spinach_status(self._spinach_tbdg.get_status_message())
+        self._spinach_tbdg.set_spinach_status(self._spinach_tbdg.get_status_message())
 
         self.config_setup_all()
 
@@ -187,7 +187,8 @@ class RenderFarmingUI(QtW.QDialog):
         self._clg.debug("Opening the \"Set Active Time Segment\" dialog")
         dialog = rFSATS.RenderFarmingSATSDialogUI(self._ui_path, self._rt, self._parent)
         if not dialog.exec_():
-            self._spinach_status(dialog.get_status_message())
+            self._spinach_tbdg.set_spinach_status(dialog.get_status_message())
+            self._spinach_tbdg.set_nth_frame(dialog.get_nth_frame())
             dialog.destroy()
             return False
         else:
@@ -297,6 +298,8 @@ class SpinachTBDG:
         self._cfg = cfg
         self._rt = rt
 
+        self._settings_visible = True
+
         # Logger
 
         self._clg = logging.getLogger("renderFarming.UI.SpinachTBDG")
@@ -314,6 +317,8 @@ class SpinachTBDG:
         self._sp_1f_auto_btn = self._parent.findChild(QtW.QPushButton, 'sp_1f_auto_btn')
         self._sp_reset_btn = self._parent.findChild(QtW.QPushButton, 'sp_reset_btn')
 
+        self._sp_settings_btn = self._parent.findChild(QtW.QPushButton, 'sp_settings_btn')
+
         # ---------------------------------------------------
         #               Spin Box Definitions
         # ---------------------------------------------------
@@ -325,6 +330,8 @@ class SpinachTBDG:
         # ---------------------------------------------------
 
         self._sp_pad_gi_range_ckbx = self._parent.findChild(QtW.QCheckBox, 'sp_pad_gi_range_ckbx')
+        self._sp_sub_fold_name_gi_ckbx = self._parent.findChild(QtW.QCheckBox, 'sp_sub_fold_name_gi_ckbx')
+        self._sp_run_kale_ckbx = self._parent.findChild(QtW.QCheckBox, 'sp_run_kale_ckbx')
 
         # ---------------------------------------------------
         #               Label Definitions
@@ -337,6 +344,12 @@ class SpinachTBDG:
         # ---------------------------------------------------
 
         self._sp_frm_subFolder_le = self._parent.findChild(QtW.QLineEdit, 'sp_frm_subFolder_le')
+
+        # ---------------------------------------------------
+        #             Layout Element Definitions
+        # ---------------------------------------------------
+
+        self._sp_settings_gb = self._parent.findChild(QtW.QGroupBox, 'sp_settings_gb')
 
         # ---------------------------------------------------
         #               Combo Box Connections
@@ -352,6 +365,8 @@ class SpinachTBDG:
         #               Function Connections
         # ---------------------------------------------------
 
+        self._sp_settings_btn.clicked.connect(self._sp_settings_hide_handler)
+
         self._sp_gi_mode_cmbx.cmbx.activated.connect(self._sp_gi_mode_cmbx_handler)
 
         self._sp_man_prepass_btn.clicked.connect(self._sp_man_prepass_btn_handler)
@@ -361,12 +376,14 @@ class SpinachTBDG:
         self._sp_vfb_type_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
         self._sp_img_filt_ovr_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
         self._sp_frm_subFolder_le.editingFinished.connect(self._sp_settings_change_handler)
+        self._sp_multi_frame_increment_sb.valueChanged.connect(self._sp_settings_change_handler)
 
         self._sp_1f_auto_btn.setEnabled(False)
-
         self._sp_reset_btn.clicked.connect(self._spinach_reset_handler)
+
         self._sp_pad_gi_range_ckbx.stateChanged.connect(self._sp_settings_change_handler)
-        self._sp_multi_frame_increment_sb.valueChanged.connect(self._sp_settings_change_handler)
+        self._sp_sub_fold_name_gi_ckbx.stateChanged.connect(self._sp_settings_change_handler)
+        self._sp_run_kale_ckbx.stateChanged.connect(self._sp_settings_change_handler)
 
     # ---------------------------------------------------
     #                  Setup Function
@@ -383,35 +400,74 @@ class SpinachTBDG:
                          (self._cfg.get_interface_setting("sp_sats_prompt_cmbx_ind", 1)))
 
         self._sp_frm_subFolder_le.setText(self._cfg.get_interface_setting("sp_frm_subFolder_le_str", 0))
+        self._sp_multi_frame_increment_sb.setValue(self._cfg.get_interface_setting("sp_multi_frame_increment_int", 1))
 
-        self._sp_pad_gi_range_ckbx.setChecked(self._cfg.get_interface_setting("sp_pad_gi_range_ckbx", 3))
-        self._sp_multi_frame_increment_sb.setValue(self._cfg.get_interface_setting("sp_multi_frame_increment_sb", 1))
+        self._sp_pad_gi_range_ckbx.setChecked(self._cfg.get_interface_setting("sp_pad_gi_range_bool", 3))
+        self._sp_run_kale_ckbx.setChecked(self._cfg.get_interface_setting("sp_run_kale_bool", 3))
+        self._sp_sub_fold_name_gi_ckbx.setChecked(self._cfg.get_interface_setting("sp_sub_fold_name_gi_bool", 3))
+
+        self._settings_visible = self._cfg.get_interface_setting("sp_settings_bool", 3)
 
         self._sp_settings_change_handler()
+        self._sp_settings_hide_initializer()
 
     def config_apply_spinach_page(self):
         self._cfg.set_interface_setting("sp_gi_mode_cmbx_ind", self._sp_gi_mode_cmbx.cmbx.currentIndex())
+
         self._cfg.set_interface_setting("sp_vfb_type_cmbx_ind", self._sp_vfb_type_cmbx.cmbx.currentIndex())
         self._cfg.set_interface_setting("sp_img_filt_ovr_cmbx_ind", self._sp_img_filt_ovr_cmbx.cmbx.currentIndex())
         self._cfg.set_interface_setting("sp_sats_prompt_cmbx_ind", self._sp_sats_prompt_cmbx.cmbx.currentIndex())
+        self._cfg.set_interface_setting("sp_multi_frame_increment_int", self._sp_multi_frame_increment_sb.value())
 
-        self._cfg.set_interface_setting("sp_pad_gi_range_ckbx", self._sp_pad_gi_range_ckbx.isChecked())
-        self._cfg.set_interface_setting("sp_multi_frame_increment_sb", self._sp_multi_frame_increment_sb.value())
+        self._cfg.set_interface_setting("sp_pad_gi_range_bool", self._sp_pad_gi_range_ckbx.isChecked())
+        self._cfg.set_interface_setting("sp_run_kale_bool", self._sp_run_kale_ckbx.isChecked())
+        self._cfg.set_interface_setting("sp_sub_fold_name_gi_bool", self._sp_sub_fold_name_gi_ckbx.isChecked())
 
         self._cfg.set_interface_setting("sp_frm_subFolder_le_str", self._sp_frm_subFolder_le.text())
+
+        self._cfg.set_interface_setting("sp_settings_bool", self._settings_visible)
 
     # ---------------------------------------------------
     #                  Handler Functions
     # ---------------------------------------------------
 
+    def _sp_settings_hide_handler(self):
+        """
+        Hides settings section
+        :return:
+        """
+        self._parent.hide_qwidget(self._sp_settings_gb)
+
+    # TODO: Make the following function work
+
+    def _sp_settings_hide_initializer(self):
+        if self._sp_settings_btn.isChecked():
+            if self._sp_settings_gb.isVisible():
+                return
+            else:
+                self._sp_settings_hide_handler()
+        else:
+            if not self._sp_settings_gb.isVisible():
+                return
+            else:
+                self._sp_settings_hide_handler()
+
     def _sp_auto_btn_handler(self):
+        """
+        Handler for Automatic submission
+        :return: none
+        """
         self._clg.error("Automatic submission not implemented")
 
         er = rFT.html_color_text("ERROR:", "#ff3232")
-        self.spinach_status("{} Automatic submission not implemented".format(er))
+        self.set_spinach_status("{} Automatic submission not implemented".format(er))
         return
 
     def _sp_man_prepass_btn_handler(self):
+        """
+        Handler for prepass submission
+        :return:
+        """
         flg = logging.getLogger("renderFarming.UI._sp_man_prepass_btn_handler")
         flg.debug("Executing Prepass")
         if self._sp_sats_prompt_cmbx.prepass():
@@ -420,7 +476,7 @@ class SpinachTBDG:
                 flg.warning("SATS Dialog cancelled, interrupting prepass")
                 return
         self._spinach.check_camera()
-        self.spinach_status(self._spinach.get_status_message())
+        self.set_spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             flg.debug("Spinach reports not ready, attempting to prepare the Job")
             self._spinach.prepare_job()
@@ -429,9 +485,13 @@ class SpinachTBDG:
             flg.debug("Spinach reports ready, preparing the pass")
             self._spinach.prepare_prepass(self._sp_gi_mode_cmbx.get_prepass_mode())
 
-        self.spinach_status(self._spinach.get_status_message())
+        self.set_spinach_status(self._spinach.get_status_message())
 
     def _sp_man_beauty_btn_handler(self):
+        """
+        Handler for beauty pass submission
+        :return:
+        """
         flg = logging.getLogger("renderFarming.UI._sp_man_beauty_btn_handler")
         flg.debug("Executing Beauty Pass")
         if self._sp_sats_prompt_cmbx.beauty():
@@ -440,7 +500,7 @@ class SpinachTBDG:
                 flg.warning("SATS Dialog cancelled, interrupting beauty pass")
                 return
         self._spinach.check_camera()
-        self.spinach_status(self._spinach.get_status_message())
+        self.set_spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             flg.debug("Spinach reports not ready, attempting to prepare the Job")
             self._spinach.prepare_job()
@@ -449,22 +509,31 @@ class SpinachTBDG:
             flg.debug("Spinach reports ready, preparing the pass")
             self._spinach.prepare_beauty_pass(self._sp_gi_mode_cmbx.get_beauty_mode())
 
-        self.spinach_status(self._spinach.get_status_message())
+        self.set_spinach_status(self._spinach.get_status_message())
 
     def _sp_gi_mode_cmbx_handler(self):
+        """
+        Handler for changing the GI combo box
+        :return:
+        """
         self._clg.debug("Gi mode changed, index is: {}".format(self._sp_gi_mode_cmbx))
         if self._sp_gi_mode_cmbx.get_prepass_mode() is -1:
             self._sp_man_prepass_btn.setEnabled(False)
         else:
             self._sp_man_prepass_btn.setEnabled(True)
 
-    def spinach_status(self, text):
-        self._spinach_status_lb.setText("Status: {}".format(text))
-
     def _spinach_reset_handler(self):
+        """
+        Handler for reset button
+        :return:
+        """
         self._spinach.restore_original_render_settings()
 
     def _sp_settings_change_handler(self):
+        """
+        Handler for changes in spinach settings
+        :return:
+        """
         self._spinach.set_frame_buffer_type(self._sp_vfb_type_cmbx.get_index())
         self._spinach.set_image_filter_override(self._sp_img_filt_ovr_cmbx.get_index())
         self._spinach.set_frames_sub_folder(self._sp_frm_subFolder_le.text())
@@ -477,7 +546,21 @@ class SpinachTBDG:
     # ---------------------------------------------------
 
     def get_status_message(self):
+        """
+        Gets the current status message
+        :return:
+        """
         self._spinach.get_status_message()
+
+    # ---------------------------------------------------
+    #                  Setter Functions
+    # ---------------------------------------------------
+
+    def set_spinach_status(self, text):
+        self._spinach_status_lb.setText("Status: {}".format(text))
+
+    def set_nth_frame(self, nth_frame):
+        self._spinach.set_nth_frame(nth_frame)
 
 
 class ConfigTBDG:
@@ -538,6 +621,9 @@ class ConfigTBDG:
         #               Function Connections
         # ---------------------------------------------------
 
+        self._cfg_test_btn.pressed.connect(self._config_test_press_handler)
+        self._cfg_test_btn.released.connect(self._config_test_release_handler)
+
         self._cfg_save_btn.clicked.connect(self._config_save_handler)
         self._cfg_reset_btn.clicked.connect(self._config_reset_handler)
 
@@ -593,6 +679,26 @@ class ConfigTBDG:
     # ---------------------------------------------------
     #                  Handler Function
     # ---------------------------------------------------
+
+    def _config_test_press_handler(self):
+        self._config_test(True)
+
+    def _config_test_release_handler(self):
+        self._config_test(False)
+
+    def _config_test(self, show):
+        if show:
+            self._cfg_pth_projectsDirectory_le.setText(self._cfg.get_projects_path(True))
+            self._cfg_pth_framesDirectory_le.setText(self._cfg.get_frames_path(True))
+            self._cfg_pth_irradianceMapDirectory_le.setText(self._cfg.get_irradiance_cache_path(True))
+            self._cfg_pth_lightCacheDirectory_le.setText(self._cfg.get_light_cache_path(True))
+            self._cfg_pth_logDirectory_le.setText(self._cfg.get_log_path(True))
+        else:
+            self._cfg_pth_projectsDirectory_le.setText(self._cfg.get_projects_path(False))
+            self._cfg_pth_framesDirectory_le.setText(self._cfg.get_frames_path(False))
+            self._cfg_pth_irradianceMapDirectory_le.setText(self._cfg.get_irradiance_cache_path(False))
+            self._cfg_pth_lightCacheDirectory_le.setText(self._cfg.get_light_cache_path(False))
+            self._cfg_pth_logDirectory_le.setText(self._cfg.get_log_path(False))
 
     def _config_save_handler(self):
         flg = logging.getLogger("renderFarming.UI._config_save_handler")
