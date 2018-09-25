@@ -59,9 +59,9 @@ class SpinachJob:
 
         # HTML Message macros
 
-        self._rd_er_tx = rFT.html_color_text("ERROR:", "#ff3232")
-        self._grn_rdy_tx = rFT.html_color_text("Ready!", "#4ca64c")
-        self._org_n_rdy_tx = rFT.html_color_text("Not Ready:", "#FFA500")
+        self._rd_er_tx = rFT.html_color_text("ERROR:", "Red")
+        self._grn_rdy_tx = rFT.html_color_text("Ready!", "Green")
+        self._org_n_rdy_tx = rFT.html_color_text("Not Ready:", "Orange")
 
         # UI Settings Attributes
 
@@ -71,6 +71,9 @@ class SpinachJob:
 
         self._multi_frame_increment = 50
         self._pad_gi = False
+
+        self._nth_frame = 1
+        self._sp_sub_fold_name_gi = False
 
         # Other Attributes
 
@@ -139,9 +142,9 @@ class SpinachJob:
         self._vr.lightcache_loadFileName = self._lc_file
 
     def _set_animation_prepass_path(self):
-        self._ir_file = os.path.join(self._cfg.get_irradiance_cache_path(), self._cam_name)
-        if rFT.verify_dir(self._ir_file):
-            self._ir_file = self._cfg.get_irradiance_cache_path() + "{0}_frame_.vrmap".format(self._cam_name)
+        folder = os.path.join(self._cfg.get_irradiance_cache_path(), self._cam_name)
+        if rFT.verify_dir(folder):
+            self._ir_file = folder + "\\{0}_frame_.vrmap".format(self._cam_name)
         else:
             self._status_message = "Unable to find or create path for animation prepass rendering"
             self._log_status(self._clg)
@@ -230,13 +233,14 @@ class SpinachJob:
         elif render_type in (0, 6):
             flg.debug("Setting time to single frame")
             self._rt.rendTimeType = 1
-            self._rt.rendNThFrame = 1
+            self._rt.rendNThFrame = self._nth_frame
 
         elif render_type is 4:
+            self._rt.rendNThFrame = 1
+
             if not self._pad_gi:
                 flg.debug("Setting time to Active Segment frame")
                 self._rt.rendTimeType = 2
-                self._rt.rendNThFrame = 1
 
             else:
                 flg.debug("Padding Animation Prepass GI Range")
@@ -252,7 +256,7 @@ class SpinachJob:
         elif render_type in (1, 3, 5, 7, 8, 9):
             flg.debug("Setting time to Active Segment frame")
             self._rt.rendTimeType = 2
-            self._rt.rendNThFrame = 1
+            self._rt.rendNThFrame = self._nth_frame
             return
 
     def _set_gi_save_to_frame(self, render_type=6):
@@ -468,23 +472,6 @@ class SpinachJob:
         self._status_message = self._grn_rdy_tx
         self._ready = True
 
-    def get_cam(self):
-        """
-        Gets the active 3DS Max camera
-        :return: a 3DS Max Camera object
-        """
-        flg = logging.getLogger("renderFarming.Spinach._get_cam")
-        cam = self._rt.getActiveCamera()
-        if cam is None:
-            flg.error("Active view is not a valid camera")
-            self._status_message = "{} Active view is not a valid camera".format(self._rd_er_tx)
-        else:
-            flg.debug("Active camera selected: {}".format(cam.name))
-        return cam
-
-    def get_status_message(self):
-        return self._status_message
-
     def single_frame_prepass(self):
         """
         Sets up a job to run an Irradiance Map job using single frame
@@ -521,7 +508,8 @@ class SpinachJob:
 
         if not self._ready:
             flg.info("Spinach reports not ready, job submission cannot continue")
-            self._status_message = "{0}: {1}".format(self._org_n_rdy_tx, self._status_message)
+            nr = rFT.html_color_text("Not Ready:", "Orange")
+            self._status_message = "{0}: {1}".format(nr, self._status_message)
             return
 
         # if is an Animation Prepass Irradiance Map, Light Cache, the ir path must be changed
@@ -573,7 +561,8 @@ class SpinachJob:
 
         if render_type in (0, 2, 4, 6):
             flg.error("Attempting to render a prepass as a beauty pass")
-            self._status_message = "{} Attempting to render a prepass as a beauty pass".format(self._rd_er_tx)
+            nr = rFT.html_color_text("Not Ready:", "Orange")
+            self._status_message = "{} Attempting to render a prepass as a beauty pass".format(nr)
             return
 
             # if is an Animation Prepass Irradiance Map, Light Cache, the ir path must be changed
@@ -600,13 +589,6 @@ class SpinachJob:
         self._status_message = "{} - Beauty - GI From File".format(self._grn_rdy_tx)
 
         self.rsd_toggle(True)
-
-    def get_ready_status(self):
-        """
-        Ascertains if the job has cleared and is ready to be rendered
-        :return: Boolean: Status
-        """
-        return self._ready
 
     def check_camera(self):
         """
@@ -657,6 +639,30 @@ class SpinachJob:
     #                       Getters
     # ---------------------------------------------------
 
+    def get_cam(self):
+        """
+        Gets the active 3DS Max camera
+        :return: a 3DS Max Camera object
+        """
+        flg = logging.getLogger("renderFarming.Spinach._get_cam")
+        cam = self._rt.getActiveCamera()
+        if cam is None:
+            flg.error("Active view is not a valid camera")
+            self._status_message = "{} Active view is not a valid camera".format(self._rd_er_tx)
+        else:
+            flg.debug("Active camera selected: {}".format(cam.name))
+        return cam
+
+    def get_ready_status(self):
+        """
+        Ascertains if the job has cleared and is ready to be rendered
+        :return: Boolean: Status
+        """
+        return self._ready
+
+    def get_status_message(self):
+        return self._status_message
+
     # ---------------------------------------------------
     #                       Setters
     # ---------------------------------------------------
@@ -697,3 +703,9 @@ class SpinachJob:
             flg.error("Index Error: Index is less than 1")
         else:
             self._multi_frame_increment = increment
+
+    def set_nth_frame(self, nth_frame):
+        self._nth_frame = nth_frame
+
+    def set_sub_folder_as_gi_name(self, ckbx_bool):
+        self._sp_sub_fold_name_gi = ckbx_bool
