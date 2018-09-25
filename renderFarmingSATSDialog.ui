@@ -113,7 +113,7 @@
      <item row="2" column="1">
       <widget class="QSpinBox" name="sats_evr_nth_frm_sb">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <property name="toolTip">
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Max will only renders frames at this interval.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>

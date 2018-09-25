@@ -5,7 +5,7 @@ import cStringIO
 import os
 
 # Other Render Farming files
-# import renderFarmingConfig as rFCfg
+import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
 import renderFarmingTools as rFT
 import renderFarmingSATSDialogUI as rFSATS
@@ -21,12 +21,11 @@ from PySide2.QtCore import QFile, QTimer
 
 class RenderFarmingUI(QtW.QDialog):
 
-    def __init__(self, ui_path, runtime, configuration, parent=MaxPlus.GetQMaxMainWindow()):
+    def __init__(self, ui_path, runtime, parent=MaxPlus.GetQMaxMainWindow()):
         """
         The Initialization of the main UI class
         :param ui_path: The path to the .UI file from QDesigner
         :param runtime: The pymxs runtime from max
-        :param configuration: a renderFarmingConfig object
         :param parent: The main Max Window
         """
         super(RenderFarmingUI, self).__init__(parent)
@@ -37,8 +36,10 @@ class RenderFarmingUI(QtW.QDialog):
 
         self._ui_path = ui_path
         self._rt = runtime
-        self._cfg = configuration
         self._parent = parent
+
+        self._cfg = rFCfg.Configuration()
+        self._cfg.set_max_system_directories(self._rt)
 
         # ---------------------------------------------------
         #                      Logging
@@ -95,6 +96,8 @@ class RenderFarmingUI(QtW.QDialog):
         # General Attributes
 
         self._saved = True
+
+        self._camera = self._rt.getActiveCamera()
 
         # ---------------------------------------------------
         #               Function Connections
@@ -166,6 +169,23 @@ class RenderFarmingUI(QtW.QDialog):
 
         logging.getLogger().addHandler(printable_log)
 
+    def cam_change_handler(self):
+        if self._camera is not None:
+            stored_cam = self._camera
+        else:
+            stored_cam = "None"
+
+        if self._rt.getActiveCamera() is not None:
+            cur_cam = (self._rt.getActiveCamera())
+        else:
+            cur_cam = "None"
+
+        if stored_cam != cur_cam:
+            if self._spinach_tbdg.get_ready_status():
+                wrn = rFT.html_color_text("Warning:", "Orange")
+                self._spinach_tbdg.set_spinach_status("{} Camera has changed".format(wrn))
+            self._camera = self._rt.getActiveCamera()
+
     # ---------------------------------------------------
     #                    Getters
     # ---------------------------------------------------
@@ -220,7 +240,6 @@ class RenderFarmingUI(QtW.QDialog):
         else:
             # Un hides the widget and adds it's height to the
             widget.setVisible(True)
-            self.resize(self.width(), self.height() + widget.height())
 
     def _resize_height(self):
         """
@@ -239,6 +258,7 @@ class RenderFarmingUI(QtW.QDialog):
         self.config_apply_all(True)
         logging.shutdown()
         print("Spinach Closed")
+        self._rt.callbacks.removeScripts(self._rt.name("viewportChange"), id=self._rt.name("bdf_cameraChange"))
         event.accept()
 
 
@@ -437,20 +457,15 @@ class SpinachTBDG:
         :return:
         """
         self._parent.hide_qwidget(self._sp_settings_gb)
-
-    # TODO: Make the following function work
+        self._settings_visible = not self._settings_visible
 
     def _sp_settings_hide_initializer(self):
-        if self._sp_settings_btn.isChecked():
-            if self._sp_settings_gb.isVisible():
-                return
-            else:
-                self._sp_settings_hide_handler()
+        if not self._settings_visible:
+            print("Hidden")
+            self._sp_settings_btn.setChecked(False)
+            self._sp_settings_gb.setVisible(False)
         else:
-            if not self._sp_settings_gb.isVisible():
-                return
-            else:
-                self._sp_settings_hide_handler()
+            print("Visible")
 
     def _sp_auto_btn_handler(self):
         """
@@ -551,6 +566,9 @@ class SpinachTBDG:
         :return:
         """
         self._spinach.get_status_message()
+
+    def get_ready_status(self):
+        return self._spinach.get_ready_status()
 
     # ---------------------------------------------------
     #                  Setter Functions
@@ -687,18 +705,12 @@ class ConfigTBDG:
         self._config_test(False)
 
     def _config_test(self, show):
-        if show:
-            self._cfg_pth_projectsDirectory_le.setText(self._cfg.get_projects_path(True))
-            self._cfg_pth_framesDirectory_le.setText(self._cfg.get_frames_path(True))
-            self._cfg_pth_irradianceMapDirectory_le.setText(self._cfg.get_irradiance_cache_path(True))
-            self._cfg_pth_lightCacheDirectory_le.setText(self._cfg.get_light_cache_path(True))
-            self._cfg_pth_logDirectory_le.setText(self._cfg.get_log_path(True))
-        else:
-            self._cfg_pth_projectsDirectory_le.setText(self._cfg.get_projects_path(False))
-            self._cfg_pth_framesDirectory_le.setText(self._cfg.get_frames_path(False))
-            self._cfg_pth_irradianceMapDirectory_le.setText(self._cfg.get_irradiance_cache_path(False))
-            self._cfg_pth_lightCacheDirectory_le.setText(self._cfg.get_light_cache_path(False))
-            self._cfg_pth_logDirectory_le.setText(self._cfg.get_log_path(False))
+        raw = not show
+        self._cfg_pth_projectsDirectory_le.setText(self._cfg.get_projects_path(raw))
+        self._cfg_pth_framesDirectory_le.setText(self._cfg.get_frames_path(raw))
+        self._cfg_pth_irradianceMapDirectory_le.setText(self._cfg.get_irradiance_cache_path(raw))
+        self._cfg_pth_lightCacheDirectory_le.setText(self._cfg.get_light_cache_path(raw))
+        self._cfg_pth_logDirectory_le.setText(self._cfg.get_log_path(raw))
 
     def _config_save_handler(self):
         flg = logging.getLogger("renderFarming.UI._config_save_handler")

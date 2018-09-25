@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>587</width>
+    <width>590</width>
     <height>688</height>
    </rect>
   </property>
@@ -24,6 +24,9 @@
   </property>
   <property name="currentIndex">
    <number>0</number>
+  </property>
+  <property name="elideMode">
+   <enum>Qt::ElideNone</enum>
   </property>
   <widget class="QWidget" name="spinach_tbdg">
    <property name="enabled">
@@ -233,19 +236,64 @@
      </widget>
     </item>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <widget class="QPushButton" name="sp_settings_btn">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Hide or Show the settings box&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="styleSheet">
+         <string notr="true"/>
+        </property>
+        <property name="text">
+         <string>Settings</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_5">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QGroupBox" name="sp_settings_gb">
       <property name="title">
-       <string>Settings</string>
+       <string/>
       </property>
       <property name="alignment">
-       <set>Qt::AlignCenter</set>
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
       </property>
       <property name="checkable">
        <bool>false</bool>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <layout class="QHBoxLayout" name="sp_settings_hl">
          <item>
           <layout class="QFormLayout" name="formLayout_2">
            <item row="0" column="0">
@@ -450,24 +498,7 @@
              </item>
             </widget>
            </item>
-          </layout>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_3">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <layout class="QFormLayout" name="formLayout">
-           <item row="0" column="0">
+           <item row="4" column="0">
             <widget class="QLabel" name="label_multi_frame_increment">
              <property name="enabled">
               <bool>true</bool>
@@ -480,7 +511,7 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
+           <item row="4" column="1">
             <widget class="QSpinBox" name="sp_multi_frame_increment_sb">
              <property name="enabled">
               <bool>true</bool>
@@ -505,7 +536,24 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
+          </layout>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <layout class="QFormLayout" name="formLayout">
+           <item row="2" column="0">
             <widget class="QCheckBox" name="sp_pad_gi_range_ckbx">
              <property name="enabled">
               <bool>true</bool>
@@ -518,7 +566,7 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
+           <item row="3" column="0">
             <widget class="QCheckBox" name="sp_run_kale_ckbx">
              <property name="enabled">
               <bool>false</bool>
@@ -528,6 +576,19 @@
              </property>
              <property name="text">
               <string>Run Sanity Check</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="sp_sub_fold_name_gi_ckbx">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes the name of the GI file to match the specified sub-folder name to prevent naming conflicts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Use Sub Folder Name for GI</string>
              </property>
             </widget>
            </item>
@@ -605,6 +666,9 @@
        <widget class="QPushButton" name="kl_run_btn">
         <property name="enabled">
          <bool>false</bool>
+        </property>
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Checks the file for settings that are strange or may have a big impact on rendering&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
          <string>Run Sanity Check</string>
@@ -695,6 +759,9 @@
             <height>0</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The prefix code for the project, used also as the name for the foler containing the project directory.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
          </widget>
         </item>
         <item row="2" column="1">
@@ -704,6 +771,9 @@
             <width>350</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The official name for the project, used for generating descriptions&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
          </widget>
         </item>
@@ -730,6 +800,9 @@
             <width>350</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The master directory containing all projects.&lt;/p&gt;&lt;p&gt;Tokens:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(code)&amp;quot;: the project code&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(projects)&amp;quot;: the master projects directory&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(user_scripts)&amp;quot;: the 3ds Max user scripts directory&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
          </widget>
         </item>
@@ -763,6 +836,9 @@
             <height>0</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The directory containing rendered frames.&lt;/p&gt;&lt;p&gt;Tokens:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(code)&amp;quot;: the project code&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(projects)&amp;quot;: the master projects directory&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(user_scripts)&amp;quot;: the 3ds Max user scripts directory&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
          </widget>
         </item>
         <item row="6" column="0">
@@ -788,6 +864,9 @@
             <width>350</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The directory containing Irradiance Map files.&lt;/p&gt;&lt;p&gt;Tokens:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(code)&amp;quot;: the project code&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(projects)&amp;quot;: the master projects directory&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(user_scripts)&amp;quot;: the 3ds Max user scripts directory&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
          </widget>
         </item>
@@ -815,6 +894,9 @@
             <height>0</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The directory containing Light Cache files&lt;/p&gt;&lt;p&gt;Tokens:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(code)&amp;quot;: the project code&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(projects)&amp;quot;: the master projects directory&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(user_scripts)&amp;quot;: the 3ds Max user scripts directory&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
          </widget>
         </item>
         <item row="8" column="0">
@@ -840,6 +922,9 @@
             <width>350</width>
             <height>0</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The directory in which log files will be written.&lt;/p&gt;&lt;p&gt;Tokens:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(code)&amp;quot;: the project code&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(projects)&amp;quot;: the master projects directory&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&amp;quot;$(user_scripts)&amp;quot;: the 3ds Max user scripts directory&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
            <string/>
@@ -876,6 +961,9 @@
             <height>0</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The name or IP address of the Backburner Manager&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
          </widget>
         </item>
         <item row="10" column="0">
@@ -896,6 +984,9 @@
         </item>
         <item row="12" column="1">
          <widget class="QComboBox" name="config_logging_loggingLevel_cmbx">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the priority and number of log messages.  &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
           <property name="editable">
            <bool>false</bool>
           </property>
@@ -935,7 +1026,7 @@
            </size>
           </property>
           <property name="text">
-           <string>Logging Level</string>
+           <string>Logging Verbosity</string>
           </property>
           <property name="buddy">
            <cstring>config_logging_loggingLevel_cmbx</cstring>
@@ -1070,7 +1161,10 @@
         <item>
          <widget class="QPushButton" name="config_test_btn">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
+          </property>
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Press and hold to display resolved path names.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="text">
            <string>Test Paths</string>
@@ -1156,6 +1250,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QPushButton" name="lg_open_explorer_btn">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Opens the log folder with Windows Explorer&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
           <property name="text">
            <string>Open Log Folder</string>
           </property>
@@ -1218,7 +1315,6 @@
   <tabstop>sp_vfb_type_cmbx</tabstop>
   <tabstop>sp_img_filt_ovr_cmbx</tabstop>
   <tabstop>sp_sats_prompt_cmbx</tabstop>
-  <tabstop>sp_multi_frame_increment_sb</tabstop>
   <tabstop>sp_pad_gi_range_ckbx</tabstop>
   <tabstop>sp_run_kale_ckbx</tabstop>
   <tabstop>sp_reset_btn</tabstop>

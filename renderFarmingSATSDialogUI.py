@@ -33,20 +33,23 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
 
         self._start_frame = 0
         self._end_frame = 0
+        self._nth_frame = 1
 
         self._status_message = str()
 
         # ---------------------------------------------------
-        #                 Button Definitions
+        #                 Widget Definitions
         # ---------------------------------------------------
 
         self._sats_btnbx = self.findChild(QtW.QDialogButtonBox, 'sats_btnbx')
 
         self._sats_end_sb = self.findChild(QtW.QSpinBox, 'sats_end_sb')
         self._sats_start_sb = self.findChild(QtW.QSpinBox, 'sats_start_sb')
+        self._sats_evr_nth_frm_sb = self.findChild(QtW.QSpinBox, 'sats_evr_nth_frm_sb')
 
         self._sats_end_sb.setValue(int(self._rt.animationRange.end))
         self._sats_start_sb.setValue(int(self._rt.animationRange.start))
+        self._sats_evr_nth_frm_sb.setValue(int(self._rt.rendNThFrame))
 
         # ---------------------------------------------------
         #               Function Connections
@@ -62,6 +65,7 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
     def _sats_accept_handler(self):
         self._start_frame = self._sats_start_sb.value()
         self._end_frame = self._sats_end_sb.value()
+        self._nth_frame = self._sats_evr_nth_frm_sb.value()
 
         if self._end_frame < self._start_frame:
             er = rFT.html_color_text("ERROR:", "#ff3232")
@@ -81,6 +85,10 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
 
     def _set_time_segment(self):
         self._rt.animationRange = self._rt.interval(self._start_frame, self._end_frame)
+        self._rt.rendNThFrame = self._nth_frame
 
     def get_status_message(self):
         return self._status_message
+
+    def get_nth_frame(self):
+        return self._nth_frame

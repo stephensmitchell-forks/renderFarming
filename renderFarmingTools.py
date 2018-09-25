@@ -26,7 +26,12 @@ def str_to_dir(path):
 
 
 def html_color_text(text, color):
-    return " <font color=\"{1}\">{0}</font>".format(text, color)
+    presets = {"Orange": "#FFA500", "Red": "#ff3232", "Green": "#4ca64c"}
+    if color in presets:
+        hex_code = presets[color]
+    else:
+        hex_code = color
+    return " <font color=\"{1}\">{0}</font>".format(text, hex_code)
 
 
 def verify_dir(directory):
