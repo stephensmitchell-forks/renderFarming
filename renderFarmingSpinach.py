@@ -142,10 +142,21 @@ class SpinachJob:
         self._vr.lightcache_loadFileName = self._lc_file
 
     def _set_animation_prepass_path(self):
-        folder = os.path.join(self._cfg.get_irradiance_cache_path(), self._cam_name)
-        if rFT.verify_dir(folder):
-            self._ir_file = folder + "\\{0}_frame_.vrmap".format(self._cam_name)
+        # Checks if the containing folder should be named using the user specified sub folder field
+        if self._sp_sub_fold_name_gi:
+            sub_fold = self._expand_frames_sub_folder()
         else:
+            sub_fold = self._cam_name
+
+        # Defines the folder in which the Prepass frames will be stored
+        folder = os.path.join(self._cfg.get_irradiance_cache_path(), sub_fold)
+
+        # checks this folder's existence or writability
+        if rFT.verify_dir(folder):
+            # sets the _ir_file string
+            self._ir_file = folder + "\\{0}_frame_.vrmap".format(sub_fold)
+        else:
+            # Displays an error message and returns
             self._status_message = "Unable to find or create path for animation prepass rendering"
             self._log_status(self._clg)
             self._ready = False
@@ -434,6 +445,49 @@ class SpinachJob:
         self._clg.debug("Sub Folder Edited")
         return self._frames_sub_folder.replace("$(cam)", self._cam_name)
 
+    # noinspection PyMethodMayBeStatic
+    def _gi_type_status_msg(self, render_type):
+        """
+        Returns a status message per GI Type
+        :param render_type: The combination of Gi settings used by the renderer
+        Types supported:
+            -0:   Single Frame Irradiance Map, Light Cache
+            -1:   From File Single Frame Irradiance Map, Light Cache
+            -2:   Multi Frame Incremental Irradiance Map, Single Frame Light Cache
+            -3:   From File Multi Frame Incremental Irradiance Map, Light Cache (Duplicate of 1)
+            -4:   Animation Prepass Irradiance Map, Light Cache
+            -5:   Animation Interpolated Irradiance Map, no secondary
+            -6:   Brute Force, Light Cache
+            -7:   Brute Force, From File Light Cache
+            -8:   Brute Force, Light Cache with a new Light Cache every frame
+            -9:   Brute Force, Brute Force
+        :return: None
+        """
+        if render_type is 0:
+            msg = "Single Frame IR Prepass"
+        elif render_type is 1:
+            msg = "Single Frame IR Beauty"
+        elif render_type is 2:
+            msg = "Multi Frame IR Prepass"
+        elif render_type is 3:
+            msg = "Multi Frame IR Beauty"
+        elif render_type is 4:
+            msg = "Animated IR Prepass"
+        elif render_type is 5:
+            msg = "Animated IR Beauty"
+        elif render_type is 6:
+            msg = "Single Frame LC Prepass"
+        elif render_type is 7:
+            msg = "Single Frame LC Beauty"
+        elif render_type is 8:
+            msg = "Every Frame LC Beauty"
+        elif render_type is 9:
+            msg = "BF Beauty"
+        else:
+            msg = "{} Something has been goofed".format(rFT.html_color_text("Whoops: ", "Orange"))
+
+        return msg
+
     # ---------------------------------------------------
     #                       Public
     # ---------------------------------------------------
@@ -444,31 +498,48 @@ class SpinachJob:
         :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach.prepare_job")
+
         self._cam = self.get_cam()
 
+        # Checks the validity of the camera
         if self._cam is None:
+            # Sets Camera name to a string instead of returning a None object
             self._cam_name = "viewport"
             return
         else:
+            # Gets a string of the camera's name
             self._cam_name = self._cam.name
 
+        # Checks if VRay exists
         if not self._verify_vray():
             return
         self._vr = self._rt.renderers.current
 
-        self._ir_file = self._cfg.get_irradiance_cache_path() + "\\{0}.vrmap".format(self._cam_name)
-        self._lc_file = self._cfg.get_light_cache_path() + "\\{0}.vrlmap".format(self._cam_name)
+        # Checks if the containing folder should be named using the user specified sub folder field
+        if self._sp_sub_fold_name_gi:
+            gi_name = self._expand_frames_sub_folder()
+        else:
+            gi_name = self._cam_name
+
+        # Sets file paths for the GI files
+        self._ir_file = self._cfg.get_irradiance_cache_path() + "\\{0}.vrmap".format(gi_name)
+        self._lc_file = self._cfg.get_light_cache_path() + "\\{0}.vrlmap".format(gi_name)
+
+        # Sets file path for frames
         self._frames_dir = os.path.join(self._cfg.get_frames_path(), self._expand_frames_sub_folder())
 
-        flg.debug("Irradiance Map: {}".format(self._ir_file))
-        flg.debug("Light Cache: {}".format(self._lc_file))
-        flg.debug("Frames Directory: {}".format(self._frames_dir))
+        # Prints this to the Log
+        flg.info("Irradiance Map: {}".format(self._ir_file))
+        flg.info("Light Cache: {}".format(self._lc_file))
+        flg.info("Frames Directory: {}".format(self._frames_dir))
 
+        # Checks these directories
         if not self._verify_paths(self._cfg.get_irradiance_cache_path(),
                                   self._cfg.get_light_cache_path(),
                                   self._frames_dir):
             return
 
+        # Prints a message
         self._status_message = self._grn_rdy_tx
         self._ready = True
 
@@ -529,7 +600,8 @@ class SpinachJob:
         flg.debug("Overriding Image Filter")
         self._override_image_filter()
 
-        self._status_message = "{} - Single Frame Prepass".format(self._grn_rdy_tx)
+        self._status_message = "{0} - {1}".format(self._grn_rdy_tx,
+                                                  self._gi_type_status_msg(render_type))
         self._log_status(flg)
 
         flg.debug("Setting Output")
@@ -586,7 +658,8 @@ class SpinachJob:
         self._override_image_filter()
 
         flg.debug("File Ready for Final Render")
-        self._status_message = "{} - Beauty - GI From File".format(self._grn_rdy_tx)
+        self._status_message = "{0} - Beauty - {1}".format(self._grn_rdy_tx,
+                                                           self._gi_type_status_msg(render_type))
 
         self.rsd_toggle(True)
 

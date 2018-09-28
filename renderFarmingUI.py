@@ -7,6 +7,7 @@ import os
 # Other Render Farming files
 import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
+import renderFarmingKale as rFK
 import renderFarmingTools as rFT
 import renderFarmingSATSDialogUI as rFSATS
 
@@ -15,6 +16,7 @@ import MaxPlus
 
 # PySide 2
 from PySide2.QtUiTools import QUiLoader
+from PySide2.QtGui import QStandardItemModel, QStandardItem
 import PySide2.QtWidgets as QtW
 from PySide2.QtCore import QFile, QTimer
 
@@ -249,6 +251,16 @@ class RenderFarmingUI(QtW.QDialog):
         self.resize(self.width(), self.minimumSizeHint().height())
 
     # ---------------------------------------------------
+    #                    Wrappers
+    # ---------------------------------------------------
+
+    def match_prefix(self):
+        chk = self._kale_tbdg.match_prefix()
+        if chk is not None:
+            wrn = rFT.html_color_text("Warning:", "Orange")
+            self._spinach_tbdg.set_spinach_status("{0} {1}".format(wrn, chk.get_text()))
+
+    # ---------------------------------------------------
     #                    Overrides
     # ---------------------------------------------------
 
@@ -281,6 +293,14 @@ class KaleTBDG:
 
         self._clg = logging.getLogger("renderFarming.UI.KaleTBDG")
 
+        # Kale Job
+
+        self._kale = None
+
+        # Table
+
+        self._table = KaleTableView(self._parent, self._kale)
+
         # ---------------------------------------------------
         #                 Button Definitions
         # ---------------------------------------------------
@@ -298,9 +318,108 @@ class KaleTBDG:
     # ---------------------------------------------------
 
     def _kl_run_handler(self):
-        print("Kale")
-        print(self._parent)
+        self._kale = rFK.Kale(self._rt, self._cfg)
+        self._table.update_model(self._kale)
         return
+
+    # ---------------------------------------------------
+    #                  Wrapper Function
+    # ---------------------------------------------------
+
+    def match_prefix(self):
+        return self._kale.match_prefix(False)
+
+
+class KaleTableView:
+    def __init__(self, parent, kale):
+        self._parent = parent
+        self._kale = kale
+
+        self._kl_results_text_tbvw = self._parent.findChild(QtW.QTableView, "kl_results_text_tbvw")
+
+        self._ktm = None
+
+        if self._kale is None:
+            self._ktm = DummyKaleTableModel()
+            self._kl_results_text_tbvw.setModel(self._ktm.get_model())
+        else:
+            self._model_to_table()
+
+    def _model_to_table(self):
+        self._ktm = KaleTableModel(self._kale)
+        self._kl_results_text_tbvw.setModel(self._ktm.get_model())
+
+        self._kl_results_text_tbvw.resizeRowsToContents()
+
+    def update_model(self, kale):
+        self._kale = kale
+        self._model_to_table()
+
+
+class KaleTableModel:
+    def __init__(self, kale):
+        self._kale = kale
+
+        self._model = QStandardItemModel()
+
+        self._populate_columns()
+        self._create_headers()
+
+    def _create_headers(self):
+        label_list = "Title", "Text", "Category", "Priority"
+        self._model.setHorizontalHeaderLabels(label_list)
+
+    def _populate_columns(self):
+        kale_list = self._kale.get_list()
+        for row, kl in enumerate(kale_list):
+            self._populate_row(row, kl)
+
+    def _populate_row(self, row, kale_item):
+        title = QStandardItem(rFT.clean_title(kale_item.get_title()))
+        text = QStandardItem(kale_item.get_text())
+        category = QStandardItem(kale_item.get_category())
+        priority = QStandardItem(self._priority_to_text(kale_item.get_priority()))
+
+        self._model.setItem(row, 0, title)
+        self._model.setItem(row, 1, text)
+        self._model.setItem(row, 2, category)
+        self._model.setItem(row, 3, priority)
+
+    def get_model(self):
+        return self._model
+
+    def _priority_to_text(self, priority_integer):
+        return self._kale.get_priorities().get(priority_integer, "Invalid Key")
+
+
+class DummyKaleTableModel:
+    def __init__(self):
+        self._model = QStandardItemModel()
+
+        self._populate_columns()
+        self._create_headers()
+
+    def _create_headers(self):
+        label_list = "Title", "Text", "Category", "Priority"
+        self._model.setHorizontalHeaderLabels(label_list)
+
+    def _populate_columns(self):
+        for row in range(10):
+            self._populate_row(row)
+
+    def _populate_row(self, row):
+        title = QStandardItem(" ")
+        text = QStandardItem(" ")
+        category = QStandardItem(" ")
+        priority = QStandardItem(" ")
+
+        self._model.setItem(row, 0, title)
+        self._model.setItem(row, 1, text)
+        self._model.setItem(row, 2, category)
+        self._model.setItem(row, 3, priority)
+
+    def get_model(self):
+        return self._model
 
 
 class SpinachTBDG:
@@ -501,6 +620,7 @@ class SpinachTBDG:
             self._spinach.prepare_prepass(self._sp_gi_mode_cmbx.get_prepass_mode())
 
         self.set_spinach_status(self._spinach.get_status_message())
+        self._parent.match_prefix()
 
     def _sp_man_beauty_btn_handler(self):
         """
@@ -525,6 +645,7 @@ class SpinachTBDG:
             self._spinach.prepare_beauty_pass(self._sp_gi_mode_cmbx.get_beauty_mode())
 
         self.set_spinach_status(self._spinach.get_status_message())
+        self._parent.match_prefix()
 
     def _sp_gi_mode_cmbx_handler(self):
         """
@@ -555,6 +676,7 @@ class SpinachTBDG:
 
         self._spinach.set_multi_frame_increment(self._sp_multi_frame_increment_sb.value())
         self._spinach.set_pad_gi(self._sp_pad_gi_range_ckbx.isChecked())
+        self._spinach.set_sub_folder_as_gi_name(self._sp_sub_fold_name_gi_ckbx.isChecked())
 
     # ---------------------------------------------------
     #                  Getter Functions
@@ -705,6 +827,7 @@ class ConfigTBDG:
         self._config_test(False)
 
     def _config_test(self, show):
+        self._clg.debug("Showing Resolved Paths")
         raw = not show
         self._cfg_pth_projectsDirectory_le.setText(self._cfg.get_projects_path(raw))
         self._cfg_pth_framesDirectory_le.setText(self._cfg.get_frames_path(raw))

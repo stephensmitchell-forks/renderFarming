@@ -102,3 +102,8 @@ def calculate_increment_padding(start, end, increment):
         last_increment_start = end - last_inc_length
         new_end = last_increment_start + increment
         return new_end
+
+
+def clean_title(title):
+    title = title.replace('_', ' ')
+    return title.title()

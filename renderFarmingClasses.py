@@ -278,7 +278,7 @@ class Token:
 class VRayImageFilterSet:
     def __init__(self, rt, filter_index):
         """
-
+        Generates a 3ds Max aa filter
         :param rt: The pymxs Runtime
         :param filter_index: The index of the filter in the VRay drop down menu
         """
@@ -287,64 +287,34 @@ class VRayImageFilterSet:
         self._rt = rt
         self._filter_index = filter_index
 
+        self._filt_dict = {
+            16: self._rt.VRayMitNetFilter(),
+            15: self._rt.VRayTriangleFilter(),
+            14: self._rt.VRayBoxFilter(),
+            13: self._rt.VRaySincFilter(),
+            12: self._rt.VRayLanczosFilter(),
+            11: self._rt.Mitchell_Netravali(),
+            10: self._rt.Blackman(),
+            9: self._rt.Blend(),
+            8: self._rt.Cook_Variable(),
+            7: self._rt.Soften(),
+            6: self._rt.Video(),
+            5: self._rt.Cubic(),
+            4: self._rt.Quadratic(),
+            3: self._rt.Plate_Match_MAX_R2(),
+            2: self._rt.Catmull_Rom(),
+            1: self._rt.Sharp_Quadtratic(),
+            0: self._rt.Area(),
+        }
+
         if filter_index < 0 or filter_index > 16:
             msg = "The filter index is outside of the acceptable range.  Index: {}".format(filter_index)
             self._clg.error(msg)
             raise IndexError(msg)
 
     def get_filter(self):
-        filt = self._filter_index
-        if filt is 16:
-            self._clg.debug("VRayMitNetFilter")
-            return self._rt.VRayMitNetFilter()
-        elif filt is 15:
-            self._clg.debug("VRayTriangleFilter")
-            return self._rt.VRayTriangleFilter()
-        elif filt is 14:
-            self._clg.debug("VRayBoxFilter")
-            return self._rt.VRayBoxFilter()
-        elif filt is 13:
-            self._clg.debug("VRaySincFilter")
-            return self._rt.VRaySincFilter()
-        elif filt is 12:
-            self._clg.debug("VRayLanczosFilter")
-            return self._rt.VRayLanczosFilter()
-        elif filt is 11:
-            self._clg.debug("Mitchell Netravali")
-            return self._rt.Mitchell_Netravali()
-        elif filt is 10:
-            self._clg.debug("Blackman")
-            return self._rt.Blackman()
-        elif filt is 9:
-            self._clg.debug("Blend")
-            return self._rt.Blend()
-        elif filt is 8:
-            self._clg.debug("Cook Variable")
-            return self._rt.Cook_Variable()
-        elif filt is 7:
-            self._clg.debug("Soften")
-            return self._rt.Soften()
-        elif filt is 6:
-            self._clg.debug("Video")
-            return self._rt.Video()
-        elif filt is 5:
-            self._clg.debug("Cubic")
-            return self._rt.Cubic()
-        elif filt is 4:
-            self._clg.debug("Quadratic")
-            return self._rt.Quadratic()
-        elif filt is 3:
-            self._clg.debug("Plate Match/MAX R2")
-            return self._rt.Plate_Match_MAX_R2()
-        elif filt is 2:
-            self._clg.debug("Catmull Rom")
-            return self._rt.Catmull_Rom()
-        elif filt is 1:
-            self._clg.debug("Sharp Quadtratic")
-            return self._rt.Sharp_Quadtratic()
-        elif filt is 0:
-            self._clg.debug("Area")
-            return self._rt.Area()
-        else:
-            self._clg.debug("Area")
-            return self._rt.Area()
+        filt = self._filt_dict.get(self._filter_index, self._rt.Area)
+        self._clg.debug("Filter Type is: {}".format(self._rt.classOf(filt)))
+
+
+
