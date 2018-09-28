@@ -968,41 +968,30 @@ class GIModeComboBox:
         """
         self.cmbx = combo_box
 
+        self._prepass_mode = {
+            5: -1,
+            4: -1,
+            3: 6,
+            2: 4,
+            1: 2,
+            0: 0
+        }
+        self._beauty_mode = {
+            5: 9,
+            4: 8,
+            3: 7,
+            2: 5,
+            1: 3,
+            0: 1
+        }
+
     def get_prepass_mode(self):
         index = self.cmbx.currentIndex()
-        if index == 5:
-            prepass_mode = -1
-        elif index == 4:
-            prepass_mode = -1
-        elif index == 3:
-            prepass_mode = 6
-        elif index == 2:
-            prepass_mode = 4
-        elif index == 1:
-            prepass_mode = 2
-        elif index == 0:
-            prepass_mode = 0
-        else:
-            prepass_mode = 0
-        return prepass_mode
+        return self._prepass_mode.get(index, 0)
 
     def get_beauty_mode(self):
         index = self.cmbx.currentIndex()
-        if index == 5:
-            beauty_mode = 9
-        elif index == 4:
-            beauty_mode = 8
-        elif index == 3:
-            beauty_mode = 7
-        elif index == 2:
-            beauty_mode = 5
-        elif index == 1:
-            beauty_mode = 3
-        elif index == 0:
-            beauty_mode = 1
-        else:
-            beauty_mode = 1
-        return beauty_mode
+        return self._beauty_mode.get(index, 0)
 
     def __str__(self):
         return self.cmbx.currentText()
@@ -1019,33 +1008,26 @@ class SATSPromptComboBox:
         """
         self.cmbx = combo_box
 
+        self._prepass_bool = {
+            3: True,
+            2: False,
+            1: True,
+            0: False
+        }
+        self._beauty_bool = {
+            3: True,
+            2: True,
+            1: False,
+            0: False
+        }
+
     def prepass(self):
         index = self.cmbx.currentIndex()
-        if index == 3:
-            prepass = True
-        elif index == 2:
-            prepass = False
-        elif index == 1:
-            prepass = True
-        elif index == 0:
-            prepass = False
-        else:
-            prepass = False
-        return prepass
+        return self._prepass_bool.get(index, 0)
 
     def beauty(self):
         index = self.cmbx.currentIndex()
-        if index == 3:
-            prepass = True
-        elif index == 2:
-            prepass = True
-        elif index == 1:
-            prepass = False
-        elif index == 0:
-            prepass = False
-        else:
-            prepass = False
-        return prepass
+        return self._beauty_bool.get(index, 0)
 
     def __str__(self):
         return self.cmbx.currentText()
