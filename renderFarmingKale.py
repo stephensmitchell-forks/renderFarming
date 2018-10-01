@@ -27,7 +27,7 @@ class Kale:
         # Checks
         # --------------------
 
-        self.match_prefix(True)
+        self.match_prefix()
         self._global_switches()
 
     # ---------------------------------------------------
@@ -51,7 +51,7 @@ class Kale:
     #              Scene Checker Functions
     # ---------------------------------------------------
 
-    def match_prefix(self, local=False):
+    def match_prefix(self):
         file_name = self._rt.maxFileName
         code = self._cfg.get_project_code()
 
@@ -60,14 +60,7 @@ class Kale:
         prefix = file_name[:ind]
 
         if code not in prefix:
-            ki = KaleItem("match_prefix", "File Prefix does not match Project Code", "Scene", 2)
-
-            if local:
-                self.append_item(ki)
-
-            return ki
-        else:
-            return None
+            self.append_item(KaleItem("match_prefix", "File Prefix does not match Project Code", "Scene", 2))
 
     def _verify_vray(self):
         """

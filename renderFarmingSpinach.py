@@ -463,30 +463,20 @@ class SpinachJob:
             -9:   Brute Force, Brute Force
         :return: None
         """
-        if render_type is 0:
-            msg = "Single Frame IR Prepass"
-        elif render_type is 1:
-            msg = "Single Frame IR Beauty"
-        elif render_type is 2:
-            msg = "Multi Frame IR Prepass"
-        elif render_type is 3:
-            msg = "Multi Frame IR Beauty"
-        elif render_type is 4:
-            msg = "Animated IR Prepass"
-        elif render_type is 5:
-            msg = "Animated IR Beauty"
-        elif render_type is 6:
-            msg = "Single Frame LC Prepass"
-        elif render_type is 7:
-            msg = "Single Frame LC Beauty"
-        elif render_type is 8:
-            msg = "Every Frame LC Beauty"
-        elif render_type is 9:
-            msg = "BF Beauty"
-        else:
-            msg = "{} Something has been goofed".format(rFT.html_color_text("Whoops: ", "Orange"))
+        msg = {
+            0: "Single Frame IR Prepass",
+            1: "Single Frame IR Beauty",
+            2: "Multi Frame IR Prepass",
+            3: "Multi Frame IR Beauty",
+            4: "Animated IR Prepass",
+            5: "Animated IR Beauty",
+            6: "Single Frame LC Prepass",
+            7: "Single Frame LC Beauty",
+            8: "Every Frame LC Beauty",
+            9: "BF Beauty"
+        }
 
-        return msg
+        return msg.get(render_type, "{} Something has been goofed".format(rFT.html_color_text("Whoops: ", "Orange")))
 
     # ---------------------------------------------------
     #                       Public

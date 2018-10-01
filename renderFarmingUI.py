@@ -327,7 +327,18 @@ class KaleTBDG:
     # ---------------------------------------------------
 
     def match_prefix(self):
-        return self._kale.match_prefix(False)
+        file_name = self._rt.maxFileName
+        code = self._cfg.get_project_code()
+
+        ind = file_name.find('_') - 1
+
+        prefix = file_name[:ind]
+
+        if code not in prefix:
+            ki = rFK.KaleItem("match_prefix", "File Prefix does not match Project Code", "Scene", 2)
+            return ki
+        else:
+            return None
 
 
 class KaleTableView:
@@ -920,33 +931,21 @@ class LogLevelComboBox:
         """
         self.cmbx = combo_box
 
+        self.level_dict = {
+            0: "CRITICAL",
+            1: "ERROR",
+            2: "WARNING",
+            3: "INFO",
+            4: "DEBUG"
+        }
+
     def set_by_level(self, debug_level):
-        if "CRITICAL" in debug_level:
-            self.cmbx.setCurrentIndex(0)
-        elif "ERROR" in debug_level:
-            self.cmbx.setCurrentIndex(1)
-        elif "WARNING" in debug_level:
-            self.cmbx.setCurrentIndex(2)
-        elif "INFO" in debug_level:
-            self.cmbx.setCurrentIndex(3)
-        elif "DEBUG" in debug_level:
-            self.cmbx.setCurrentIndex(4)
-        else:
-            self.cmbx.setCurrentIndex(0)
+        name_dict = dict(zip(self.level_dict.values(), self.level_dict.keys()))
+        self.cmbx.setCurrentIndex(name_dict.get(debug_level, 4))
 
     def get_level(self):
         index = self.cmbx.currentIndex()
-        if index == 4:
-            debug_level = "DEBUG"
-        elif index == 3:
-            debug_level = "INFO"
-        elif index == 2:
-            debug_level = "WARNING"
-        elif index == 1:
-            debug_level = "ERROR"
-        else:
-            debug_level = "CRITICAL"
-        return debug_level
+        return self.level_dict.get(index, "DEBUG")
 
 
 class GIModeComboBox:

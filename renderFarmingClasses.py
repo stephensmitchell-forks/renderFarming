@@ -303,7 +303,7 @@ class VRayImageFilterSet:
             4: self._rt.Quadratic(),
             3: self._rt.Plate_Match_MAX_R2(),
             2: self._rt.Catmull_Rom(),
-            1: self._rt.Sharp_Quadtratic(),
+            1: self._rt.Sharp_Quadratic(),
             0: self._rt.Area(),
         }
 
