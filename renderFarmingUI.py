@@ -254,12 +254,6 @@ class RenderFarmingUI(QtW.QDialog):
     #                    Wrappers
     # ---------------------------------------------------
 
-    def match_prefix(self):
-        chk = self._kale_tbdg.match_prefix()
-        if chk is not None:
-            wrn = rFT.html_color_text("Warning:", "Orange")
-            self._spinach_tbdg.set_spinach_status("{0} {1}".format(wrn, chk.get_text()))
-
     # ---------------------------------------------------
     #                    Overrides
     # ---------------------------------------------------
@@ -325,20 +319,6 @@ class KaleTBDG:
     # ---------------------------------------------------
     #                  Wrapper Function
     # ---------------------------------------------------
-
-    def match_prefix(self):
-        file_name = self._rt.maxFileName
-        code = self._cfg.get_project_code()
-
-        ind = file_name.find('_') - 1
-
-        prefix = file_name[:ind]
-
-        if code not in prefix:
-            ki = rFK.KaleItem("match_prefix", "File Prefix does not match Project Code", "Scene", 2)
-            return ki
-        else:
-            return None
 
 
 class KaleTableView:
@@ -631,7 +611,7 @@ class SpinachTBDG:
             self._spinach.prepare_prepass(self._sp_gi_mode_cmbx.get_prepass_mode())
 
         self.set_spinach_status(self._spinach.get_status_message())
-        self._parent.match_prefix()
+        self._match_prefix()
 
     def _sp_man_beauty_btn_handler(self):
         """
@@ -656,7 +636,7 @@ class SpinachTBDG:
             self._spinach.prepare_beauty_pass(self._sp_gi_mode_cmbx.get_beauty_mode())
 
         self.set_spinach_status(self._spinach.get_status_message())
-        self._parent.match_prefix()
+        self._match_prefix()
 
     def _sp_gi_mode_cmbx_handler(self):
         """
@@ -688,6 +668,19 @@ class SpinachTBDG:
         self._spinach.set_multi_frame_increment(self._sp_multi_frame_increment_sb.value())
         self._spinach.set_pad_gi(self._sp_pad_gi_range_ckbx.isChecked())
         self._spinach.set_sub_folder_as_gi_name(self._sp_sub_fold_name_gi_ckbx.isChecked())
+
+    # ---------------------------------------------------
+    #                Checker Functions
+    # ---------------------------------------------------
+
+    def _match_prefix(self):
+        """
+        Wrapper for rFT.match_prefix()
+        :return: None
+        """
+        chk = rFT.match_prefix(self._rt.maxFileName, self._cfg.get_project_code())
+        if chk is not None:
+            self.set_spinach_status(chk)
 
     # ---------------------------------------------------
     #                  Getter Functions

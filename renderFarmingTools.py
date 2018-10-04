@@ -105,5 +105,29 @@ def calculate_increment_padding(start, end, increment):
 
 
 def clean_title(title):
+    """
+    Give a version of a string that has underscores replaced with spaces and title case applied
+    :param title: A title in it's raw form
+    :return: A cleaned up title
+    """
     title = title.replace('_', ' ')
     return title.title()
+
+
+def match_prefix(file_name, code, html=True):
+    """
+    Checks if a filename has the same prefix code as the configuration
+    :param file_name: the max file name
+    :param code: the prefix code
+    :param html: Whether or not to return an html string
+    :return: A String with the warning message or nothing
+    """
+    ind = file_name.find('_')
+    prefix = file_name[:ind]
+
+    if code != prefix:
+        wrn = html_color_text("Warning:", "Orange") if html else "Warning:"
+        msg = "File Prefix: {} does not match Project Code: {}".format(prefix, code)
+        return "{0} {1}".format(wrn, msg)
+    else:
+        return None

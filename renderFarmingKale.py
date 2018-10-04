@@ -29,12 +29,21 @@ class Kale:
 
         self.match_prefix()
         self._global_switches()
+        self._image_sampler()
+        self._environment_overrides()
 
     # ---------------------------------------------------
     #                  Setter Functions
     # ---------------------------------------------------
 
     def append_item(self, kale_item):
+        debug_level = {
+            0: self._clg.debug(kale_item.get_text()),
+            1: self._clg.info(kale_item.get_text()),
+            2: self._clg.warning(kale_item.get_text()),
+            3: self._clg.critical(kale_item.get_text())
+        }
+        debug_level.get(kale_item.get_priority(), 0)
         self._found_items.append(kale_item)
 
     # ---------------------------------------------------
@@ -55,12 +64,15 @@ class Kale:
         file_name = self._rt.maxFileName
         code = self._cfg.get_project_code()
 
-        ind = file_name.find('_') - 1
+        ind = file_name.find('_')
 
         prefix = file_name[:ind]
 
-        if code not in prefix:
-            self.append_item(KaleItem("match_prefix", "File Prefix does not match Project Code", "Scene", 2))
+        if code != prefix:
+            self.append_item(KaleItem("match_prefix",
+                                      "File Prefix: {} does not match Project Code: {}".format(prefix, code),
+                                      "Scene",
+                                      2))
 
     def _verify_vray(self):
         """
@@ -102,6 +114,56 @@ class Kale:
         if self._vr.options_hiddenLights:
             self.append_item(KaleItem("options_hidden_lights",
                                       "Hidden lights are enabled", "Settings", 0))
+
+    def _image_sampler(self):
+        if self._vr.imageSampler_renderMask_type == 1:
+            self.append_item(KaleItem("texture_render_mask",
+                                      "A texture render mask is enabled", "Settings", 1))
+            if self._vr.imageSampler_renderMask_texmap is None:
+                self.append_item(KaleItem("missing_texture_render_mask",
+                                          "A texture render mask is enabled, but there is no texture specified",
+                                          "Settings", 3))
+        elif self._vr.imageSampler_renderMask_type == 2:
+            self.append_item(KaleItem("selection_render_mask",
+                                      "A selection render mask is enabled.  This CANNOT be rendered using Backburner",
+                                      "Settings", 3))
+        elif self._vr.imageSampler_renderMask_type == 3:
+            self.append_item(KaleItem("include_exclude_render_mask",
+                                      "An include/exclude list render mask is enabled", "Settings", 1))
+        elif self._vr.imageSampler_renderMask_type == 4:
+            self.append_item(KaleItem("layers_render_mask",
+                                      "A layers render mask is enabled", "Settings", 1))
+            if self._vr.imageSampler_renderMask_layers.count == 0:
+                self.append_item(KaleItem("missing_layer_render_mask",
+                                          "A layer render mask is enabled, but there are no layers specified",
+                                          "Settings", 3))
+        elif self._vr.imageSampler_renderMask_type == 4:
+            self.append_item(KaleItem("obj_id_render_mask",
+                                      "An Object ID render mask is enabled", "Settings", 1))
+            if self._vr.imageSampler_renderMask_objectIDs == '':
+                self.append_item(KaleItem("missing_onj_id_render_mask",
+                                          "An object ID render mask is enabled, but there are no object IDs specified",
+                                          "Settings", 3))
+
+    def _environment_overrides(self):
+        if self._vr.environment_gi_on:
+            self.append_item(KaleItem("environment_gi_on",
+                                      "A GI environment override is enabled", "Settings", 1))
+
+        if self._vr.environment_rr_on:
+            self.append_item(KaleItem("environment_reflection_refraction_on",
+                                      "A reflection/refraction environment override is enabled", "Settings", 1))
+
+        if self._vr.environment_refract_on:
+            self.append_item(KaleItem("environment_refraction_on",
+                                      "A refraction environment override is enabled", "Settings", 1))
+
+        if self._vr.environment_secondaryMatte_on:
+            self.append_item(KaleItem("environment_secondary_matte_on",
+                                      "A secondary matte environment override is enabled", "Settings", 1))
+
+    def _atmosphere_effects(self):
+        return
 
 
 class KaleItem:

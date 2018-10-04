@@ -26,7 +26,7 @@ class Configuration:
 
         self._username = os.getenv('username')
 
-        self._version = "0032"
+        self._version = "0033"
 
         # Reading Config from Disk
 
