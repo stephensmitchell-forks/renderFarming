@@ -439,7 +439,7 @@ class SpinachJob:
         else:
             self._vr.filter_on = True
             flg.debug("Image Filter set to index {}".format(self._image_filter_override))
-            self._vr.filter_kernel = rFC.VRayImageFilterSet(self._rt, filt).get_filter()
+            self._vr.filter_kernel = rFT.max_aa_filter(self._rt, filt)
 
     def _expand_frames_sub_folder(self):
         self._clg.debug("Sub Folder Edited")

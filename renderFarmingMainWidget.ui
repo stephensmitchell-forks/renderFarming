@@ -631,6 +631,9 @@
       <property name="enabled">
        <bool>false</bool>
       </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Resets V-Ray to it's default settings&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
       <property name="text">
        <string>Reset Render Setup</string>
       </property>

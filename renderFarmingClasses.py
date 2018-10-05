@@ -275,46 +275,4 @@ class Token:
         return self._value
 
 
-class VRayImageFilterSet:
-    def __init__(self, rt, filter_index):
-        """
-        Generates a 3ds Max aa filter
-        :param rt: The pymxs Runtime
-        :param filter_index: The index of the filter in the VRay drop down menu
-        """
-        self._clg = logging.getLogger("renderFarming.Classes.VRayImageFilterSet")
-
-        self._rt = rt
-        self._filter_index = filter_index
-
-        self._filt_dict = {
-            16: self._rt.VRayMitNetFilter(),
-            15: self._rt.VRayTriangleFilter(),
-            14: self._rt.VRayBoxFilter(),
-            13: self._rt.VRaySincFilter(),
-            12: self._rt.VRayLanczosFilter(),
-            11: self._rt.Mitchell_Netravali(),
-            10: self._rt.Blackman(),
-            9: self._rt.Blend(),
-            8: self._rt.Cook_Variable(),
-            7: self._rt.Soften(),
-            6: self._rt.Video(),
-            5: self._rt.Cubic(),
-            4: self._rt.Quadratic(),
-            3: self._rt.Plate_Match_MAX_R2(),
-            2: self._rt.Catmull_Rom(),
-            1: self._rt.Sharp_Quadratic(),
-            0: self._rt.Area(),
-        }
-
-        if filter_index < 0 or filter_index > 16:
-            msg = "The filter index is outside of the acceptable range.  Index: {}".format(filter_index)
-            self._clg.error(msg)
-            raise IndexError(msg)
-
-    def get_filter(self):
-        filt = self._filt_dict.get(self._filter_index, self._rt.Area)
-        self._clg.debug("Filter Type is: {}".format(self._rt.classOf(filt)))
-
-
 

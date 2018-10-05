@@ -131,3 +131,38 @@ def match_prefix(file_name, code, html=True):
         return "{0} {1}".format(wrn, msg)
     else:
         return None
+
+
+def max_aa_filter(rt, filter_index):
+    """
+    Generates a 3ds Max aa filter
+    :param rt: The pymxs Runtime
+    :param filter_index: The index of the filter in the VRay drop down menu
+    """
+    flg = logging.getLogger("renderFarming.Tools.VRayImageFilterSet")
+    filt_dict = {
+        16: rt.VRayMitNetFilter(),
+        15: rt.VRayTriangleFilter(),
+        14: rt.VRayBoxFilter(),
+        13: rt.VRaySincFilter(),
+        12: rt.VRayLanczosFilter(),
+        11: rt.Mitchell_Netravali(),
+        10: rt.Blackman(),
+        9: rt.Blend(),
+        8: rt.Cook_Variable(),
+        7: rt.Soften(),
+        6: rt.Video(),
+        5: rt.Cubic(),
+        4: rt.Quadratic(),
+        3: rt.Plate_Match_MAX_R2(),
+        2: rt.Catmull_Rom(),
+        1: rt.Sharp_Quadratic(),
+        0: rt.Area(),
+    }
+    if filter_index < 0 or filter_index > 16:
+        msg = "The filter index is outside of the acceptable range.  Index: {}".format(filter_index)
+        flg.error(msg)
+        raise IndexError(msg)
+    filt = filt_dict.get(filter_index, rt.Area)
+    flg.debug("Filter Type is: {}".format(rt.classOf(filt)))
+    return filt
