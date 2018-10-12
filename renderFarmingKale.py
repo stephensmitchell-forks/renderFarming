@@ -9,8 +9,8 @@ class Kale:
         self._rt = rt
         self._cfg = cfg
 
+        self._vr = None
         self._verify_vray()
-        self._vr = self._rt.renderers.current
 
         self._found_items = list()
 
@@ -31,6 +31,8 @@ class Kale:
         self._global_switches()
         self._image_sampler()
         self._environment_overrides()
+
+        self._camera_check()
 
     # ---------------------------------------------------
     #                  Setter Functions
@@ -80,10 +82,12 @@ class Kale:
         :return: True for success, False for failure
         """
         flg = logging.getLogger("renderFarming.Kale.verify_vray")
-        if not rFT.verify_vray(self._rt):
+        renderer = rFT.verify_vray(self._rt)
+        if renderer is None:
             flg.error("Cannot set renderer to VRay")
             return False
         else:
+            self._vr = renderer
             return True
 
     def _global_switches(self):
@@ -164,6 +168,37 @@ class Kale:
 
     def _atmosphere_effects(self):
         return
+
+    def _frame_buffer_effects(self):
+        return
+
+    def _render_passes(self):
+        return
+
+    def _camera_check(self):
+        cam = self._rt.getActiveCamera()
+        if cam is None:
+            self.append_item(KaleItem("active_camera_is_viewport",
+                                      "The active camera is assigned to a viewport camera", "Camera", 1))
+        else:
+            exp = cam.exposure_value
+            if exp < 10:
+                self.append_item(KaleItem("camera_exposure_high",
+                                          "The active camera's exposure target ({}) is very high".format(exp),
+                                          "Camera",
+                                          1))
+            elif exp > 18:
+                self.append_item(KaleItem("camera_exposure_low",
+                                          "The active camera's exposure target ({}) is very low".format(exp),
+                                          "Camera",
+                                          1))
+
+            if cam.motion_blur_enabled:
+                self.append_item(KaleItem("camera_motion_blur",
+                                          "The active camera has motion blur enabled", "Camera", 2))
+            if cam.use_dof:
+                self.append_item(KaleItem("camera_depth_of_field",
+                                          "The active camera has depth of field enabled", "Camera", 2))
 
 
 class KaleItem:

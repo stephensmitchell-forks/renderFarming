@@ -107,6 +107,9 @@ class RenderFarmingUI(QtW.QDialog):
 
         self._tabbed_widget.currentChanged.connect(self._tab_change_handler)
 
+        vpc_code = MaxPlus.NotificationCodes.ViewportChange
+        self._viewport_change_handler = MaxPlus.NotificationManager.Register(vpc_code, self.cam_change_handler)
+
         # ---------------------------------------------------
         #               Final Initializing
         # ---------------------------------------------------
@@ -171,7 +174,7 @@ class RenderFarmingUI(QtW.QDialog):
 
         logging.getLogger().addHandler(printable_log)
 
-    def cam_change_handler(self):
+    def cam_change_handler(self, code):
         if self._camera is not None:
             stored_cam = self._camera
         else:
@@ -259,12 +262,14 @@ class RenderFarmingUI(QtW.QDialog):
     # ---------------------------------------------------
 
     def closeEvent(self, event):
+        MaxPlus.NotificationManager.Unregister(self._viewport_change_handler)
+
         self._config_tbdg.config_reset()
         self._saved = False
         self.config_apply_all(True)
+
         logging.shutdown()
-        print("Spinach Closed")
-        self._rt.callbacks.removeScripts(self._rt.name("viewportChange"), id=self._rt.name("bdf_cameraChange"))
+
         event.accept()
 
 
@@ -444,7 +449,7 @@ class SpinachTBDG:
 
         self._sp_man_prepass_btn = self._parent.findChild(QtW.QPushButton, 'sp_1f_man_prepass_btn')
         self._sp_man_beauty_btn = self._parent.findChild(QtW.QPushButton, 'sp_1f_man_beauty_btn')
-        self._sp_1f_auto_btn = self._parent.findChild(QtW.QPushButton, 'sp_1f_auto_btn')
+        self._sp_backburner_submit_btn = self._parent.findChild(QtW.QPushButton, 'sp_backburner_submit_btn')
         self._sp_reset_btn = self._parent.findChild(QtW.QPushButton, 'sp_reset_btn')
 
         self._sp_settings_btn = self._parent.findChild(QtW.QPushButton, 'sp_settings_btn')
@@ -501,14 +506,13 @@ class SpinachTBDG:
 
         self._sp_man_prepass_btn.clicked.connect(self._sp_man_prepass_btn_handler)
         self._sp_man_beauty_btn.clicked.connect(self._sp_man_beauty_btn_handler)
-        # self._sp_1f_auto_btn.clicked.connect(self._single_frame_auto_handler)
+        self._sp_backburner_submit_btn.clicked.connect(self._backburner_submit_handler)
 
         self._sp_vfb_type_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
         self._sp_img_filt_ovr_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
         self._sp_frm_subFolder_le.editingFinished.connect(self._sp_settings_change_handler)
         self._sp_multi_frame_increment_sb.valueChanged.connect(self._sp_settings_change_handler)
 
-        self._sp_1f_auto_btn.setEnabled(False)
         self._sp_reset_btn.clicked.connect(self._spinach_reset_handler)
 
         self._sp_pad_gi_range_ckbx.stateChanged.connect(self._sp_settings_change_handler)
@@ -577,15 +581,12 @@ class SpinachTBDG:
         else:
             print("Visible")
 
-    def _sp_auto_btn_handler(self):
+    def _backburner_submit_handler(self):
         """
-        Handler for Automatic submission
+        Handler for Backburner submission
         :return: none
         """
-        self._clg.error("Automatic submission not implemented")
-
-        er = rFT.html_color_text("ERROR:", "#ff3232")
-        self.set_spinach_status("{} Automatic submission not implemented".format(er))
+        self._spinach.submit()
         return
 
     def _sp_man_prepass_btn_handler(self):
@@ -654,7 +655,8 @@ class SpinachTBDG:
         Handler for reset button
         :return:
         """
-        self._spinach.restore_original_render_settings()
+        self._spinach.reset_renderer()
+        self.set_spinach_status(self._spinach.get_status_message())
 
     def _sp_settings_change_handler(self):
         """

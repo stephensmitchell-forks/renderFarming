@@ -107,14 +107,14 @@
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_manual_gi">
+     <widget class="QLabel" name="label_prepare">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
-       <string>Manual</string>
+       <string>Prepare</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -140,7 +140,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Re-configures the render settings to be able to pre-calculate Global Illumination&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>Prepare Prepass</string>
+         <string>Prepass</string>
         </property>
         <property name="checkable">
          <bool>false</bool>
@@ -173,7 +173,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Re-configures the render settings to send final image renders&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>Prepare Beauty Pass</string>
+         <string>Beauty Pass</string>
         </property>
        </widget>
       </item>
@@ -187,25 +187,25 @@
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_auto_gi">
+     <widget class="QLabel" name="label_backburner_submit">
       <property name="font">
        <font>
         <pointsize>12</pointsize>
        </font>
       </property>
       <property name="text">
-       <string>Automatic</string>
+       <string>Backburner</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
       </property>
       <property name="buddy">
-       <cstring>sp_1f_auto_btn</cstring>
+       <cstring>sp_backburner_submit_btn</cstring>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="sp_1f_auto_btn">
+     <widget class="QPushButton" name="sp_backburner_submit_btn">
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -629,7 +629,7 @@
     <item>
      <widget class="QPushButton" name="sp_reset_btn">
       <property name="enabled">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Resets V-Ray to it's default settings&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1319,7 +1319,7 @@
   <tabstop>sp_gi_mode_cmbx</tabstop>
   <tabstop>sp_1f_man_prepass_btn</tabstop>
   <tabstop>sp_1f_man_beauty_btn</tabstop>
-  <tabstop>sp_1f_auto_btn</tabstop>
+  <tabstop>sp_backburner_submit_btn</tabstop>
   <tabstop>sp_frm_subFolder_le</tabstop>
   <tabstop>sp_vfb_type_cmbx</tabstop>
   <tabstop>sp_img_filt_ovr_cmbx</tabstop>

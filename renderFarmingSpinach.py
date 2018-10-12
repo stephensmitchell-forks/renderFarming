@@ -1,5 +1,5 @@
 import renderFarmingTools as rFT
-import renderFarmingClasses as rFC
+# import renderFarmingClasses as rFC
 import renderFarmingNetRender as rFNR
 import os
 import logging
@@ -34,7 +34,10 @@ class SpinachJob:
         # Variables
 
         self._rt = rt
-        self._vr = self._rt.renderers.current
+        self._vr = None
+        self._verify_vray()
+
+        self._rem = self._rt.maxOps.GetCurRenderElementMgr()
 
         self._cfg = cfg
 
@@ -77,10 +80,10 @@ class SpinachJob:
 
         # Other Attributes
 
-        self._orig_settings = rFC.RenderSettings(self._rt,
-                                                 self._cfg.get_user_scripts_path(),
-                                                 self._cfg.get_project_code())
-        self._orig_settings.capture_rps()
+        # self._orig_settings = rFC.RenderSettings(self._rt,
+        #                                          self._cfg.get_user_scripts_path(),
+        #                                          self._cfg.get_project_code())
+        # self._orig_settings.capture_rps()
 
     def _log_status(self, handler=logging.getLogger("renderFarming.Spinach")):
         """
@@ -316,6 +319,7 @@ class SpinachJob:
             flg.debug("Setting Irradiance Map to Multi Frame Incremental Mode")
             self._vr.adv_irradmap_mode = 1
             self._vr.adv_irradmap_autoSave = True
+            self._vr.gi_irradmap_multipleViews = False
 
         elif render_type is 4:
             flg.debug("Setting Irradiance Map to Animation Prepass Mode")
@@ -364,11 +368,14 @@ class SpinachJob:
         :return: True for success, False for failure
         """
         flg = logging.getLogger("renderFarming.Spinach.verify_vray")
-        if not rFT.verify_vray(self._rt):
+        renderer = rFT.verify_vray(self._rt)
+
+        if not renderer:
             flg.error("Cannot set renderer to VRay")
             self._status_message = "{} Cannot set renderer to VRay".format(self._rd_er_tx)
             return False
         else:
+            self._vr = renderer
             return True
 
     def _set_output(self, fb_type, beauty=True):
@@ -389,6 +396,8 @@ class SpinachJob:
                 flg.debug("{0}\\frame_.exr".format(self._frames_dir))
 
                 self._rt.rendOutputFilename = "{0}\\frame_.exr".format(self._frames_dir)
+                self._set_render_element_output()
+
                 self._vr.output_splitFileName = ""
 
             elif fb_type is 1:
@@ -428,7 +437,7 @@ class SpinachJob:
                 self._vr.output_splitFileName = ""
 
     def _override_image_filter(self):
-        flg = logging.getLogger("renderFarming.Spinach.override_image_filter")
+        flg = logging.getLogger("renderFarming.Spinach._override_image_filter")
         filt = self._image_filter_override
 
         if filt is 18:
@@ -478,6 +487,29 @@ class SpinachJob:
 
         return msg.get(render_type, "{} Something has been goofed".format(rFT.html_color_text("Whoops: ", "Orange")))
 
+    def _set_render_element_output(self):
+        """
+        Sets all of the scene's render elements to use the frames_dir path
+        :return:
+        """
+        flg = logging.getLogger("renderFarming.Spinach._set_render_element_output")
+        # Max's render element manger uses indexes instead of returning actual objects
+        num = self._rem.NumRenderElements()
+        flg.debug("Setting Output for {} Render Elements".format(num))
+
+        for i in range(num):
+            # retrieves the element and gets its name
+            el = self._rem.GetRenderElement(i)
+            el_name = str(el.elementname)
+
+            # compiles a filename for the element in the correct path
+            file_name = "{0}\\frame_{1}.exr".format(self._frames_dir, el_name)
+
+            flg.debug("Assigning render element: {0} to file name: {1}".format(el_name, file_name))
+
+            # Sets the filename for the element
+            self._rem.SetRenderElementFilename(i, file_name)
+
     # ---------------------------------------------------
     #                       Public
     # ---------------------------------------------------
@@ -501,9 +533,8 @@ class SpinachJob:
             self._cam_name = self._cam.name
 
         # Checks if VRay exists
-        if not self._verify_vray():
+        if self._vr is None:
             return
-        self._vr = self._rt.renderers.current
 
         # Checks if the containing folder should be named using the user specified sub folder field
         if self._sp_sub_fold_name_gi:
@@ -683,9 +714,35 @@ class SpinachJob:
                 self._clg.debug("Opening \"Render Scene Dialog\"")
                 self._rt.renderSceneDialog.open()
 
-    def restore_original_render_settings(self):
-        if self._orig_settings is not None:
-            self._orig_settings.set_rps()
+    # def restore_original_render_settings(self):
+    #     if self._orig_settings is not None:
+    #         self._orig_settings.set_rps()
+
+    def reset_renderer(self):
+        flg = logging.getLogger("renderFarming.Spinach.reset_renderer")
+        self.rsd_toggle()
+
+        rc = self._rt.RendererClass.classes
+        renderer_list = list(rc)
+
+        vray_ind = -1
+        scan_ind = -1
+        for i in range(0, len(renderer_list)):
+            renderer_name = str(renderer_list[i])
+            if "V_Ray_Adv" in renderer_name:
+                vray_ind = i
+            elif "Default_Scanline_Renderer" in renderer_name:
+                scan_ind = i
+        try:
+            self._rt.renderers.current = rc[scan_ind]()
+            self._rt.renderers.current = rc[vray_ind]()
+        except IndexError:
+            flg.error("One or more renderers are not loaded, Unable to continue")
+            return None
+
+        self._verify_vray()
+        self._status_message = "VRay has been reset"
+        self.rsd_toggle(True)
 
     # noinspection PyMethodMayBeStatic
     def submit(self):

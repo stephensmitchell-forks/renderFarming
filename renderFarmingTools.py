@@ -74,7 +74,7 @@ def verify_vray(rt):
     flg.debug("Render Engine is {}".format(name_string.split(':')[1]))
 
     if "V_Ray_Adv" in name_string:
-        return True
+        return renderer
     else:
         rc = rt.RendererClass.classes
         renderer_list = list(rc)
@@ -83,14 +83,15 @@ def verify_vray(rt):
             if "V_Ray_Adv" in str(renderer_list[i]):
                 index = i
         if index < 0:
-            return False
+            return None
         try:
             rt.renderers.current = rc[index]()
         except IndexError:
             flg.error("VRay not loaded, Unable to continue")
-            return False
-        flg.debug("Renderer set to {0}".format(str(rt.renderers.current).split(':')[1]))
-        return True
+            return None
+        vray = rt.renderers.current
+        flg.debug("Renderer set to {0}".format(str(vray).split(':')[1]))
+        return vray
 
 
 def calculate_increment_padding(start, end, increment):
