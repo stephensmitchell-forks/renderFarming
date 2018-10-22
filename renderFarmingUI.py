@@ -186,6 +186,7 @@ class RenderFarmingUI(QtW.QDialog):
             cur_cam = "None"
 
         if stored_cam != cur_cam:
+            self._clg.debug("Camera change detected (Code: {})".format(code))
             if self._spinach_tbdg.get_ready_status():
                 wrn = rFT.html_color_text("Warning:", "Orange")
                 self._spinach_tbdg.set_spinach_status("{} Camera has changed".format(wrn))

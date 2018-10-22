@@ -18,19 +18,20 @@ class Configuration:
 
         # Locating the config file
 
-        self.__configFile__ = 'renderFarmingConfig'
-        self.__directory__ = os.path.realpath(os.path.join(os.getenv('LOCALAPPDATA'), 'Autodesk', '3dsMax',
-                                                           '2018 - 64bit', 'ENU', 'scripts', 'BDF', 'renderFarming'))
+        self._configFile = 'renderFarmingConfig'
+        self._defaultConfigFile = 'rFDefault'
+        self._directory = os.path.realpath(os.path.join(os.getenv('LOCALAPPDATA'), 'Autodesk', '3dsMax',
+                                                        '2018 - 64bit', 'ENU', 'scripts', 'BDF', 'config'))
 
         # Environment set up
 
         self._username = os.getenv('username')
 
-        self._version = "0034"
+        self._version = "0035"
 
         # Reading Config from Disk
 
-        self._read_config(self.__directory__, self.__configFile__)
+        self._read_config()
 
         # Project Related Variables
 
@@ -48,23 +49,20 @@ class Configuration:
 
         self._pathOptions = self._config_by_section("paths")
 
-    def _read_config(self, directory, filename, attempts=0):
+    def _read_config(self, attempts=0):
         """
         Reads the Config File from the Appdata Directory.
         Will initiate creation of this file if it is found not to exist
-        :param directory: The path to the folder in which the config file belongs
-        :param filename: The name of the Config File
         :param attempts: Recursive depth limit
         :return: None
         """
-        config_path = os.path.join(directory, "{0}_{1}.ini".format(filename, self._version))
+        config_path = os.path.join(self._directory, "{0}_{1}.ini".format(self._configFile, self._version))
 
         if not os.path.isfile(config_path):
-            if not self._create_default_config(directory, filename):
-                print('Error')
-        if self._default:
-            if not self._create_default_config(directory, filename):
-                print('Error')
+            self._create_default_config(self._directory,
+                                        self._defaultConfigFile,
+                                        self._configFile,
+                                        self._version)
         try:
             self._Config.read(config_path)
         except IOError as e:
@@ -72,29 +70,30 @@ class Configuration:
                 sys.exit("IO Error, Failed to read default config: {}".format(e))
             else:
                 print("IO Error, Failed to read default config: {} \n Attempting to load again...".format(e))
-                attempts = attempts + 1
-                self._read_config(directory, filename, attempts)
+                self._read_config(attempts + 1)
 
-    def _create_default_config(self, directory, filename):
+    # noinspection PyMethodMayBeStatic
+    def _create_default_config(self, directory, default_config_file, working_config_file, version):
         """
         Copies the the Config file to the specified directory
         :param directory: The path to the Appdata Folder
-        :param filename: The name of the Default config, which must be in the same directory as the python library
-        :return: True for success, False for failure
+        :param default_config_file: The name of the default file
+        :param working_config_file: The name to be assigned to the working config file
+        :param version: The version number
+        :return: None
         """
         try:
             if not os.path.isdir(directory):
                 os.makedirs(directory)
             location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-            shutil.copy2(os.path.join(location, "{0}.ini".format(filename)),
-                         os.path.join(directory, "{0}_{1}.ini".format(filename, self._version)))
-            return True
+            shutil.copy2(os.path.join(location, "{0}.ini".format(default_config_file)),
+                         os.path.join(directory, "{0}_{1}.ini".format(working_config_file, version)))
         except IOError as e:
             print("IO Error, Failed to create default config: {}".format(e))
-            return False
+            raise
         except os.error as e:
             print("Error, Failed to create default config: {}".format(e))
-            return False
+            raise
 
     # From the python wiki: https://wiki.python.org/moin/ConfigParserExamples
     # returns a dict representing the sections given
@@ -145,7 +144,7 @@ class Configuration:
         called to write in to the config file on disk
         :return: True for success, False for failure
         """
-        fullname = os.path.join(self.__directory__, "{0}_{1}.ini".format(self.__configFile__, self._version))
+        fullname = os.path.join(self._directory, "{0}_{1}.ini".format(self._configFile, self._version))
         try:
             f = open(fullname, 'w')
             self._Config.write(f)

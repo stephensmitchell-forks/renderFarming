@@ -1,22 +1,19 @@
-import sys
-import os
 import pymxs
 import MaxPlus
-
-sys.path.append(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))))
+import os
 
 import renderFarmingUI as rFUI
 
 rt = pymxs.runtime
 
-uif = "E:\\dump\\scripts\\renderFarming"
+uif = os.path.join(rt.name("#UserScripts"), "\\BDF\\renderFarming")
 
 # Destroys instances of the dialog before recreating it
 # noinspection PyBroadException
 try:
-    # noinspection PyUnboundLocalVariable
+    # noinspection PyUnboundLocalVariable,PyUnresolvedReferences
     ui.close()
-except:
+except NameError:
     pass
 
 app = MaxPlus.GetQMaxMainWindow()
