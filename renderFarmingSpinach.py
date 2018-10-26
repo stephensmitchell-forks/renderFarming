@@ -4,26 +4,6 @@ import renderFarmingNetRender as rFNR
 import os
 import logging
 
-# Get Camera from Viewport
-# Validate Camera
-# Get Current File Settings and store them
-#   > Gi Engine
-#   > IR Mode and Light Cache Mode
-#   > IR Path and LC Path
-#   > Auto save Check
-#   > Don't Delete Check
-# Set GI Engine to Irradiance and Light Cache
-# Make sure Use Camera Path is checked
-# Set Light Cache and Irradiance Map paths based on name for both auto-save and read
-# Set Light Cache and irradiance map to pre-pass settings
-# Set Not Final Render
-# Submit job to Backburner using camera name and workstation group
-# Un-set Not Final Render
-# Set Light cache and Irradiance Map to from file
-# Set frames directory
-# Submit to backburner with dependency on previous job
-# Return file settings to defaults
-
 
 class SpinachJob:
     def __init__(self, rt, cfg):
@@ -493,12 +473,12 @@ class SpinachJob:
     def _set_render_element_output(self):
         """
         Sets all of the scene's render elements to use the frames_dir path
-        :return:
+        :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._set_render_element_output")
         # Max's render element manger uses indexes instead of returning actual objects
         num = self._rem.NumRenderElements()
-        flg.debug("Setting Output for {} Render Elements".format(num))
+        flg.info("Setting Output for {} Render Elements".format(num))
 
         for i in range(num):
             # retrieves the element and gets its name
@@ -516,12 +496,12 @@ class SpinachJob:
     def _clear_render_element_output(self):
         """
         Sets all of the scene's render elements to have blank strings in their output path
-        :return:
+        :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._clear_render_element_output")
         # Max's render element manger uses indexes instead of returning actual objects
         num = self._rem.NumRenderElements()
-        flg.debug("Clearing Output for {} Render Elements".format(num))
+        flg.info("Clearing Output for {} Render Elements".format(num))
 
         for i in range(num):
             # retrieves the element and gets its name
@@ -787,10 +767,10 @@ class SpinachJob:
         Gets the active 3DS Max camera
         :return: a 3DS Max Camera object
         """
-        flg = logging.getLogger("renderFarming.Spinach._get_cam")
+        flg = logging.getLogger("renderFarming.Spinach.get_cam")
         cam = self._rt.getActiveCamera()
         if cam is None:
-            flg.error("Active view is not a valid camera")
+            flg.warning("Active view is not a valid camera")
             self._status_message = "{} Active view is not a valid camera".format(self._rd_er_tx)
         else:
             flg.debug("Active camera selected: {}".format(cam.name))

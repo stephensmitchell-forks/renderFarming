@@ -31,6 +31,7 @@ class Kale:
         self._global_switches()
         self._image_sampler()
         self._environment_overrides()
+        self._atmosphere_effects()
         self._frame_buffer_effects()
         self._camera_check()
 
@@ -39,13 +40,6 @@ class Kale:
     # ---------------------------------------------------
 
     def append_item(self, kale_item):
-        debug_level = {
-            0: self._clg.debug(kale_item.get_text()),
-            1: self._clg.info(kale_item.get_text()),
-            2: self._clg.warning(kale_item.get_text()),
-            3: self._clg.critical(kale_item.get_text())
-        }
-        debug_level.get(kale_item.get_priority(), 0)
         self._found_items.append(kale_item)
 
     # ---------------------------------------------------
@@ -171,9 +165,32 @@ class Kale:
 
     def _atmosphere_effects(self):
         num_atmos = self._rt.numAtmospherics
+        list_atmos = list()
+        num_active = 0
+        vray_toon_active = False
+        vray_env_fog_active = False
         if num_atmos > 0:
-            self.append_item(KaleItem("atmospheres_in_scene",
-                                      "Atmospheres are present in the scene", "Scene", 0))
+            # collect all atmospheres from the scene
+            for a in range(1, num_atmos + 1):
+                list_atmos.append(self._rt.getAtmospheric(a))
+
+            for a in list_atmos:
+                if self._rt.isActive(a):
+                    num_active = num_active + 1
+                    if str(self._rt.classof(a)) == "VRayToon":
+                        vray_toon_active = True
+                    if str(self._rt.classof(a)) == "VRayEnvironmentFog":
+                        vray_env_fog_active = True
+
+            if num_active > 1:
+                self.append_item(KaleItem("atmospheres_multiple_active",
+                                          "More than one atmosphere is active in the scene", "Scene", 2))
+            if vray_toon_active:
+                self.append_item(KaleItem("atmospheres_vray_toon",
+                                          "A VRay toon effect is active in the scene", "Scene", 2))
+            if vray_env_fog_active:
+                self.append_item(KaleItem("atmospheres_vray_toon",
+                                          "A VRay environment fog effect is active in the scene", "Scene", 2))
 
     def _frame_buffer_effects(self):
         if self._rt.vrayVFBGetRegionEnabled():

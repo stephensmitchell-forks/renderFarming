@@ -16,7 +16,7 @@ import MaxPlus
 
 # PySide 2
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QStandardItemModel, QStandardItem
+from PySide2.QtGui import QStandardItemModel, QStandardItem, QColor
 import PySide2.QtWidgets as QtW
 from PySide2.QtCore import QFile, QTimer
 
@@ -372,21 +372,34 @@ class KaleTableModel:
             self._populate_row(row, kl)
 
     def _populate_row(self, row, kale_item):
-        title = QStandardItem(rFT.clean_title(kale_item.get_title()))
-        text = QStandardItem(kale_item.get_text())
-        category = QStandardItem(kale_item.get_category())
-        priority = QStandardItem(self._priority_to_text(kale_item.get_priority()))
+        priority = kale_item.get_priority()
+        row_list = [
+            rFT.clean_title(kale_item.get_title()),
+            kale_item.get_text(),
+            kale_item.get_category(),
+            self._priority_to_text(priority)
+        ]
 
-        self._model.setItem(row, 0, title)
-        self._model.setItem(row, 1, text)
-        self._model.setItem(row, 2, category)
-        self._model.setItem(row, 3, priority)
+        for col, item in enumerate(row_list):
+            qt_item = QStandardItem(item)
+            qt_item.setBackground(self._priority_to_color(priority))
+            self._model.setItem(row, col, qt_item)
 
     def get_model(self):
         return self._model
 
     def _priority_to_text(self, priority_integer):
         return self._kale.get_priorities().get(priority_integer, "Invalid Key")
+
+    # noinspection PyMethodMayBeStatic
+    def _priority_to_color(self, priority_integer):
+        color_dict = {
+            0: QColor(30, 78, 125),
+            1: QColor(76, 54, 136),
+            2: QColor(117, 56, 123),
+            3: QColor(255, 60, 90)
+        }
+        return color_dict.get(priority_integer, QColor(100, 100, 150))
 
 
 class DummyKaleTableModel:
