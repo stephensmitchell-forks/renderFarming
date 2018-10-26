@@ -410,6 +410,7 @@ class SpinachJob:
                 flg.debug("Setting VRay Frame Buffer output directory to the folder specified for the camera")
                 flg.debug("{0}\\frame_.exr".format(self._frames_dir))
 
+                self._clear_render_element_output()
                 self._vr.output_splitFileName = "{0}\\frame_.exr".format(self._frames_dir)
                 self._rt.rendOutputFilename = ""
 
@@ -422,6 +423,7 @@ class SpinachJob:
                 self._vr.output_splitgbuffer = False
 
                 flg.debug("Clearing Output Directory")
+                self._clear_render_element_output()
                 self._rt.rendOutputFilename = ""
                 self._vr.output_splitFileName = ""
 
@@ -433,6 +435,7 @@ class SpinachJob:
                 self._vr.output_splitgbuffer = False
 
                 flg.debug("Clearing Output Directory")
+                self._clear_render_element_output()
                 self._rt.rendOutputFilename = ""
                 self._vr.output_splitFileName = ""
 
@@ -509,6 +512,26 @@ class SpinachJob:
 
             # Sets the filename for the element
             self._rem.SetRenderElementFilename(i, file_name)
+
+    def _clear_render_element_output(self):
+        """
+        Sets all of the scene's render elements to have blank strings in their output path
+        :return:
+        """
+        flg = logging.getLogger("renderFarming.Spinach._clear_render_element_output")
+        # Max's render element manger uses indexes instead of returning actual objects
+        num = self._rem.NumRenderElements()
+        flg.debug("Clearing Output for {} Render Elements".format(num))
+
+        for i in range(num):
+            # retrieves the element and gets its name
+            el = self._rem.GetRenderElement(i)
+            el_name = str(el.elementname)
+
+            flg.debug("Clearing render element: {0}".format(el_name))
+
+            # Sets the blank string for the element
+            self._rem.SetRenderElementFilename(i, str())
 
     # ---------------------------------------------------
     #                       Public

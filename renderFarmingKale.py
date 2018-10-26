@@ -31,7 +31,7 @@ class Kale:
         self._global_switches()
         self._image_sampler()
         self._environment_overrides()
-
+        self._frame_buffer_effects()
         self._camera_check()
 
     # ---------------------------------------------------
@@ -165,12 +165,62 @@ class Kale:
         if self._vr.environment_secondaryMatte_on:
             self.append_item(KaleItem("environment_secondary_matte_on",
                                       "A secondary matte environment override is enabled", "Settings", 1))
+        if not self._rt.useEnvironmentMap:
+            self.append_item(KaleItem("environment_use_map",
+                                      "Environment is not using a map", "Scene", 1))
 
     def _atmosphere_effects(self):
-        return
+        num_atmos = self._rt.numAtmospherics
+        if num_atmos > 0:
+            self.append_item(KaleItem("atmospheres_in_scene",
+                                      "Atmospheres are present in the scene", "Scene", 0))
 
     def _frame_buffer_effects(self):
-        return
+        if self._rt.vrayVFBGetRegionEnabled():
+            self.append_item(KaleItem("vfb_region_rendering",
+                                      "Region rendering is enabled", "VFB", 3))
+        if self._rt.vfbControl(self._rt.name("exposure"))[0]:
+            self.append_item(KaleItem("vfb_exposure",
+                                      "The exposure adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("whitebalance"))[0]:
+            self.append_item(KaleItem("vfb_white_balance",
+                                      "The white balance adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("huesat"))[0]:
+            self.append_item(KaleItem("vfb_hue_and_saturation",
+                                      "The hue and saturation adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("colorbalance"))[0]:
+            self.append_item(KaleItem("vfb_color_balance",
+                                      "The color balance adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("levels"))[0]:
+            self.append_item(KaleItem("vfb_levels",
+                                      "The levels adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("curve"))[0]:
+            self.append_item(KaleItem("vfb_curve",
+                                      "The curve adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("lut"))[0]:
+            self.append_item(KaleItem("vfb_look_up_table",
+                                      "The look up table adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("ocio"))[0]:
+            self.append_item(KaleItem("vfb_ocio",
+                                      "The OpenColorIO adjustment is enabled", "VFB", 2))
+        if self._rt.vfbControl(self._rt.name("icc"))[0]:
+            self.append_item(KaleItem("vfb_icc",
+                                      "An ICC profile adjustment is enabled", "VFB", 2))
+        if not self._rt.vfbControl(self._rt.name("srgb"))[0]:
+            self.append_item(KaleItem("vfb_srgb",
+                                      "The VFB is not displaying in sRGB space", "VFB", 1))
+        if self._rt.vfbControl(self._rt.name("bkgr"))[0]:
+            self.append_item(KaleItem("vfb_background",
+                                      "A background image is applied", "VFB", 3))
+        if self._rt.vfbControl(self._rt.name("stamp"))[0]:
+            self.append_item(KaleItem("vfb_stamp",
+                                      "A stamp is enabled", "VFB", 1))
+        if self._rt.vfbControl(self._rt.name("bloom"))[0]:
+            self.append_item(KaleItem("vfb_bloom",
+                                      "The bloom effect is enabled", "VFB", 1))
+        if self._rt.vfbControl(self._rt.name("glare"))[0]:
+            self.append_item(KaleItem("vfb_glare",
+                                      "The glare effect is enabled", "VFB", 1))
 
     def _render_passes(self):
         return

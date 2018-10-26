@@ -576,11 +576,8 @@ class SpinachTBDG:
 
     def _sp_settings_hide_initializer(self):
         if not self._settings_visible:
-            print("Hidden")
             self._sp_settings_btn.setChecked(False)
             self._sp_settings_gb.setVisible(False)
-        else:
-            print("Visible")
 
     def _backburner_submit_handler(self):
         """
