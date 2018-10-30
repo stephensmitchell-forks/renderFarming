@@ -18,7 +18,7 @@ import MaxPlus
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QColor
 import PySide2.QtWidgets as QtW
-from PySide2.QtCore import QFile, QTimer
+from PySide2.QtCore import QFile, QTimer, QSortFilterProxyModel
 
 
 class RenderFarmingUI(QtW.QDialog):
@@ -263,7 +263,10 @@ class RenderFarmingUI(QtW.QDialog):
     # ---------------------------------------------------
 
     def closeEvent(self, event):
-        MaxPlus.NotificationManager.Unregister(self._viewport_change_handler)
+        try:
+            MaxPlus.NotificationManager.Unregister(self._viewport_change_handler)
+        except ValueError as e:
+            self._clg.debug("Notification handler missing: {}".format(e))
 
         self._config_tbdg.config_reset()
         self._saved = False
@@ -338,13 +341,13 @@ class KaleTableView:
 
         if self._kale is None:
             self._ktm = DummyKaleTableModel()
-            self._kl_results_text_tbvw.setModel(self._ktm.get_model())
+            self._kl_results_text_tbvw.setModel(self._ktm)
         else:
             self._model_to_table()
 
     def _model_to_table(self):
         self._ktm = KaleTableModel(self._kale)
-        self._kl_results_text_tbvw.setModel(self._ktm.get_model())
+        self._kl_results_text_tbvw.setModel(self._ktm)
 
         self._kl_results_text_tbvw.resizeRowsToContents()
 
@@ -353,11 +356,16 @@ class KaleTableView:
         self._model_to_table()
 
 
-class KaleTableModel:
+class KaleTableModel(QSortFilterProxyModel):
     def __init__(self, kale):
+        super(KaleTableModel, self).__init__()
         self._kale = kale
+        self._priorities_dict = self._kale.get_priorities()
+        self._priorities_inverted_dict = dict(zip(self._priorities_dict.values(), self._priorities_dict.keys()))
 
         self._model = QStandardItemModel()
+
+        self.setSourceModel(self._model)
 
         self._populate_columns()
         self._create_headers()
@@ -385,11 +393,8 @@ class KaleTableModel:
             qt_item.setBackground(self._priority_to_color(priority))
             self._model.setItem(row, col, qt_item)
 
-    def get_model(self):
-        return self._model
-
     def _priority_to_text(self, priority_integer):
-        return self._kale.get_priorities().get(priority_integer, "Invalid Key")
+        return self._priorities_dict.get(priority_integer, "Invalid Key")
 
     # noinspection PyMethodMayBeStatic
     def _priority_to_color(self, priority_integer):
@@ -401,17 +406,27 @@ class KaleTableModel:
         }
         return color_dict.get(priority_integer, QColor(100, 100, 150))
 
+    def lessThan(self, source_left, source_right):
+        left_data = source_left.data()
+        right_data = source_right.data()
+        if source_left.column() != 3:
+            return left_data < right_data
+        else:
+            int_left = self._priorities_inverted_dict.get(left_data, 0)
+            int_right = self._priorities_inverted_dict.get(right_data, 0)
+            return int_left < int_right
 
-class DummyKaleTableModel:
+
+class DummyKaleTableModel(QStandardItemModel()):
     def __init__(self):
-        self._model = QStandardItemModel()
+        super(DummyKaleTableModel, self).__init__()
 
         self._populate_columns()
         self._create_headers()
 
     def _create_headers(self):
         label_list = "Title", "Text", "Category", "Priority"
-        self._model.setHorizontalHeaderLabels(label_list)
+        self.setHorizontalHeaderLabels(label_list)
 
     def _populate_columns(self):
         for row in range(10):
@@ -423,13 +438,10 @@ class DummyKaleTableModel:
         category = QStandardItem(" ")
         priority = QStandardItem(" ")
 
-        self._model.setItem(row, 0, title)
-        self._model.setItem(row, 1, text)
-        self._model.setItem(row, 2, category)
-        self._model.setItem(row, 3, priority)
-
-    def get_model(self):
-        return self._model
+        self.setItem(row, 0, title)
+        self.setItem(row, 1, text)
+        self.setItem(row, 2, category)
+        self.setItem(row, 3, priority)
 
 
 class SpinachTBDG:
