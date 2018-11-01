@@ -417,7 +417,7 @@ class KaleTableModel(QSortFilterProxyModel):
             return int_left < int_right
 
 
-class DummyKaleTableModel(QStandardItemModel()):
+class DummyKaleTableModel(QStandardItemModel):
     def __init__(self):
         super(DummyKaleTableModel, self).__init__()
 
