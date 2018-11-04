@@ -1,8 +1,10 @@
 import ctypes
 import sys
 import os
+import shutil
 
 import PySide2.QtWidgets as QtW
+from tempfile import gettempdir
 
 
 def is_admin():
@@ -49,10 +51,6 @@ def get_max_dir():
     return "C:\\Program Files\\Autodesk\\3ds Max 2018\\"
 
 
-def get_enu_dir():
-    return os.path.realpath(os.path.join(os.getenv('LOCALAPPDATA'), 'Autodesk', '3dsMax', '2018 - 64bit', 'ENU'))
-
-
 def get_user_scripts_dir():
     return os.path.realpath(os.path.join(get_enu_dir(), 'scripts'))
 
@@ -61,58 +59,60 @@ def get_user_macros_dir():
     return os.path.realpath(os.path.join(get_enu_dir(), 'usermacros'))
 
 
-def copy_icons(icons, folders):
-    return
-
-
-def copy_file_list(files, folder):
-    return
-
-
-def run_installation(ui):
-    ui.progress_bar.set_tasks(10)
-    icons = get_icons()
-    scripts = get_scripts()
-    macros = get_macros()
-
-    max_dir = get_max_dir()
-    icons_light_dir = os.path.join(max_dir, "UI_ln", "Icons", "Light", "RenderFarming")
-    icons_dark_dir = os.path.join(max_dir, "UI_ln", "Icons", "Dark", "RenderFarming")
-
-    max_user_scripts_dir = get_user_scripts_dir()
-    install_dir = os.path.join(max_user_scripts_dir, "BDF", "renderFarming")
-
-    max_user_macros_dir = get_user_macros_dir()
-
-    ui.progress_bar.add()
-
-    try:
-        create_directory(icons_light_dir)
-        ui.progress_bar.add()
-        create_directory(icons_dark_dir)
-        ui.progress_bar.add()
-        create_directory(install_dir)
-        ui.progress_bar.add()
-    except (IOError, os.error) as e:
-        ui.error_msg(e)
-        return
-
-    try:
-        copy_icons(icons, icons_light_dir)
-        copy_file_list(scripts, install_dir)
-        copy_file_list(macros, max_user_macros_dir)
-        # ui.progress_bar.add()
-    except (IOError, os.error) as e:
-        ui.error_msg(e)
-        return
-
-    print("Bada Bing")
-
-
 class RenderFarmingInstaller:
 
-    def __init__(self, ui):
-        self._max_version = "2018"
+    def __init__(self, items, ui):
+        self._ui = ui
+        self._items = items
+        self._temp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
+
+    def run_installation(self):
+        self._ui.progress_bar.set_tasks(len(self._items) * 2)
+        try:
+            self._create_directories()
+            self._copy_files()
+        except (IOError, OSError) as e:
+            self._ui.install_error(e)
+
+    def run_un_installation(self):
+        self._ui.progress_bar.set_tasks(len(self._items) * 2)
+        try:
+            self._delete_files()
+        except (IOError, OSError) as e:
+            self._ui.install_error(e)
+
+    def _create_directories(self):
+        for item in self._items:
+            directory = item
+            if not os.path.isdir(directory):
+                os.makedirs(directory)
+            self._ui.progress_bar.add()
+
+    def _copy_files(self):
+        for item in self._items:
+            src = os.path.join(self._temp, item.key())
+            dst = os.path.join(item, item.key())
+            shutil.copy2(src, dst)
+            self._ui.progress_bar.add()
+
+    def _delete_files(self):
+        for item in self._items:
+            file_name = os.path.join(item, item.key())
+            if os.path.exists(file_name):
+                os.remove(file_name)
+                self._ui.progress_bar.add()
+
+def copy_icons(self):
+    icons_light_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Light", "RenderFarming")
+    icons_dark_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Dark", "RenderFarming")
+    return
+
+def copy_file_list(self):
+    install_dir = os.path.join(self._max_user_scripts_dir, "BDF", "renderFarming")
+    return
+
+def get_enu_dir():
+    return os.path.realpath(os.path.join(os.getenv('LOCALAPPDATA'), 'Autodesk', '3dsMax', '2018 - 64bit', 'ENU'))
 
 
 class RenderFarmingInstallerMainWindow(QtW.QDialog):
@@ -121,22 +121,33 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
         super(RenderFarmingInstallerMainWindow, self).__init__(parent)
 
         self._main_layout = QtW.QVBoxLayout()
-        self._intro_page = InstallerIntroPage()
+        self._intro_page = InstallerIntroPage(self)
 
         self._main_layout.addLayout(self._intro_page)
 
         self.setLayout(self._main_layout)
 
+    def install(self):
+        return
+
 
 class InstallerIntroPage(QtW.QVBoxLayout):
 
-    def __init__(self):
+    def __init__(self, parent):
         super(InstallerIntroPage, self).__init__()
+
+        self._parent = parent
+
         self._installer_btn_layout = QtW.QVBoxLayout()
+
         self._install_btn = QtW.QPushButton()
+        self._install_btn.setText("Install")
+
         self._install_lb = QtW.QLabel()
+        self._install_lb.setText("RenderFarming Installer")
 
         self._cancel_btn = QtW.QPushButton()
+        self._cancel_btn.setText("Cancel")
 
         self.addLayout(self._installer_btn_layout)
         self._installer_btn_layout.insertStretch(-1, 0)
@@ -144,6 +155,12 @@ class InstallerIntroPage(QtW.QVBoxLayout):
         self._installer_btn_layout.addWidget(self._install_btn)
         self._installer_btn_layout.insertStretch(-1, 0)
         self.addWidget(self._cancel_btn)
+
+    def _install_btn_handler(self):
+        self._parent.install()
+
+    def _cancel_btn_handler(self):
+        self._parent.reject()
 
 
 if __name__ == "__main__":
