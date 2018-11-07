@@ -44,10 +44,6 @@ def get_macros():
     return list("macro1")
 
 
-def get_max_dir():
-    return "C:\\Program Files\\Autodesk\\3ds Max 2018\\"
-
-
 def get_user_scripts_dir():
     return os.path.realpath(os.path.join(get_enu_dir(), 'scripts'))
 
@@ -68,7 +64,16 @@ def copy_file_list(self):
 
 
 def get_enu_dir():
+    temp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
     return os.path.realpath(os.path.join(os.getenv('LOCALAPPDATA'), 'Autodesk', '3dsMax', '2018 - 64bit', 'ENU'))
+
+
+class Locator:
+    def __init__(self):
+        self.max_dir = self._find_max_dir()
+
+    def _find_max_dir(self):
+        return "C:\\Program Files\\Autodesk\\3ds Max 2018\\"
 
 
 class RenderFarmingInstaller:
@@ -76,7 +81,6 @@ class RenderFarmingInstaller:
     def __init__(self, items, ui):
         self._ui = ui
         self._items = items
-        self._temp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
 
     def run_installation(self):
         self._ui.progress_bar.set_tasks(len(self._items) * 2)
@@ -135,7 +139,6 @@ class InstallerItem:
 
 
 class RenderFarmingInstallerMainWindow(QtW.QDialog):
-    cancel = QtC.Signal()
 
     def __init__(self, parent=None):
         super(RenderFarmingInstallerMainWindow, self).__init__(parent)
@@ -149,11 +152,11 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
         self._intro_page.cancel.connect(self.reject)
 
         self._progress_bar_page = InstallerProgressPage()
-        self._progress_bar = self._progress_bar_page.get_progress_bar()
+        self.progress_bar = self._progress_bar_page
 
         self._progress_bar_page.setVisible(False)
         # noinspection PyUnresolvedReferences
-        self._progress_bar_page.cancel.connect(self.install_cancel)
+        self._progress_bar_page.close.connect(self.close)
 
         self._main_layout.addWidget(self._intro_page)
         self._main_layout.addWidget(self._progress_bar_page)
@@ -164,34 +167,16 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
         self._intro_page.setVisible(False)
         self._progress_bar_page.setVisible(True)
         progress_bar_test(self, 10000)
-
-    def install_cancel(self):
-        # noinspection PyUnresolvedReferences
-        self.cancel.emit()
-
-    def progress_bar_set_tasks(self, task_number):
-        if task_number > 0:
-            self._progress_bar.setTextVisible(True)
-            self._progress_bar.setRange(0, task_number)
-        else:
-            self._progress_bar.setTextVisible(False)
-            self._progress_bar.setRange(0, 0)
-
-    def progress_bar_add(self):
-        self._progress_bar.setValue(self._progress_bar.value() + 1)
-
-    def progress_bar_complete(self):
-        self._progress_bar.setValue(self._progress_bar.maximum())
+        self._progress_bar_page.set_complete()
 
 
 def progress_bar_test(ui, size):
-    ui.progress_bar_set_tasks(size)
+    ui.progress_bar.set_tasks(size)
+    ui.progress_bar.set_status("*******")
 
     for i in range(size):
         print("*******")
-        ui.progress_bar_add()
-
-    ui.progress_bar_complete()
+        ui.progress_bar.add()
 
 
 class InstallerIntroPage(QtW.QWidget):
@@ -208,7 +193,7 @@ class InstallerIntroPage(QtW.QWidget):
         self._install_lb.setText("RenderFarming Installer")
 
         self._main_image_lb = QtW.QLabel()
-        self._main_image_pxmp = QPixmap("render_farming_icon_01.256.png")
+        self._main_image_pxmp = QPixmap("UI\\render_farming_icon_01.256.png")
         self._main_image_lb.setAlignment(QtC.Qt.AlignCenter)
 
         self._main_image_lb.setPixmap(self._main_image_pxmp)
@@ -243,7 +228,7 @@ class InstallerIntroPage(QtW.QWidget):
 
 
 class InstallerProgressPage(QtW.QWidget):
-    cancel = QtC.Signal()
+    close = QtC.Signal()
 
     def __init__(self):
         super(InstallerProgressPage, self).__init__()
@@ -251,33 +236,56 @@ class InstallerProgressPage(QtW.QWidget):
         self._main_layout = QtW.QVBoxLayout()
         self._progress_bar_layout = QtW.QVBoxLayout()
 
-        self._cancel_btn = QtW.QPushButton()
-        self._cancel_btn.setText("Cancel")
+        self._close_btn = QtW.QPushButton()
+        self._close_btn.setText("Close")
+        self._close_btn.setEnabled(False)
         # noinspection PyUnresolvedReferences
-        self._cancel_btn.clicked.connect(self._cancel_btn_handler)
+        self._close_btn.clicked.connect(self._close_btn_handler)
 
         self._progress_bar = QtW.QProgressBar()
         self._progress_bar.setRange(0, 0)
         self._progress_bar.setTextVisible(False)
 
-        self._install_lb = QtW.QLabel()
-        self._install_lb.setText("RenderFarming Installer")
+        self._main_lb = QtW.QLabel()
+        self._main_lb.setText("Installing:")
+        self._task_lb = QtW.QLabel()
+        self._task_lb.setText(str())
 
         self.setLayout(self._main_layout)
 
         self._main_layout.addLayout(self._progress_bar_layout)
         self._progress_bar_layout.insertStretch(-1, 0)
-        self._progress_bar_layout.addWidget(self._install_lb)
+        self._progress_bar_layout.addWidget(self._main_lb)
         self._progress_bar_layout.addWidget(self._progress_bar)
         self._progress_bar_layout.insertStretch(-1, 0)
-        self._main_layout.addWidget(self._cancel_btn)
+        self._main_layout.addWidget(self._close_btn)
 
-    def _cancel_btn_handler(self):
+    def _close_btn_handler(self):
         # noinspection PyUnresolvedReferences
-        self.cancel.emit()
+        self.close.emit()
 
     def get_progress_bar(self):
         return self._progress_bar
+
+    def set_complete(self):
+        self._progress_bar.setValue(self._progress_bar.maximum())
+        self._close_btn.setEnabled(True)
+        self._main_lb.setText("Complete!")
+        self._task_lb.setText(str())
+
+    def set_tasks(self, task_number):
+        if task_number > 0:
+            self._progress_bar.setTextVisible(True)
+            self._progress_bar.setRange(0, task_number)
+        else:
+            self._progress_bar.setTextVisible(False)
+            self._progress_bar.setRange(0, 0)
+
+    def add(self):
+        self._progress_bar.setValue(self._progress_bar.value() + 1)
+
+    def set_status(self, status):
+        self._task_lb.setText(status)
 
 
 if __name__ == "__main__":
