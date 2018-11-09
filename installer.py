@@ -32,48 +32,58 @@ def main():
         ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__), None, 1)
 
 
-def get_icons():
-    return "icon1", "icon2"
-
-
-def get_scripts():
-    return "script1", "script2"
-
-
-def get_macros():
-    return list("macro1")
-
-
-def get_user_scripts_dir():
-    return os.path.realpath(os.path.join(get_enu_dir(), 'scripts'))
-
-
-def get_user_macros_dir():
-    return os.path.realpath(os.path.join(get_enu_dir(), 'usermacros'))
-
-
-def copy_icons(self):
-    icons_light_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Light", "RenderFarming")
-    icons_dark_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Dark", "RenderFarming")
-    return icons_light_dir, icons_dark_dir
-
-
-def copy_file_list(self):
-    install_dir = os.path.join(self._max_user_scripts_dir, "BDF", "renderFarming")
-    return install_dir
-
-
-def get_enu_dir():
-    temp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
-    return os.path.realpath(os.path.join(os.getenv('LOCALAPPDATA'), 'Autodesk', '3dsMax', '2018 - 64bit', 'ENU'))
-
-
-class Locator:
+class DirectoryLocator:
     def __init__(self):
-        self.max_dir = self._find_max_dir()
+        self._appdata_dir = os.getenv('LOCALAPPDATA')
+        self._temp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
+
+        self._max_dir = self._find_max_dir()
+
+        self._enu_dir = self._find_enu_dir()
+
+        self._user_macros = self._find_user_macros_dir()
+        self._user_scripts = self._find_user_scripts_dir()
+
+        self._install_dir = os.path.join(self._user_scripts, "BDF", "renderFarming")
+        self._light_icons, self._dark_icons = self._find_icons()
 
     def _find_max_dir(self):
         return "C:\\Program Files\\Autodesk\\3ds Max 2018\\"
+
+    def _find_enu_dir(self):
+        return os.path.realpath(os.path.join(self._appdata_dir, 'Autodesk', '3dsMax', '2018 - 64bit', 'ENU'))
+
+    def _find_user_macros_dir(self):
+        return os.path.realpath(os.path.join(self._enu_dir, 'usermacros'))
+
+    def _find_user_scripts_dir(self):
+        return os.path.realpath(os.path.join(self._enu_dir, 'scripts'))
+
+    def _find_icons(self):
+        icons_light_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Light", "RenderFarming")
+        icons_dark_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Dark", "RenderFarming")
+        return icons_light_dir, icons_dark_dir
+
+    def get_temp(self):
+        return self._temp
+
+    def get_appdata(self):
+        return self._appdata_dir
+
+    def get_max_install(self):
+        return self._max_dir
+
+    def get_enu(self):
+        return self._enu_dir
+
+    def get_user_macros(self):
+        return self._user_macros
+
+    def get_user_scripts(self):
+        return self._user_scripts
+
+    def get_render_farming_install(self):
+        return self._install_dir
 
 
 class RenderFarmingInstaller:
