@@ -2,6 +2,7 @@ import ctypes
 import sys
 import os
 import shutil
+import _winreg
 
 import PySide2.QtWidgets as QtW
 import PySide2.QtCore as QtC
@@ -33,7 +34,12 @@ def main():
 
 
 class DirectoryLocator:
-    def __init__(self):
+    max_version_dict = {"2018": "20.0", "2019": "21.0"}
+
+    def __init__(self, max_version="2018"):
+
+        self._max_version = max_version
+
         self._appdata_dir = os.getenv('LOCALAPPDATA')
         self._temp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
 
@@ -48,10 +54,21 @@ class DirectoryLocator:
         self._light_icons, self._dark_icons = self._find_icons()
 
     def _find_max_dir(self):
-        return "C:\\Program Files\\Autodesk\\3ds Max 2018\\"
+        key_str = "Software\\Autodesk\\3dsMax\\{}".format(self.max_version_dict.get(self._max_version, "20.0"))
+        key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, key_str)
+        value = _winreg.QueryValueEx(key, "Installdir")[0]
+        key.Close()
+        if os.path.isdir(value):
+            return value
+        else:
+            return "C:\\Program Files\\Autodesk\\3ds Max {}\\".format(self._max_version)
 
     def _find_enu_dir(self):
-        return os.path.realpath(os.path.join(self._appdata_dir, 'Autodesk', '3dsMax', '2018 - 64bit', 'ENU'))
+        return os.path.realpath(os.path.join(self._appdata_dir,
+                                             'Autodesk',
+                                             '3dsMax',
+                                             '{} - 64bit'.format(self._max_version),
+                                             'ENU'))
 
     def _find_user_macros_dir(self):
         return os.path.realpath(os.path.join(self._enu_dir, 'usermacros'))
@@ -84,6 +101,34 @@ class DirectoryLocator:
 
     def get_render_farming_install(self):
         return self._install_dir
+
+    def __str__(self):
+        return str(self.__repr__())
+
+    def __repr__(self):
+        dt = {
+            "3ds Max Version": self._max_version,
+            "3ds Max Directory": self._max_dir,
+            "3ds Max User Scripts": self._user_scripts,
+            "3ds Max User Macros": self._user_macros,
+            "RenderFarming Directory": self._install_dir,
+            "RenderFarming Dark Icons": self._dark_icons,
+            "RenderFarming Light Icons": self._light_icons,
+            "Temp Directory": self._temp,
+            "Local AppData Directory": self._appdata_dir
+        }
+        return dt
+
+
+class ManifestReader:
+    def __init__(self, directory):
+        self._dirs = directory
+
+
+class Manifest:
+    def __init__(self, manifest_file):
+        with open(manifest_file) as man_file:
+            self._data = man_file.read()
 
 
 class RenderFarmingInstaller:
@@ -172,6 +217,8 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
         self._main_layout.addWidget(self._progress_bar_page)
 
         self.setLayout(self._main_layout)
+
+        self._directories = DirectoryLocator()
 
     def install(self):
         self._intro_page.setVisible(False)
