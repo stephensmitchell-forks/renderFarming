@@ -178,7 +178,7 @@ class ManifestTranslator:
         # Lines should be formatted as src:dst
         # dst can be a token of a absolute path, but not both
         # all source objects should be relative to the directory in which this script is contained
-        spl = line.split(':')
+        spl = line.split('|')
         if len(spl) == 2:
             src = spl[0].replace('\"', '')
             src = os.path.join(self._wd, src)
@@ -214,7 +214,7 @@ class ManifestTranslator:
             exp = self._dir_dict[token]
         # Raises a Manifest error if a key error is caught
         except KeyError as e:
-            raise ManifestError("Key Error: {}".format(e))
+            raise ManifestError("Key Error: {} does not resolve.".format(e))
         else:
             return exp
 
@@ -231,6 +231,48 @@ class ManifestTranslator:
         return self._item_list
 
 
+class ManifestHeader:
+    def __init__(self, manifest):
+        self._man = manifest
+        self._data = dict()
+
+        self._translate()
+
+    def _translate(self):
+        """
+        Converts the manifest Header to a dict
+        :return: adds keys to self._data dictionary
+        """
+        for num, line in enumerate(self._man.get_header()):
+            self._line_to_data(line, num)
+
+    # noinspection PyMethodMayBeStatic
+    def _line_to_data(self, line, number):
+        """
+
+        :param line: A string containing a single line from the Manifest file
+        :param number: The line Number in the file
+        :return:
+        """
+        line = line.replace('#', '')
+        spl = line.split('|')
+        if len(spl) == 2:
+            try:
+                self._data[spl[0]] = spl[1]
+            except KeyError as e:
+                raise ManifestError("Key Error: {} does not resolve.".format(e))
+
+        # Raises an exception if the line cannot be split
+        else:
+            raise ManifestError("Manifest Header line {}({}) is incorrectly Formatted".format(number + 1, spl))
+
+    def version(self):
+        return self._data.get("version", "UNKNOWN")
+
+    def get_data(self):
+        return self._data
+
+
 class Manifest:
     def __init__(self, manifest_file):
         self._manifest_file = manifest_file
@@ -238,16 +280,23 @@ class Manifest:
         self._header = list()
 
     def read(self):
-        with open(self._manifest_file) as man_file:
+        if not os.path.exists(self._manifest_file):
+            raise ManifestError("Manifest file: {} does not exist.".format(self._manifest_file))
+        with open(self._manifest_file, 'r') as man_file:
             data = man_file.readlines()
             self._set_formatted_data(data)
 
     def write(self):
-        with open(self._manifest_file) as man_file:
+        directory = os.path.split(self._manifest_file)[0]
+        if not os.path.isdir(directory):
+            raise ManifestError("Manifest Directory: {} does not exist.".format(directory))
+        with open(self._manifest_file, 'w') as man_file:
             man_file.write(self._get_formatted_data())
 
     def _get_formatted_data(self):
         main_str = str()
+        for line in self._header:
+            main_str = main_str + line + '\n'
         for line in self._data:
             main_str = main_str + line + '\n'
         return main_str
@@ -263,6 +312,20 @@ class Manifest:
     def get_data(self):
         return self._data
 
+    def get_header(self):
+        return self._header
+
+    def set_data(self, data_list):
+        for i in data_list:
+            self._data.append("\"{}\":\"{}\"".format(i.get_source(), i.get_destination()))
+
+    def set_header(self, header_dict):
+        for i in header_dict.keys():
+            self._header.append("#{}:{}".format(i, header_dict[i]))
+
+    def add_self(self):
+        self._data.append("\"{}\":\"{}\"".format(self._manifest_file, ''))
+
     def __str__(self):
         ret_str = str()
         for item in self.__repr__():
@@ -275,9 +338,10 @@ class Manifest:
 
 class InstallerItem:
 
-    def __init__(self, source, destination):
+    def __init__(self, source, destination, is_dir=False):
         self._src = source
         self._dst = destination
+        self._isDir = is_dir
 
     def get_source(self):
         return os.path.normpath(self._src)
@@ -290,6 +354,9 @@ class InstallerItem:
 
     def get_source_dir(self):
         return os.path.normpath(os.path.split(self._src)[0])
+
+    def get_is_dir(self):
+        return self._isDir
 
     def __str__(self):
         return "{}:{}".format(self._src, self._dst)
@@ -311,31 +378,37 @@ class RenderFarmingInstaller(QThread):
     print_error = Signal(str)
     complete = Signal()
 
-    def __init__(self, version):
+    def __init__(self, max_version):
         super(RenderFarmingInstaller, self).__init__()
-        self._version = version
+        self._3ds_max_version = max_version
         self._items = list()
         self._dir_loc = None
         self._man = None
         self._man_translated = None
+        self._record = list()
 
     def run(self, uninstall=False):
         try:
             self.set_tasks.emit(4)
 
-            self._dir_loc = DirectoryLocator(self._version)
-            self.add_task.emit(1)
-            self._man = Manifest("install.man")
-            self.add_task.emit(1)
-            self._man_translated = ManifestTranslator(self._dir_loc, self._man)
-            self.add_task.emit(1)
-            self._items = self._man_translated.get_items()
-            self.add_task.emit(1)
-
-            self.set_tasks.emit(len(self._items) * 2)
+            self._dir_loc = DirectoryLocator(self._3ds_max_version)
+            self._add()
 
             if uninstall:
-                self.run_un_installation()
+                self._man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
+            else:
+                self._man = Manifest("install.man")
+
+            self._add()
+
+            self._man_translated = ManifestTranslator(self._dir_loc, self._man)
+            self._add()
+
+            self._items = self._man_translated.get_items()
+            self._add()
+
+            if uninstall:
+                self.run_uninstallation()
             else:
                 self.run_installation()
 
@@ -347,35 +420,70 @@ class RenderFarmingInstaller(QThread):
             self.terminate()
 
     def run_installation(self):
+        self.set_tasks.emit(len(self._items) * 2)
+
         self._create_directories()
         self._copy_files()
+        self._generate_uninstall_manifest()
 
-    def run_un_installation(self):
+    def run_uninstallation(self):
+        self.set_tasks.emit(len(self._items))
+
         self._delete_files()
+
+    def _generate_uninstall_manifest(self):
+        self.set_tasks.emit(4)
+        new_man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
+        self._add()
+
+        new_man.set_data(self._record)
+        self._add()
+
+        new_head = ManifestHeader(self._man)
+        new_man.set_header(new_head.get_data())
+        self._add()
+
+        new_man.add_self()
+
+        new_man.write()
+        self._add()
 
     def _create_directories(self):
         for item in self._items:
             directory = item.get_destination_dir()
             if not os.path.isdir(directory):
+                self._create_dir(directory)
+            self._add()
+
+    def _create_dir(self, directory):
+        if not os.path.isdir(directory):
+            parent = os.path.split(directory)[0]
+            if os.path.isdir(parent):
+                self._record.append(InstallerItem(directory, '', True))
                 print("os.makedirs({})".format(directory))
                 # os.makedirs(directory)
-            self.add_task.emit(1)
+            else:
+                self._create_dir(parent)
 
     def _copy_files(self):
         for item in self._items:
             src = os.path.join(item.get_source())
             dst = os.path.join(item.get_destination())
             print("shutil.copy2({}, {})".format(src, dst))
+            self._record.append(InstallerItem(dst, ''))
             # shutil.copy2(src, dst)
-            self.add_task.emit(1)
+            self._add()
 
     def _delete_files(self):
         for item in self._items:
             file_name = item.get_source()
-            if os.path.exists(file_name):
+            if os.path.isfile(file_name):
                 print("os.remove({})".format(file_name))
                 # os.remove(file_name)
-                self.add_task.emit(1)
+                self._add()
+
+    def _add(self):
+        self.add_task.emit(1)
 
 
 # ---------------------------------------------------
@@ -387,12 +495,17 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
 
     def __init__(self, parent=None):
         super(RenderFarmingInstallerMainWindow, self).__init__(parent)
+        self._max_version = "2018"
 
         self._main_layout = QtW.QVBoxLayout()
 
         self._intro_page = InstallerIntroPage()
         self._intro_page.install.connect(self.install)
         self._intro_page.cancel.connect(self.reject)
+        self._intro_page.upgrade.connect(self.upgrade)
+        self._intro_page.uninstall.connect(self.uninstall)
+
+        self.old_version_check()
 
         self._progress_bar_page = InstallerProgressPage()
         self.progress_bar = self._progress_bar_page
@@ -405,7 +518,7 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
 
         self.setLayout(self._main_layout)
 
-        self._installer = RenderFarmingInstaller("2018")
+        self._installer = RenderFarmingInstaller(self._max_version)
         self._installer.set_tasks.connect(self._progress_bar_page.set_tasks)
         self._installer.add_task.connect(self._progress_bar_page.add)
         self._installer.print_error.connect(self._progress_bar_page.print_error)
@@ -416,18 +529,42 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
         self._progress_bar_page.setVisible(True)
         self._installer.run(False)
 
+    def uninstall(self):
+        self._intro_page.setVisible(False)
+        self._progress_bar_page.setVisible(True)
+        self._progress_bar_page.set_uninstall()
+        self._installer.run(True)
 
-def progress_bar_test(ui, size):
-    ui.progress_bar.set_tasks(size)
-    ui.progress_bar.set_status("*******")
+    def upgrade(self):
+        self._intro_page.setVisible(False)
+        self._progress_bar_page.setVisible(True)
+        self._progress_bar_page.set_uninstall()
+        self._installer.run(True)
+        self._progress_bar_page.set_install()
+        self._installer.run(False)
 
-    for i in range(size):
-        print("*******")
-        ui.progress_bar.add()
+    def old_version_check(self):
+        dirs = DirectoryLocator(self._max_version)
+        u_man_path = os.path.join(dirs.get_render_farming_install(), "uninstall.man")
+        if os.path.isfile(u_man_path):
+            u_man = Manifest(u_man_path)
+            u_head = ManifestHeader(u_man)
+            man = Manifest("install.man")
+            head = ManifestHeader(man)
+            if u_head.version() < head.version():
+                self._intro_page.set_upgrade()
+            elif u_head.version() == head.version():
+                self._intro_page.set_uninstall()
+            else:
+                self._intro_page.set_old_version()
+        else:
+            self._intro_page.set_install()
 
 
 class InstallerIntroPage(QtW.QWidget):
     install = Signal()
+    uninstall = Signal()
+    upgrade = Signal()
     cancel = Signal()
 
     def __init__(self):
@@ -437,7 +574,7 @@ class InstallerIntroPage(QtW.QWidget):
         self._installer_btn_layout = QtW.QVBoxLayout()
 
         self._install_lb = QtW.QLabel()
-        self._install_lb.setText("RenderFarming Installer")
+        self._install_lb.setText("Init")
 
         self._main_image_lb = QtW.QLabel()
         self._main_image_pxmp = QPixmap("UI\\render_farming_icon_01.256.png")
@@ -448,6 +585,22 @@ class InstallerIntroPage(QtW.QWidget):
         self._install_btn = QtW.QPushButton()
         self._install_btn.setText("Install")
         self._install_btn.clicked.connect(self._install_btn_handler)
+        self._install_btn.setVisible(False)
+
+        self._uninstall_btn = QtW.QPushButton()
+        self._uninstall_btn.setText("Uninstall")
+        self._uninstall_btn.clicked.connect(self._uninstall_btn_handler)
+        self._uninstall_btn.setVisible(False)
+
+        self._repair_btn = QtW.QPushButton()
+        self._repair_btn.setText("Repair")
+        self._repair_btn.clicked.connect(self._upgrade_btn_handler)
+        self._repair_btn.setVisible(False)
+
+        self._upgrade_btn = QtW.QPushButton()
+        self._upgrade_btn.setText("Upgrade")
+        self._upgrade_btn.clicked.connect(self._upgrade_btn_handler)
+        self._upgrade_btn.setVisible(False)
 
         self._cancel_btn = QtW.QPushButton()
         self._cancel_btn.setText("Cancel")
@@ -460,14 +613,44 @@ class InstallerIntroPage(QtW.QWidget):
         self._installer_btn_layout.addWidget(self._main_image_lb)
         self._installer_btn_layout.addWidget(self._install_lb)
         self._installer_btn_layout.addWidget(self._install_btn)
+        self._installer_btn_layout.addWidget(self._uninstall_btn)
+        self._installer_btn_layout.addWidget(self._upgrade_btn)
+        self._installer_btn_layout.addWidget(self._repair_btn)
         self._installer_btn_layout.insertStretch(-1, 0)
         self._main_layout.addWidget(self._cancel_btn)
+
+    def set_upgrade(self):
+        self._install_lb.setText("RenderFarming Upgrade Installer")
+        self._upgrade_btn.setVisible(True)
+        self._install_btn.setVisible(False)
+        self._uninstall_btn.setVisible(False)
+        self._repair_btn.setVisible(False)
+
+    def set_install(self):
+        self._install_lb.setText("RenderFarming Installer")
+        self._upgrade_btn.setVisible(False)
+        self._install_btn.setVisible(True)
+        self._uninstall_btn.setVisible(False)
+        self._repair_btn.setVisible(False)
+
+    def set_uninstall(self):
+        self._install_lb.setText("RenderFarming Uninstaller")
+        self._upgrade_btn.setVisible(False)
+        self._install_btn.setVisible(False)
+        self._uninstall_btn.setVisible(True)
+        self._repair_btn.setVisible(True)
 
     def _install_btn_handler(self):
         self.install.emit()
 
+    def _uninstall_btn_handler(self):
+        self.uninstall.emit()
+
     def _cancel_btn_handler(self):
         self.cancel.emit()
+
+    def _upgrade_btn_handler(self):
+        self.upgrade.emit()
 
 
 class InstallerProgressPage(QtW.QWidget):
@@ -489,7 +672,7 @@ class InstallerProgressPage(QtW.QWidget):
         self._progress_bar.setTextVisible(False)
 
         self._main_lb = QtW.QLabel()
-        self._main_lb.setText("Installing:")
+        self.set_install()
         self._task_lb = QtW.QLabel()
         self._task_lb.setText(str())
 
@@ -515,6 +698,12 @@ class InstallerProgressPage(QtW.QWidget):
         self._main_lb.setText("Complete!")
         self._task_lb.setText(str())
 
+    def set_install(self):
+        self._main_lb.setText("Installing:")
+
+    def set_uninstall(self):
+        self._main_lb.setText("Uninstalling:")
+
     @Slot(int)
     def set_tasks(self, task_number):
         if task_number > 0:
@@ -532,6 +721,7 @@ class InstallerProgressPage(QtW.QWidget):
     def print_error(self, message):
         self._task_lb.setText(message)
         self._main_lb.setText("ERROR!")
+        self._close_btn.setEnabled(True)
 
     def set_status(self, status):
         self._task_lb.setText(status)
@@ -549,7 +739,8 @@ class ManifestError(Exception):
     """
 
     def __init__(self, message):
-        self.message = message
+        fatal_error = "This is a Fatal Error and the Installer will not continue."
+        self.message = "{0}  {1}".format(message, fatal_error)
 
     def __str__(self):
         return str(self.message)
