@@ -118,7 +118,8 @@ class DirectoryLocator:
         :return: sets the appdata path and 3ds Max path to be located in the temp folder
         """
         # Lets things safely be copied without deleting important files
-        if "-dev" in sys.argv:
+        # if "-dev" in sys.argv:
+        if True:
             print("DEV:")
             save = self._max_dir, self._appdata_dir
 
@@ -154,6 +155,7 @@ class DirectoryLocator:
         unprotected.append(self._logs)
         unprotected.append(self._bdf_dir)
         unprotected.append(self._install_dir)
+        unprotected.append(self._user_macros)
         return unprotected
 
     def _find_user_macros_dir(self):
@@ -576,12 +578,13 @@ class RenderFarmingInstaller(QThread):
         self._record = list()
         self._dir_del_queue = list()
 
-    def run(self, uninstall=False):
+    def run(self, **kwargs):
         """
         QThread function that executes the class in a separate thread
-        :param uninstall: Bool: True to uninstall
+        :param kwargs:
         :return: None
         """
+        install_type = kwargs.get("install_type", "install")
         try:
             self.set_tasks.emit(4)
 
@@ -590,12 +593,12 @@ class RenderFarmingInstaller(QThread):
             self._add()
 
             # Checks which type of manifest to load
-            if uninstall:
-                # Uninstalls will attempt to load the uninstall.man in the installation directory
-                self._man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
-            else:
+            if install_type == "install":
                 # Installs will load the bundled install.man
                 self._man = Manifest("install.man")
+            else:
+                # Uninstalls will attempt to load the uninstall.man in the installation directory
+                self._man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
 
             self._add()
 
@@ -608,13 +611,17 @@ class RenderFarmingInstaller(QThread):
             self._add()
 
             # Checks which functions to run
-            if uninstall:
+            if install_type == "install":
+                self.run_installation()
+            elif install_type == "upgrade":
                 self.run_uninstallation()
             else:
-                self.run_installation()
+                self.run_uninstallation()
+                self.run_cleaner()
 
         # Catches errors and prints them to the UI rather than crashing
-        except (IOError, OSError, RuntimeError, ManifestError) as e:
+        # except (IOError, OSError, RuntimeError, ManifestError) as e:
+        except ManifestError as e:
             self.print_error.emit(str(e))
         else:
             # If no Errors, set UI to complete
@@ -634,10 +641,74 @@ class RenderFarmingInstaller(QThread):
         self.set_tasks.emit(len(self._items))
 
         self._delete_files()
-        print(self._dir_del_queue)
+
         self._delete_dirs()
 
+    def run_cleaner(self):
+        self._clean_up_bdf_folder()
+
+    def _clean_up_bdf_folder(self):
+        """
+        Deletes files from the logs and config but will back out if it discovers anything from another script
+        :return: None
+        """
+        folders = self._dir_loc.get_config_folder(), self._dir_loc.get_log_folder(), self._dir_loc.get_bdf_folder()
+        for fold in folders:
+            fold = str(fold)
+            # If the folder is empty of files, delete it
+            if os.path.isdir(fold):
+                if self._clean_up_files(fold, "renderFarming"):
+                    self._delete_dir(fold)
+
+    def _clean_up_files(self, directory, del_str=None):
+        """
+        Cleans all files with a name containing a certain string in the name from a directory
+        :param directory: The directory to clean
+        :return: True if the directory is empty, False if not
+        """
+        ret = True
+        # Get a list of contents
+        children = os.listdir(directory)
+        # Check contents
+        if len(children) > 0:
+            # attempt to delete all of the contents
+            for item in children:
+                full_path = os.path.join(directory, item)
+                # if the object is a directory attempt to delete it
+                # If it cannot be deleted
+                if os.path.isdir(full_path):
+                    a = self._delete_dir(full_path)
+                    if not a:
+                        ret = False
+                # If the object is a file, attempt to remove it
+                elif os.path.isfile(full_path):
+                    # If del_str is not empty, check for it
+                    if del_str is not None:
+                        # If del_str is in the filename, can it
+                        if item.find(del_str) != -1:
+                            print("os.remove({})".format(full_path))
+                            os.remove(full_path)
+                        # Else, mark the folder to not be deleted
+                        else:
+                            ret = False
+                    # Otherwise, it all must go
+                    else:
+                        print("os.remove({})".format(full_path))
+                        os.remove(full_path)
+                # If the object is neither a file not directory, best not to mess around
+                else:
+                    return False
+            # Returns False if a file or directory has not been deleted
+            return ret
+        # If there are no contents, do nothing
+        else:
+            return True
+
     def _generate_uninstall_manifest(self):
+        """
+        Creates a manifest with a list of files to delete when unintalling
+        :return: A file called uninstall.man in the install directory
+        """
         self.set_tasks.emit(4)
         new_man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
         self._add()
@@ -645,6 +716,7 @@ class RenderFarmingInstaller(QThread):
         new_man.set_data(self._record)
         self._add()
 
+        # Copies the header from the install.man file
         new_head = ManifestHeader(self._man)
         new_man.set_header(new_head.get_data())
         self._add()
@@ -662,7 +734,6 @@ class RenderFarmingInstaller(QThread):
         for item in self._items:
             directory = item.get_destination_dir()
             if not os.path.isdir(directory):
-                print("**** NEW: {} ****".format(directory))
                 self._create_dir(directory)
             self._add()
 
@@ -711,8 +782,11 @@ class RenderFarmingInstaller(QThread):
             src = os.path.join(item.get_source())
             dst = os.path.join(item.get_destination())
             print("shutil.copy2({}, {})".format(src, dst))
-            self._record.append(InstallerItem(dst, ''))
+
             shutil.copy2(src, dst)
+
+            # Records the files that have been copied
+            self._record.append(InstallerItem(dst, ''))
             self._add()
 
     def _delete_files(self):
@@ -723,20 +797,47 @@ class RenderFarmingInstaller(QThread):
         for item in self._items:
             file_name = item.get_source()
             if os.path.isfile(file_name):
-                if item.get_source_dir() in self._dir_loc.get_unprotected():
+                # Only deletes files in unprotected directories
+                # These are pre-defined by the installer
+                if self._check_protected(item.get_source_dir()):
                     print("os.remove({})".format(file_name))
                     os.remove(file_name)
-                    self._add()
+
+                    # Checks for Python Bytecode files and deletes them as well
+                    spl = os.path.splitext(file_name)
+                    if spl[1] == '.py':
+                        # Split the extension off and rejoin to a different extension
+                        pyc = spl[0] + '.pyc'
+                        # Only delete them if they exist though
+                        if os.path.isfile(pyc):
+                            print("os.remove({})".format(pyc))
+                            os.remove(pyc)
             # if the file is directory, put it on the queue
             elif os.path.isdir(file_name):
                 self._dir_del_queue.append(item)
+            self._add()
 
     def _delete_dirs(self):
         for item in self._dir_del_queue:
             directory = item.get_source()
 
-            print("**** NEW: {} ****".format(directory))
             self._delete_dir(directory)
+
+    def _check_protected(self, directory):
+        """
+        Verifies that the directory is safe to be deleted
+        :param directory: a path
+        :return: False for protected, True for safe to delete
+        """
+        protect = self._dir_loc.get_unprotected()
+        if directory in self._dir_loc.get_unprotected():
+            return True
+        else:
+            # Checks if the parent is an unprotected directory
+            for item in protect:
+                if directory.find(item) != -1:
+                    return True
+                return False
 
     def _delete_dir(self, directory):
         """
@@ -746,7 +847,7 @@ class RenderFarmingInstaller(QThread):
         """
         # No need to fool around with non-existent directories
         if os.path.isdir(directory):
-            if directory in self._dir_loc.get_unprotected():
+            if self._check_protected(directory):
                 children = os.listdir(directory)
                 # If the directory has children, delete them first
                 if len(children) > 0:
@@ -762,12 +863,12 @@ class RenderFarmingInstaller(QThread):
                         else:
                             return False
                     # When done with the children, delete the directory
-                    print("os.remove({})".format(directory))
-                    os.remove(directory)
+                    print("os.rmdir({})".format(directory))
+                    os.rmdir(directory)
                 # If there are no children, delete the directory
                 else:
-                    print("os.remove({})".format(directory))
-                    os.remove(directory)
+                    print("os.rmdir({})".format(directory))
+                    os.rmdir(directory)
             # If the directory is protected, don't delete it
             else:
                 return False
@@ -821,21 +922,21 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
     def install(self):
         self._intro_page.setVisible(False)
         self._progress_bar_page.setVisible(True)
-        self._installer.run(False)
+        self._installer.run(install_type="install")
 
     def uninstall(self):
         self._intro_page.setVisible(False)
         self._progress_bar_page.setVisible(True)
         self._progress_bar_page.set_uninstall()
-        self._installer.run(True)
+        self._installer.run(install_type="uninstall")
 
     def upgrade(self):
         self._intro_page.setVisible(False)
         self._progress_bar_page.setVisible(True)
         self._progress_bar_page.set_uninstall()
-        self._installer.run(True)
+        self._installer.run(install_type="upgrade")
         self._progress_bar_page.set_install()
-        self._installer.run(False)
+        self._installer.run(install_type="install")
 
     def old_version_check(self):
         dirs = DirectoryLocator(self._max_version)
