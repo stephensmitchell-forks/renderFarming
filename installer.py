@@ -11,26 +11,43 @@ from tempfile import gettempdir
 
 
 def is_admin():
-    if "-dev" in sys.argv:
-        return True
-    else:
-        try:
-            return ctypes.windll.shell32.IsUserAnAdmin()
-        except Exception as error:
-            print("Unable to retrieve UAC Elevation level: %s" % error)
-            return False
+    """
+    Checks if the script is running with administrator uac privileges
+    :return: Boolean of admin status
+    """
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except Exception as error:
+        print("Unable to retrieve UAC Elevation level: %s" % error)
+        return False
 
 
 def main():
-    if is_admin():
-        app = QtW.QApplication(sys.argv)
-        w = RenderFarmingInstallerMainWindow()
-        w.show()
-        app.exec_()
-
+    """
+    Main, runs on execution
+    :return: None
+    """
+    # Bypasses admin check
+    if "-dev" in sys.argv:
+        run_q_app()
     else:
-        # Re-run the program with admin rights
-        ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__), None, 1)
+        # Checks if the script has elevated privileges
+        if is_admin():
+            run_q_app()
+        else:
+            # Re-run the program with admin rights
+            ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__), None, 1)
+
+
+def run_q_app():
+    """
+    Function for starting the Q Application
+    :return: None
+    """
+    app = QtW.QApplication(sys.argv)
+    w = RenderFarmingInstallerMainWindow()
+    w.show()
+    app.exec_()
 
 
 # ---------------------------------------------------
@@ -39,16 +56,23 @@ def main():
 
 
 class DirectoryLocator:
+    """
+    Class For locating directories
+    Uses registries to find the 3ds Max directory
+    """
     max_version_dict = {"2018": "20.0", "2019": "21.0"}
 
     def __init__(self, max_version="2018"):
 
         self._max_version = max_version
 
-        self._appdata_dir = os.getenv('LOCALAPPDATA')
-        self._temp = os.path.join(gettempdir(), '.{}'.format(hash(os.times())))
+        # self._temp = os.path.join(gettempdir(), "RenderFarming", '{}'.format(hash(os.times())))
+        self._temp = os.path.join(gettempdir(), "RenderFarming")
 
+        self._appdata_dir = os.getenv('LOCALAPPDATA')
         self._max_dir = self._find_max_dir()
+
+        self._dev_check()
 
         self._enu_dir = self._find_enu_dir()
 
@@ -56,10 +80,21 @@ class DirectoryLocator:
         self._user_scripts = self._find_user_scripts_dir()
         self._user_startup = self._find_user_startup_dir()
 
-        self._install_dir = os.path.join(self._user_scripts, "BDF", "renderFarming")
+        self._bdf_dir = os.path.join(self._user_scripts, "BDF")
+        self._install_dir = os.path.join(self._bdf_dir, "renderFarming")
+        self._config = os.path.join(self._bdf_dir, "logs")
+        self._logs = os.path.join(self._bdf_dir, "config")
+
         self._light_icons, self._dark_icons = self._find_icons()
 
+        self._unprotected = self._find_unprotected()
+
     def _find_max_dir(self):
+        """
+        Finds the directory that 3ds Max is installed in
+        :return: STR: A Path
+        """
+        # Locates the max directory using the autodesk Registry keys
         key_str = "Software\\Autodesk\\3dsMax\\{}".format(self.max_version_dict.get(self._max_version, "20.0"))
         key = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, key_str)
         value = _winreg.QueryValueEx(key, "Installdir")[0]
@@ -67,25 +102,86 @@ class DirectoryLocator:
         if os.path.isdir(value):
             return value
         else:
-            return "C:\\Program Files\\Autodesk\\3ds Max {}\\".format(self._max_version)
+            # If the registry leads you astray, it will default back to the good old default install
+            default = "C:\\Program Files\\Autodesk\\3ds Max {}\\".format(self._max_version)
+            # Doesn't hurt to be sure
+            if os.path.isdir(default):
+                return default
+            else:
+                raise RuntimeError(
+                    "3ds Max does not appear to be installed.  3ds Max must be installed before RenderFarming"
+                )
+
+    def _dev_check(self):
+        """
+        Checks if the installer is in dev mode
+        :return: sets the appdata path and 3ds Max path to be located in the temp folder
+        """
+        # Lets things safely be copied without deleting important files
+        if "-dev" in sys.argv:
+            print("DEV:")
+            save = self._max_dir, self._appdata_dir
+
+            new_max = os.path.join(self._temp, (os.path.splitdrive(self._max_dir)[1])[1:])
+            new_appdata = os.path.join(self._temp, (os.path.splitdrive(self._appdata_dir)[1])[1:])
+
+            self._max_dir = new_max
+            self._appdata_dir = new_appdata
+
+            print("{} ~becomes~ {}".format(save[0], self._max_dir))
+            print("{} ~becomes~ {}".format(save[1], self._appdata_dir))
 
     def _find_enu_dir(self):
+        """
+        Finds the English language folder in the 3ds Max LOCALAPPDATA folder
+        :return: STR: A Path
+        """
         return os.path.realpath(os.path.join(self._appdata_dir,
                                              'Autodesk',
                                              '3dsMax',
                                              '{} - 64bit'.format(self._max_version),
                                              'ENU'))
 
+    def _find_unprotected(self):
+        """
+        Generates a list of directories that are allowed to be deleted
+        :return: a List
+        """
+        unprotected = list()
+        unprotected.append(self._dark_icons)
+        unprotected.append(self._light_icons)
+        unprotected.append(self._config)
+        unprotected.append(self._logs)
+        unprotected.append(self._bdf_dir)
+        unprotected.append(self._install_dir)
+        return unprotected
+
     def _find_user_macros_dir(self):
+        """
+        Finds the user Macros folder
+        :return: STR: A Path
+        """
         return os.path.realpath(os.path.join(self._enu_dir, 'usermacros'))
 
     def _find_user_scripts_dir(self):
+        """
+        Finds the user Scripts folder
+        :return: STR: A Path
+        """
         return os.path.realpath(os.path.join(self._enu_dir, 'scripts'))
 
     def _find_user_startup_dir(self):
+        """
+        Finds the Startup Scripts Folder
+        :return: STR: A Path
+        """
         return os.path.realpath(os.path.join(self._enu_dir, 'startup'))
 
     def _find_icons(self):
+        """
+        Finds both Icon directories used by RenderFarming
+        :return: STR: A Path
+        """
         icons_light_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Light", "RenderFarming")
         icons_dark_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Dark", "RenderFarming")
         return icons_light_dir, icons_dark_dir
@@ -113,6 +209,18 @@ class DirectoryLocator:
 
     def get_render_farming_install(self):
         return self._install_dir
+
+    def get_bdf_folder(self):
+        return self._bdf_dir
+
+    def get_config_folder(self):
+        return self._config
+
+    def get_log_folder(self):
+        return self._logs
+
+    def get_unprotected(self):
+        return self._unprotected
 
     def get_dark_icons(self):
         return self._dark_icons
@@ -232,6 +340,9 @@ class ManifestTranslator:
 
 
 class ManifestHeader:
+    """
+    Converts the Manifest Header to a dictionary
+    """
     def __init__(self, manifest):
         self._man = manifest
         self._data = dict()
@@ -249,15 +360,16 @@ class ManifestHeader:
     # noinspection PyMethodMayBeStatic
     def _line_to_data(self, line, number):
         """
-
-        :param line: A string containing a single line from the Manifest file
+        Adds a line of the header to the dictionary
+        :param line: A string containing a single line from the Manifest file header
         :param number: The line Number in the file
-        :return:
+        :return: Adds a key to the self._data dictionary
         """
         line = line.replace('#', '')
         spl = line.split('|')
         if len(spl) == 2:
             try:
+                # Assigns the split pieces using the first part as a key and the second as a value
                 self._data[spl[0]] = spl[1]
             except KeyError as e:
                 raise ManifestError("Key Error: {} does not resolve.".format(e))
@@ -274,12 +386,44 @@ class ManifestHeader:
 
 
 class Manifest:
+    """
+    A function for dealing with the creation and reading of ".man" files
+    The ".man" file is formatted as follows:
+        Each line in the header has a '#' as it's leading character and is treated like a key, value pair
+        The key is separated from the value by a pipe '|' character
+            Example:
+                #key|value
+                #version|0020
+        The rest of the file is split into sources and destinations
+        These are separated with a pipe '|' character as well
+            Example:
+                "src"|"dst"
+                "__init__.py"|$(main)
+            "C:\Users\abrown\AppData\Local\Autodesk\3dsMax\2018 - 64bit\ENU\scripts\BDF\renderFarming\__init__.py"|"."
+        The source must be a valid file.  The install.man keeps sources as relative files to itself.  The uninstall.man
+        keeps the full path.
+        The destination can be either an absolute path, or a token.  The tokens must correspond to entries in an
+        internal dictionary that correspond to paths from the DirectoryLocator.  The uninstall.man does not use
+        destinations, and anything here will be ignored.
+            Valid Tokens:
+                "$(main)": render farming install
+                "$(macro)": user macros
+                "$(startup)": user startup
+                "$(dark_icons)": dark icons
+                "$(light_icons)": light icons
+    """
+
     def __init__(self, manifest_file):
         self._manifest_file = manifest_file
         self._data = list()
         self._header = list()
 
     def read(self):
+        """
+        Reads the manifest file specified
+        :return: self._data and self._header are assigned the appropriate lines
+        """
+        # Checks to make sure there is a file to read from
         if not os.path.exists(self._manifest_file):
             raise ManifestError("Manifest file: {} does not exist.".format(self._manifest_file))
         with open(self._manifest_file, 'r') as man_file:
@@ -287,21 +431,38 @@ class Manifest:
             self._set_formatted_data(data)
 
     def write(self):
+        """
+        Writes the stored data to the file
+        :return: a happy little file somewhere on your filesystem
+        """
         directory = os.path.split(self._manifest_file)[0]
+        # Checks to make sure there is a directory to write to
         if not os.path.isdir(directory):
             raise ManifestError("Manifest Directory: {} does not exist.".format(directory))
         with open(self._manifest_file, 'w') as man_file:
             man_file.write(self._get_formatted_data())
 
     def _get_formatted_data(self):
+        """
+        Properly formats the data for file writing.  This is mostly just putting the list into
+        one long string and adding newlines
+        :return: A string containing the appropriate file contents
+        """
         main_str = str()
+        # Header
         for line in self._header:
             main_str = main_str + line + '\n'
+        # Data
         for line in self._data:
             main_str = main_str + line + '\n'
         return main_str
 
     def _set_formatted_data(self, data):
+        """
+        Sets the internal lists to the data read from a file
+        :param data: The data to be processed
+        :return: self._data and self._header appended with the appropriate data
+        """
         for line in data:
             line = line.rstrip()
             if line[0] == '#':
@@ -316,15 +477,33 @@ class Manifest:
         return self._header
 
     def set_data(self, data_list):
+        """
+        Converts a list of InstallerItem objects to a list of strings and sets self._data to this new list
+        :param data_list: a list of InstallerItem objects
+        :return: self._data replaced with the converted data_list
+        """
+        # clears old data
+        self._data = list()
         for i in data_list:
-            self._data.append("\"{}\":\"{}\"".format(i.get_source(), i.get_destination()))
+            self._data.append("\"{}\"|\"{}\"".format(i.get_source(), i.get_destination()))
 
     def set_header(self, header_dict):
+        """
+            Converts a dictionary to a list of strings and sets self._header to this new list
+            :param header_dict: a dictionary containing header data
+            :return: self._header replaced with the converted header_dict
+            """
+        # clears old header
+        self._header = list()
         for i in header_dict.keys():
-            self._header.append("#{}:{}".format(i, header_dict[i]))
+            self._header.append("#{}|{}".format(i, header_dict[i]))
 
     def add_self(self):
-        self._data.append("\"{}\":\"{}\"".format(self._manifest_file, ''))
+        """
+        Adds the manifest file itself to the end of the manifest (Only for uninstall.man)
+        :return: self._data appended with the manifest file
+        """
+        self._data.append("\"{}\"|\"{}\"".format(self._manifest_file, ''))
 
     def __str__(self):
         ret_str = str()
@@ -337,7 +516,9 @@ class Manifest:
 
 
 class InstallerItem:
-
+    """
+    A class the contains a source path and a destination path for handling of files
+    """
     def __init__(self, source, destination, is_dir=False):
         self._src = source
         self._dst = destination
@@ -350,9 +531,15 @@ class InstallerItem:
         return os.path.normpath(self._dst)
 
     def get_destination_dir(self):
+        """
+        :return: the path to a self._src 's directory
+        """
         return os.path.normpath(os.path.split(self._dst)[0])
 
     def get_source_dir(self):
+        """
+            :return: the path to a self._dst 's directory
+            """
         return os.path.normpath(os.path.split(self._src)[0])
 
     def get_is_dir(self):
@@ -371,7 +558,8 @@ class RenderFarmingInstaller(QThread):
 
     :signal set_tasks: Emits to communicate the initial task size to the progress bar
     :signal add_task: Emits when a task has completed and the progress bar should be advanced
-    :signal error: Emits when an error occurs an transmits that error's message
+    :signal print_error: Emits when an error occurs an transmits that error's message
+    :signal complete: Emits when the script is completed
     """
     set_tasks = Signal(int)
     add_task = Signal(int)
@@ -386,37 +574,53 @@ class RenderFarmingInstaller(QThread):
         self._man = None
         self._man_translated = None
         self._record = list()
+        self._dir_del_queue = list()
 
     def run(self, uninstall=False):
+        """
+        QThread function that executes the class in a separate thread
+        :param uninstall: Bool: True to uninstall
+        :return: None
+        """
         try:
             self.set_tasks.emit(4)
 
+            # Creates a DirectoryLocator first
             self._dir_loc = DirectoryLocator(self._3ds_max_version)
             self._add()
 
+            # Checks which type of manifest to load
             if uninstall:
+                # Uninstalls will attempt to load the uninstall.man in the installation directory
                 self._man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
             else:
+                # Installs will load the bundled install.man
                 self._man = Manifest("install.man")
 
             self._add()
 
+            # Translates the manifest to InstallerItems
             self._man_translated = ManifestTranslator(self._dir_loc, self._man)
             self._add()
 
+            # Retrieves these InstallerItems
             self._items = self._man_translated.get_items()
             self._add()
 
+            # Checks which functions to run
             if uninstall:
                 self.run_uninstallation()
             else:
                 self.run_installation()
 
-        except (IOError, OSError, ManifestError) as e:
+        # Catches errors and prints them to the UI rather than crashing
+        except (IOError, OSError, RuntimeError, ManifestError) as e:
             self.print_error.emit(str(e))
         else:
+            # If no Errors, set UI to complete
             self.complete.emit()
         finally:
+            # Always terminate the QThread
             self.terminate()
 
     def run_installation(self):
@@ -430,6 +634,8 @@ class RenderFarmingInstaller(QThread):
         self.set_tasks.emit(len(self._items))
 
         self._delete_files()
+        print(self._dir_del_queue)
+        self._delete_dirs()
 
     def _generate_uninstall_manifest(self):
         self.set_tasks.emit(4)
@@ -449,40 +655,128 @@ class RenderFarmingInstaller(QThread):
         self._add()
 
     def _create_directories(self):
+        """
+        Creates directories to accommodate files in the manifest list
+        :return: None
+        """
         for item in self._items:
             directory = item.get_destination_dir()
             if not os.path.isdir(directory):
+                print("**** NEW: {} ****".format(directory))
                 self._create_dir(directory)
             self._add()
 
-    def _create_dir(self, directory):
+    def _create_dir(self, directory, original=None, depth=0):
+        """
+        Recursively creates a directory and records it
+        :param directory: Which directory to create
+        :return: Records which directory was created for the uninstall.man list
+        """
+        # Infinite loop prevention
+        max_depth = 130
+        if depth >= max_depth:
+            raise RuntimeError("{} {}".format("The folder creation recursion depth has exceeded the limit.",
+                                              "This is Fatal and the installer cannot continue."))
+        # If the directory exists, do nothing.
         if not os.path.isdir(directory):
             parent = os.path.split(directory)[0]
+            # If the directory's parent exists, make the directory.
             if os.path.isdir(parent):
+                # record making it for later deletion.
                 self._record.append(InstallerItem(directory, '', True))
+                # Remove this print later
                 print("os.makedirs({})".format(directory))
-                # os.makedirs(directory)
+
+                os.makedirs(directory)
+
+                # If the directory is not the top level requested originally, then the function must recur.
+                if depth != 0:
+                    self._create_dir(original, None, 0)
+
+            # If the directory's parent does not exist, the parent has to be made as well.
             else:
-                self._create_dir(parent)
+                # If this is the first run, then the directory needs to be copied into "original"
+                # because it is otherwise set to None.
+                if depth == 0:
+                    original = directory
+                depth += 1
+                self._create_dir(parent, original, depth)
 
     def _copy_files(self):
+        """
+        Uses shutil.copy2 to copy items form the manifest list
+        :return: Records which file was copied for the uninstall.man list
+        """
         for item in self._items:
             src = os.path.join(item.get_source())
             dst = os.path.join(item.get_destination())
             print("shutil.copy2({}, {})".format(src, dst))
             self._record.append(InstallerItem(dst, ''))
-            # shutil.copy2(src, dst)
+            shutil.copy2(src, dst)
             self._add()
 
     def _delete_files(self):
+        """
+        Uses os.remove to delete all files from the manifest list
+        :return: None
+        """
         for item in self._items:
             file_name = item.get_source()
             if os.path.isfile(file_name):
-                print("os.remove({})".format(file_name))
-                # os.remove(file_name)
-                self._add()
+                if item.get_source_dir() in self._dir_loc.get_unprotected():
+                    print("os.remove({})".format(file_name))
+                    os.remove(file_name)
+                    self._add()
+            # if the file is directory, put it on the queue
+            elif os.path.isdir(file_name):
+                self._dir_del_queue.append(item)
+
+    def _delete_dirs(self):
+        for item in self._dir_del_queue:
+            directory = item.get_source()
+
+            print("**** NEW: {} ****".format(directory))
+            self._delete_dir(directory)
+
+    def _delete_dir(self, directory):
+        """
+        Recursively creates a directory and records it
+        :param directory: Which directory to create
+        :return: Records which directory was created for the uninstall.man list
+        """
+        # No need to fool around with non-existent directories
+        if os.path.isdir(directory):
+            if directory in self._dir_loc.get_unprotected():
+                children = os.listdir(directory)
+                # If the directory has children, delete them first
+                if len(children) > 0:
+                    # delete each child
+                    for child in children:
+                        child_path = os.path.join(directory, child)
+                        # Only mess with directories, any files should already be cleaned up
+                        if os.path.isdir(child_path):
+                            # If the child is a directory, recur the function upon it
+                            if not self._delete_dir(child_path):
+                                return False
+                        # If the children are files or anything other, do not delete the folder
+                        else:
+                            return False
+                    # When done with the children, delete the directory
+                    print("os.remove({})".format(directory))
+                    os.remove(directory)
+                # If there are no children, delete the directory
+                else:
+                    print("os.remove({})".format(directory))
+                    os.remove(directory)
+            # If the directory is protected, don't delete it
+            else:
+                return False
+        # If the directory doesn't exist, do nothing.
+        else:
+            return True
 
     def _add(self):
+        # Shortened function for emitting task completes
         self.add_task.emit(1)
 
 
