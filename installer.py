@@ -3,6 +3,7 @@ import sys
 import os
 import shutil
 import _winreg
+import zipfile
 
 import PySide2.QtWidgets as QtW
 from PySide2.QtCore import Signal, Slot, Qt, QThread
@@ -119,7 +120,7 @@ class DirectoryLocator:
         """
         # Lets things safely be copied without deleting important files
         # if "-dev" in sys.argv:
-        if True:
+        if "-dev" in sys.argv:
             print("DEV:")
             save = self._max_dir, self._appdata_dir
 
@@ -156,6 +157,7 @@ class DirectoryLocator:
         unprotected.append(self._bdf_dir)
         unprotected.append(self._install_dir)
         unprotected.append(self._user_macros)
+        unprotected.append(os.path.join(self._temp, "install"))
         return unprotected
 
     def _find_user_macros_dir(self):
@@ -256,6 +258,7 @@ class ManifestTranslator:
         self._dir = directory
         self._man = manifest
         self._man.read()
+        self._tmp = os.path.join(self._dir.get_temp(), "install")
         self._wd = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         self._item_list = list()
 
@@ -274,8 +277,9 @@ class ManifestTranslator:
         Converts the manifest to InstallerItem objects
         :return: appends InstallerItem objects to self._item_list
         """
+        offset = len(self._man.get_header())
         for num, line in enumerate(self._man.get_data()):
-            self._item_list.append(self._line_to_data(line, num))
+            self._item_list.append(self._line_to_data(line, offset + num))
 
     # noinspection PyMethodMayBeStatic
     def _line_to_data(self, line, number):
@@ -287,13 +291,16 @@ class ManifestTranslator:
         """
         # Lines should be formatted as src:dst
         # dst can be a token of a absolute path, but not both
-        # all source objects should be relative to the directory in which this script is contained
+        # all source objects should be relative to the temp directory
         spl = line.split('|')
         if len(spl) == 2:
             src = spl[0].replace('\"', '')
-            src = os.path.join(self._wd, src)
 
-            # raises an exception if this file is not present in the __file__ directory
+            # TODO: fix the logic here, has only been working because os.path.join resets on finding a leading '\'
+
+            src = os.path.join(self._tmp, src)
+
+            # raises an exception if this file is not present in the temp directory
             if not os.path.exists(src):
                 raise ManifestError(
                     "Manifest line {}({}) is unable to resolve the file source: {}".format(number + 1, spl, src)
@@ -419,18 +426,24 @@ class Manifest:
         self._manifest_file = manifest_file
         self._data = list()
         self._header = list()
+        self._is_zip = False
 
     def read(self):
         """
         Reads the manifest file specified
         :return: self._data and self._header are assigned the appropriate lines
         """
-        # Checks to make sure there is a file to read from
-        if not os.path.exists(self._manifest_file):
-            raise ManifestError("Manifest file: {} does not exist.".format(self._manifest_file))
-        with open(self._manifest_file, 'r') as man_file:
-            data = man_file.readlines()
-            self._set_formatted_data(data)
+        # Zip files need to be read before hand because they need the zip_handler passed to the read function
+        if self._is_zip:
+            data = self._manifest_file.open_read_lines("install.man")
+        else:
+            # Checks to make sure there is a file to read from
+            if not os.path.exists(self._manifest_file):
+                raise ManifestError("Manifest file: {} does not exist.".format(self._manifest_file))
+            with open(self._manifest_file, 'r') as man_file:
+                data = man_file.readlines()
+
+        self._set_formatted_data(data)
 
     def write(self):
         """
@@ -568,11 +581,12 @@ class RenderFarmingInstaller(QThread):
     print_error = Signal(str)
     complete = Signal()
 
-    def __init__(self, max_version):
+    def __init__(self, zip_file, dir_loc):
         super(RenderFarmingInstaller, self).__init__()
-        self._3ds_max_version = max_version
         self._items = list()
-        self._dir_loc = None
+        self._dirs = dir_loc
+        self._install_temp = os.path.join(self._dirs.get_temp(), "install")
+        self._zip = zip_file
         self._man = None
         self._man_translated = None
         self._record = list()
@@ -586,24 +600,24 @@ class RenderFarmingInstaller(QThread):
         """
         install_type = kwargs.get("install_type", "install")
         try:
-            self.set_tasks.emit(4)
-
-            # Creates a DirectoryLocator first
-            self._dir_loc = DirectoryLocator(self._3ds_max_version)
-            self._add()
+            self.set_tasks.emit(3)
 
             # Checks which type of manifest to load
             if install_type == "install":
                 # Installs will load the bundled install.man
-                self._man = Manifest("install.man")
+                self._zip.extract_all(self._install_temp)
+
+                man_path = os.path.join(self._install_temp, "install.man")
+                self._man = Manifest(man_path)
             else:
                 # Uninstalls will attempt to load the uninstall.man in the installation directory
-                self._man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
+                man_path = os.path.join(self._dirs.get_render_farming_install(), "uninstall.man")
+                self._man = Manifest(man_path)
 
             self._add()
 
             # Translates the manifest to InstallerItems
-            self._man_translated = ManifestTranslator(self._dir_loc, self._man)
+            self._man_translated = ManifestTranslator(self._dirs, self._man)
             self._add()
 
             # Retrieves these InstallerItems
@@ -636,6 +650,7 @@ class RenderFarmingInstaller(QThread):
         self._create_directories()
         self._copy_files()
         self._generate_uninstall_manifest()
+        self._clean_up_temp_folder()
 
     def run_uninstallation(self):
         self.set_tasks.emit(len(self._items))
@@ -652,13 +667,38 @@ class RenderFarmingInstaller(QThread):
         Deletes files from the logs and config but will back out if it discovers anything from another script
         :return: None
         """
-        folders = self._dir_loc.get_config_folder(), self._dir_loc.get_log_folder(), self._dir_loc.get_bdf_folder()
+        folders = self._dirs.get_config_folder(), self._dirs.get_log_folder(), self._dirs.get_bdf_folder()
         for fold in folders:
             fold = str(fold)
             # If the folder is empty of files, delete it
             if os.path.isdir(fold):
                 if self._clean_up_files(fold, "renderFarming"):
                     self._delete_dir(fold)
+
+    def _clean_up_temp_folder(self):
+        """
+        Deletes extracted files from the temp folder
+        :return: None
+        """
+        root = self._install_temp
+        # If the folder is empty of files, delete it
+        if os.path.isdir(root):
+            self._nuke_directory(root)
+
+    def _nuke_directory(self, directory):
+        # deletes all contained files
+        self._clean_up_files(directory)
+        children = os.listdir(directory)
+        # finds children
+        if len(children) > 0:
+            for child in children:
+                # attempts to recursively nuke delete everything left behind
+                path = os.path.join(directory, child)
+                if os.path.isdir(path):
+                    self._nuke_directory(path)
+                    self._delete_dir(path)
+        print("os.rmdir({})".format(directory))
+        os.rmdir(directory)
 
     def _clean_up_files(self, directory, del_str=None):
         """
@@ -672,8 +712,8 @@ class RenderFarmingInstaller(QThread):
         # Check contents
         if len(children) > 0:
             # attempt to delete all of the contents
-            for item in children:
-                full_path = os.path.join(directory, item)
+            for child in children:
+                full_path = os.path.join(directory, child)
                 # if the object is a directory attempt to delete it
                 # If it cannot be deleted
                 if os.path.isdir(full_path):
@@ -685,7 +725,7 @@ class RenderFarmingInstaller(QThread):
                     # If del_str is not empty, check for it
                     if del_str is not None:
                         # If del_str is in the filename, can it
-                        if item.find(del_str) != -1:
+                        if child.find(del_str) != -1:
                             print("os.remove({})".format(full_path))
                             os.remove(full_path)
                         # Else, mark the folder to not be deleted
@@ -710,7 +750,7 @@ class RenderFarmingInstaller(QThread):
         :return: A file called uninstall.man in the install directory
         """
         self.set_tasks.emit(4)
-        new_man = Manifest(os.path.join(self._dir_loc.get_render_farming_install(), "uninstall.man"))
+        new_man = Manifest(os.path.join(self._dirs.get_render_farming_install(), "uninstall.man"))
         self._add()
 
         new_man.set_data(self._record)
@@ -829,8 +869,8 @@ class RenderFarmingInstaller(QThread):
         :param directory: a path
         :return: False for protected, True for safe to delete
         """
-        protect = self._dir_loc.get_unprotected()
-        if directory in self._dir_loc.get_unprotected():
+        protect = self._dirs.get_unprotected()
+        if directory in self._dirs.get_unprotected():
             return True
         else:
             # Checks if the parent is an unprotected directory
@@ -877,8 +917,31 @@ class RenderFarmingInstaller(QThread):
             return True
 
     def _add(self):
-        # Shortened function for emitting task completes
+        # Shortened function for emitting task complete messages
         self.add_task.emit(1)
+
+
+class ZipHandler:
+    def __init__(self, zip_file):
+        self._zip_file = zip_file
+
+    def extract_file(self, file_name, destination):
+        with zipfile.ZipFile(self._zip_file, 'r') as open_zip:
+            open_zip.extract(file_name, destination)
+
+    def extract_all(self, destination):
+        with zipfile.ZipFile(self._zip_file, 'r') as open_zip:
+            open_zip.extractall(destination)
+
+    def open_read_lines(self, file_name):
+        """
+        Opens a file from the zip file and reads the lines
+        :param file_name: the Zip file to open
+        :return: the contents of the zip file
+        """
+        with zipfile.ZipFile(self._zip_file, 'r') as open_zip:
+            with open_zip.open(file_name, 'r') as f:
+                return f.readlines()
 
 
 # ---------------------------------------------------
@@ -890,7 +953,9 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
 
     def __init__(self, parent=None):
         super(RenderFarmingInstallerMainWindow, self).__init__(parent)
+        self._zip = ZipHandler('install.zip')
         self._max_version = "2018"
+        self._dirs = DirectoryLocator(self._max_version)
 
         self._main_layout = QtW.QVBoxLayout()
 
@@ -913,7 +978,7 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
 
         self.setLayout(self._main_layout)
 
-        self._installer = RenderFarmingInstaller(self._max_version)
+        self._installer = RenderFarmingInstaller(self._zip, self._dirs)
         self._installer.set_tasks.connect(self._progress_bar_page.set_tasks)
         self._installer.add_task.connect(self._progress_bar_page.add)
         self._installer.print_error.connect(self._progress_bar_page.print_error)
@@ -939,13 +1004,14 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
         self._installer.run(install_type="install")
 
     def old_version_check(self):
-        dirs = DirectoryLocator(self._max_version)
-        u_man_path = os.path.join(dirs.get_render_farming_install(), "uninstall.man")
+        u_man_path = os.path.join(self._dirs.get_render_farming_install(), "uninstall.man")
+
         if os.path.isfile(u_man_path):
             u_man = Manifest(u_man_path)
             u_head = ManifestHeader(u_man)
-            man = Manifest("install.man")
+            man = Manifest(None)
             head = ManifestHeader(man)
+
             if u_head.version() < head.version():
                 self._intro_page.set_upgrade()
             elif u_head.version() == head.version():
