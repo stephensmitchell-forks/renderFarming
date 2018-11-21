@@ -9,7 +9,7 @@ import renderFarmingUI as rFUI
 
 rt = pymxs.runtime
 
-uif = "E:\\dump\\scripts\\renderFarming\\src"
+uif = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 # Destroys instances of the dialog before recreating it
 # noinspection PyBroadException

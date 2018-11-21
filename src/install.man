@@ -1,4 +1,4 @@
-#version|0039
+#version|0040
 "__init__.py"|$(main)
 "renderFarming3dsMaxTabbedDialog.py"|$(main)
 "renderFarmingClasses.py"|$(main)
