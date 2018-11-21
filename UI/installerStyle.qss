@@ -1,0 +1,106 @@
+/*Based on QDarkStyle with BDF brand colors*/
+
+/* QWidget ---------------------------------------------------------------- */
+
+
+QWidget {
+    border: 0px solid #32414B;
+    padding: 0px;
+    color: #28FBAC;
+    font-family: "Franklin Gothic Medium", sans-serif;
+}
+
+QWidget:focus {
+}
+
+QWidget:disabled {
+    background-color: #1e174d;
+    color: #787878;
+}
+
+QWidget:item:selected {
+    background-color: #650fed;
+}
+
+QWidget:item:hover {
+    background-color: #650fed;
+}
+
+QDialog {
+    background: qlineargradient(x1:0.5, y1:1, x2:0, y2:0, stop: 0 #070228, stop: 1 #090333);
+}
+
+/* QLabel ------------------------------------------------------------ */
+
+QLabel {
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+    font-size: 14pt;
+}
+/* QPixmap ------------------------------------------------------------ */
+
+/* QPushButton ------------------------------------------------------------ */
+
+QPushButton {
+    background-color: #1e174d;
+    color: #ffffff;
+    padding: 0.5em;
+    outline: none;
+    font-size: 10pt;
+    letter-spacing: 10em;
+    font-family: "Arial", sans-serif;
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+QPushButton:disabled {
+    background-color: #0b033d;
+    color: #282B2A;
+}
+
+
+QPushButton:checked {
+    background-color: #6200ff;
+}
+
+QPushButton:checked:disabled {
+    background-color: #0b033d;
+    color: #282B2A;
+}
+
+
+QPushButton:pressed {
+    background-color: #6200ff;
+}
+
+QPushButton:hover,
+QPushButton:checked:hover{
+    background-color: #650FED;
+}
+
+QPushButton:selected,
+QPushButton:checked:selected{
+    background-color: : #6200ff;
+}
+
+/* QProgressBar ----------------------------------------------------------- */
+
+QProgressBar {
+    background-color: #090333;
+    color: #ffffff;
+    text-align: center;
+    font-size: 12pt;
+}
+
+QProgressBar:disabled {
+    background-color: #090333;
+    color: #ffffff;
+}
+
+QProgressBar::chunk {
+    background-color: #650fed;
+}
+
+QProgressBar::chunk:disabled {
+    background-color: #650fed;
+}

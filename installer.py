@@ -7,7 +7,7 @@ import zipfile
 
 import PySide2.QtWidgets as QtW
 from PySide2.QtCore import Signal, Slot, Qt, QThread
-from PySide2.QtGui import QPixmap
+from PySide2.QtGui import QPixmap, QMovie, QIcon
 from tempfile import gettempdir
 
 
@@ -16,11 +16,14 @@ def is_admin():
     Checks if the script is running with administrator uac privileges
     :return: Boolean of admin status
     """
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except Exception as error:
-        print("Unable to retrieve UAC Elevation level: %s" % error)
-        return False
+    if "--admin-ignore" in sys.argv:
+        return True
+    else:
+        try:
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        except Exception as error:
+            print("Unable to retrieve UAC Elevation level: %s" % error)
+            return False
 
 
 def main():
@@ -28,16 +31,12 @@ def main():
     Main, runs on execution
     :return: None
     """
-    # Bypasses admin check
-    if "-dev" in sys.argv:
+    # Checks if the script has elevated privileges
+    if is_admin():
         run_q_app()
     else:
-        # Checks if the script has elevated privileges
-        if is_admin():
-            run_q_app()
-        else:
-            # Re-run the program with admin rights
-            ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__), None, 1)
+        # Re-run the program with admin rights
+        ctypes.windll.shell32.ShellExecuteW(None, u"runas", unicode(sys.executable), unicode(__file__), None, 1)
 
 
 def run_q_app():
@@ -49,6 +48,23 @@ def run_q_app():
     w = RenderFarmingInstallerMainWindow()
     w.show()
     app.exec_()
+
+
+# noinspection PyBroadException
+def resource_path(relative_path):
+    """
+    Get absolute path to resource, works for dev and for PyInstaller
+    By Stack Overflow user max: https://stackoverflow.com/users/1889973/max
+    From: https://stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
+    """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        # noinspection PyProtectedMember,PyUnresolvedReferences
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 # ---------------------------------------------------
@@ -67,8 +83,8 @@ class DirectoryLocator:
 
         self._max_version = max_version
 
-        # self._temp = os.path.join(gettempdir(), "RenderFarming", '{}'.format(hash(os.times())))
         self._temp = os.path.join(gettempdir(), "RenderFarming")
+        self._hashed_temp = os.path.join(self._temp, '{}'.format(hash(os.times())))
 
         self._appdata_dir = os.getenv('LOCALAPPDATA')
         self._max_dir = self._find_max_dir()
@@ -119,8 +135,8 @@ class DirectoryLocator:
         :return: sets the appdata path and 3ds Max path to be located in the temp folder
         """
         # Lets things safely be copied without deleting important files
-        # if "-dev" in sys.argv:
-        if "-dev" in sys.argv:
+        # if "--dev" in sys.argv:
+        if "--dev" in sys.argv:
             print("DEV:")
             save = self._max_dir, self._appdata_dir
 
@@ -157,7 +173,7 @@ class DirectoryLocator:
         unprotected.append(self._bdf_dir)
         unprotected.append(self._install_dir)
         unprotected.append(self._user_macros)
-        unprotected.append(os.path.join(self._temp, "install"))
+        unprotected.append(os.path.join(self._hashed_temp, "install"))
         return unprotected
 
     def _find_user_macros_dir(self):
@@ -189,6 +205,9 @@ class DirectoryLocator:
         icons_light_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Light", "RenderFarming")
         icons_dark_dir = os.path.join(self._max_dir, "UI_ln", "Icons", "Dark", "RenderFarming")
         return icons_light_dir, icons_dark_dir
+
+    def get_hashed_temp(self):
+        return self._hashed_temp
 
     def get_temp(self):
         return self._temp
@@ -244,7 +263,7 @@ class DirectoryLocator:
             "RenderFarming Directory": self._install_dir,
             "RenderFarming Dark Icons": self._dark_icons,
             "RenderFarming Light Icons": self._light_icons,
-            "Temp Directory": self._temp,
+            "Temp Directory": self._hashed_temp,
             "Local AppData Directory": self._appdata_dir
         }
         return dt
@@ -258,7 +277,7 @@ class ManifestTranslator:
         self._dir = directory
         self._man = manifest
         self._man.read()
-        self._tmp = os.path.join(self._dir.get_temp(), "install")
+        self._tmp = os.path.join(self._dir.get_hashed_temp(), "install")
         self._wd = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         self._item_list = list()
 
@@ -296,15 +315,15 @@ class ManifestTranslator:
         if len(spl) == 2:
             src = spl[0].replace('\"', '')
 
-            # TODO: fix the logic here, has only been working because os.path.join resets on finding a leading '\'
+            if os.path.splitdrive(src)[0] is "":
 
-            src = os.path.join(self._tmp, src)
+                src = os.path.join(self._tmp, src)
 
-            # raises an exception if this file is not present in the temp directory
-            if not os.path.exists(src):
-                raise ManifestError(
-                    "Manifest line {}({}) is unable to resolve the file source: {}".format(number + 1, spl, src)
-                )
+                # raises an exception if this file is not present in the temp directory
+                if not os.path.exists(src):
+                    raise ManifestError(
+                        "Manifest line {}({}) is unable to resolve the file source: {}".format(number + 1, spl, src)
+                    )
 
             # chooses between a token or absolute path
             if (spl[1])[0] is '$':
@@ -345,7 +364,8 @@ class ManifestTranslator:
         return ret_str
 
     def __repr__(self):
-        return self._item_list
+        ls = ["***MANIFEST***", self._man.get_filename]
+        return ls.append(self._item_list)
 
 
 class ManifestHeader:
@@ -393,6 +413,12 @@ class ManifestHeader:
     def get_data(self):
         return self._data
 
+    def __str__(self):
+        return str(self.__repr__()).replace(', ', '\n').replace('{', '').replace('}', '').replace('\'', '')
+
+    def __repr__(self):
+        return self._data
+
 
 class Manifest:
     """
@@ -423,10 +449,16 @@ class Manifest:
     """
 
     def __init__(self, manifest_file):
+        """
+        Constructs a Manifest Object
+        :param manifest_file: The filename of the text file containing the manifest or
+                              of a zip file with a manifest in it
+        """
         self._manifest_file = manifest_file
         self._data = list()
         self._header = list()
-        self._is_zip = False
+
+        self._is_zip = True if isinstance(self._manifest_file, ZipHandler) else False
 
     def read(self):
         """
@@ -490,6 +522,9 @@ class Manifest:
 
     def get_header(self):
         return self._header
+
+    def get_filename(self):
+        return self._manifest_file
 
     def set_data(self, data_list):
         """
@@ -585,7 +620,7 @@ class RenderFarmingInstaller(QThread):
         super(RenderFarmingInstaller, self).__init__()
         self._items = list()
         self._dirs = dir_loc
-        self._install_temp = os.path.join(self._dirs.get_temp(), "install")
+        self._install_temp = os.path.join(self._dirs.get_hashed_temp(), "install")
         self._zip = zip_file
         self._man = None
         self._man_translated = None
@@ -634,9 +669,9 @@ class RenderFarmingInstaller(QThread):
                 self.run_cleaner()
 
         # Catches errors and prints them to the UI rather than crashing
-        # except (IOError, OSError, RuntimeError, ManifestError) as e:
-        except ManifestError as e:
+        except (IOError, OSError, RuntimeError, WindowsError, ManifestError) as e:
             self.print_error.emit(str(e))
+            print(self._man_translated)
         else:
             # If no Errors, set UI to complete
             self.complete.emit()
@@ -680,7 +715,7 @@ class RenderFarmingInstaller(QThread):
         Deletes extracted files from the temp folder
         :return: None
         """
-        root = self._install_temp
+        root = self._dirs.get_hashed_temp()
         # If the folder is empty of files, delete it
         if os.path.isdir(root):
             self._nuke_directory(root)
@@ -943,6 +978,9 @@ class ZipHandler:
             with open_zip.open(file_name, 'r') as f:
                 return f.readlines()
 
+    def get_filename(self):
+        return self._zip_file
+
 
 # ---------------------------------------------------
 #                  User Interface
@@ -953,25 +991,38 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
 
     def __init__(self, parent=None):
         super(RenderFarmingInstallerMainWindow, self).__init__(parent)
-        self._zip = ZipHandler('install.zip')
+        self._zip = ZipHandler(resource_path('install.zip'))
         self._max_version = "2018"
         self._dirs = DirectoryLocator(self._max_version)
+        self._busy = False
+
+        self._style_sheet = str()
+
+        self.setWindowIcon(QIcon(resource_path("UI\\render_farming_icon_01.48.png")))
+        with open(resource_path("UI\\installerStyle.qss"), 'r') as sheet:
+            self._style_sheet = sheet.read()
+        self.setStyleSheet(self._style_sheet)
 
         self._main_layout = QtW.QVBoxLayout()
 
         self._intro_page = InstallerIntroPage()
-        self._intro_page.install.connect(self.install)
+        self._intro_page.install.connect(self.install_handler)
         self._intro_page.cancel.connect(self.reject)
-        self._intro_page.upgrade.connect(self.upgrade)
-        self._intro_page.uninstall.connect(self.uninstall)
+        self._intro_page.upgrade.connect(self.upgrade_handler)
+        self._intro_page.uninstall.connect(self.uninstall_handler)
 
-        self.old_version_check()
+        self._rf_versions = self.old_version_check()
+
+        self.setWindowTitle("RenderFarming{}".format(self._rf_versions[0]))
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setSizeGripEnabled(False)
 
         self._progress_bar_page = InstallerProgressPage()
         self.progress_bar = self._progress_bar_page
 
         self._progress_bar_page.setVisible(False)
         self._progress_bar_page.close.connect(self.close)
+        self._progress_bar_page.allow_close.connect(self._allow_close_handler)
 
         self._main_layout.addWidget(self._intro_page)
         self._main_layout.addWidget(self._progress_bar_page)
@@ -984,18 +1035,23 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
         self._installer.print_error.connect(self._progress_bar_page.print_error)
         self._installer.complete.connect(self._progress_bar_page.set_complete)
 
-    def install(self):
+        self._admin_check()
+
+    def install_handler(self):
+        self._busy = True
         self._intro_page.setVisible(False)
         self._progress_bar_page.setVisible(True)
         self._installer.run(install_type="install")
 
-    def uninstall(self):
+    def uninstall_handler(self):
+        self._busy = True
         self._intro_page.setVisible(False)
         self._progress_bar_page.setVisible(True)
         self._progress_bar_page.set_uninstall()
         self._installer.run(install_type="uninstall")
 
-    def upgrade(self):
+    def upgrade_handler(self):
+        self._busy = True
         self._intro_page.setVisible(False)
         self._progress_bar_page.setVisible(True)
         self._progress_bar_page.set_uninstall()
@@ -1005,12 +1061,14 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
 
     def old_version_check(self):
         u_man_path = os.path.join(self._dirs.get_render_farming_install(), "uninstall.man")
+        man = Manifest(self._zip)
+        man.read()
+        head = ManifestHeader(man)
 
         if os.path.isfile(u_man_path):
             u_man = Manifest(u_man_path)
+            u_man.read()
             u_head = ManifestHeader(u_man)
-            man = Manifest(None)
-            head = ManifestHeader(man)
 
             if u_head.version() < head.version():
                 self._intro_page.set_upgrade()
@@ -1018,8 +1076,23 @@ class RenderFarmingInstallerMainWindow(QtW.QDialog):
                 self._intro_page.set_uninstall()
             else:
                 self._intro_page.set_old_version()
+            return head.version(), u_head.version()
         else:
             self._intro_page.set_install()
+            return head.version(), "0000"
+
+    def _admin_check(self):
+        if not is_admin():
+            self._intro_page.admin_error()
+
+    def _allow_close_handler(self):
+        self._busy = False
+
+    def closeEvent(self, event):
+        if self._busy:
+            event.ignore()
+        else:
+            event.accept()
 
 
 class InstallerIntroPage(QtW.QWidget):
@@ -1038,33 +1111,33 @@ class InstallerIntroPage(QtW.QWidget):
         self._install_lb.setText("Init")
 
         self._main_image_lb = QtW.QLabel()
-        self._main_image_pxmp = QPixmap("UI\\render_farming_icon_01.256.png")
+        self._main_image_pxmp = QPixmap(resource_path("UI\\render_farming_icon_01.256.png"))
         self._main_image_lb.setAlignment(Qt.AlignCenter)
 
         self._main_image_lb.setPixmap(self._main_image_pxmp)
 
         self._install_btn = QtW.QPushButton()
-        self._install_btn.setText("Install")
+        self._install_btn.setText("INSTALL")
         self._install_btn.clicked.connect(self._install_btn_handler)
         self._install_btn.setVisible(False)
 
         self._uninstall_btn = QtW.QPushButton()
-        self._uninstall_btn.setText("Uninstall")
+        self._uninstall_btn.setText("UNINSTALL")
         self._uninstall_btn.clicked.connect(self._uninstall_btn_handler)
         self._uninstall_btn.setVisible(False)
 
         self._repair_btn = QtW.QPushButton()
-        self._repair_btn.setText("Repair")
+        self._repair_btn.setText("REPAIR")
         self._repair_btn.clicked.connect(self._upgrade_btn_handler)
         self._repair_btn.setVisible(False)
 
         self._upgrade_btn = QtW.QPushButton()
-        self._upgrade_btn.setText("Upgrade")
+        self._upgrade_btn.setText("UPGRADE")
         self._upgrade_btn.clicked.connect(self._upgrade_btn_handler)
         self._upgrade_btn.setVisible(False)
 
         self._cancel_btn = QtW.QPushButton()
-        self._cancel_btn.setText("Cancel")
+        self._cancel_btn.setText("CANCEL")
         self._cancel_btn.clicked.connect(self._cancel_btn_handler)
 
         self.setLayout(self._main_layout)
@@ -1113,8 +1186,16 @@ class InstallerIntroPage(QtW.QWidget):
     def _upgrade_btn_handler(self):
         self.upgrade.emit()
 
+    def admin_error(self):
+        self._install_btn.setEnabled(False)
+        self._uninstall_btn.setEnabled(False)
+        self._repair_btn.setEnabled(False)
+        self._upgrade_btn.setEnabled(False)
+        self._install_lb.setText("{} Installer requires administrator privileges.".format(tx_er("Error:")))
+
 
 class InstallerProgressPage(QtW.QWidget):
+    allow_close = Signal()
     close = Signal()
 
     def __init__(self):
@@ -1124,9 +1205,16 @@ class InstallerProgressPage(QtW.QWidget):
         self._progress_bar_layout = QtW.QVBoxLayout()
 
         self._close_btn = QtW.QPushButton()
-        self._close_btn.setText("Close")
+        self._close_btn.setText("CLOSE")
         self._close_btn.setEnabled(False)
         self._close_btn.clicked.connect(self._close_btn_handler)
+
+        self._main_image_lb = QtW.QLabel()
+        self._main_gif_mov = QMovie(resource_path("UI\\dog_haircut.gif"))
+        self._main_image_lb.setAlignment(Qt.AlignCenter)
+
+        self._main_image_lb.setMovie(self._main_gif_mov)
+        self._main_gif_mov.start()
 
         self._progress_bar = QtW.QProgressBar()
         self._progress_bar.setRange(0, 0)
@@ -1141,6 +1229,7 @@ class InstallerProgressPage(QtW.QWidget):
 
         self._main_layout.addLayout(self._progress_bar_layout)
         self._progress_bar_layout.insertStretch(-1, 0)
+        self._progress_bar_layout.addWidget(self._main_image_lb)
         self._progress_bar_layout.addWidget(self._main_lb)
         self._progress_bar_layout.addWidget(self._progress_bar)
         self._progress_bar_layout.addWidget(self._task_lb)
@@ -1158,6 +1247,7 @@ class InstallerProgressPage(QtW.QWidget):
         self._close_btn.setEnabled(True)
         self._main_lb.setText("Complete!")
         self._task_lb.setText(str())
+        self.allow_close.emit()
 
     def set_install(self):
         self._main_lb.setText("Installing:")
@@ -1181,11 +1271,26 @@ class InstallerProgressPage(QtW.QWidget):
     @Slot(str)
     def print_error(self, message):
         self._task_lb.setText(message)
-        self._main_lb.setText("ERROR!")
+        self._main_lb.setText(tx_er("ERROR!"))
         self._close_btn.setEnabled(True)
+        self._main_gif_mov.setPaused(True)
+        self.allow_close.emit()
 
     def set_status(self, status):
         self._task_lb.setText(status)
+
+
+def tx_er(text):
+    return html_color_text(text, "red")
+
+
+def html_color_text(text, color):
+    presets = {"Orange": "#FFA500", "Red": "#ff3232", "Green": "#4ca64c"}
+    if color in presets:
+        hex_code = presets[color]
+    else:
+        hex_code = color
+    return " <font color=\"{1}\">{0}</font>".format(text, hex_code)
 
 
 # ---------------------------------------------------
