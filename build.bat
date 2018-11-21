@@ -7,6 +7,7 @@ del install.zip
 pyinstaller --noconfirm --log-level=INFO ^
  --onefile^
  --clean^
+ --noconsole^
  --manifest RenderFarming0039_INSTALLER.exe.manifest^
  --name RenderFarming0039_INSTALLER^
  --uac-admin^
@@ -14,5 +15,3 @@ pyinstaller --noconfirm --log-level=INFO ^
  --add-data "install.zip;."^
  --add-data "UI/*;UI"^
  installer.py
-
-  @rem --noconsole^
