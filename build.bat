@@ -1,3 +1,9 @@
+set PATH=%PATH%;C:\Program Files\7-Zip\
+
+del install.zip
+
+7z a install.zip .\src\*
+
 pyinstaller --noconfirm --log-level=INFO ^
  --onefile^
  --clean^
@@ -9,4 +15,4 @@ pyinstaller --noconfirm --log-level=INFO ^
  --add-data "UI/*;UI"^
  installer.py
 
-  rem --noconsole^
+  @rem --noconsole^

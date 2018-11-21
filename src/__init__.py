@@ -2,7 +2,7 @@ import pymxs
 import MaxPlus
 import os
 
-import renderFarmingUI as rFUI
+from src import renderFarmingUI as rFUI
 
 rt = pymxs.runtime
 
