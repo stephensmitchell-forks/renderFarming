@@ -1,3 +1,35 @@
+# -*- coding: utf-8 -*-
+
+"""
+RenderFarming
+
+by Avery Brown
+
+
+Thanks to:
+
+Josh Hollander
+Chris Cerrone
+Seiji Anderson
+John Szot
+
+
+RenderFarming is a 3ds Max script which handles many scene management tasks with a PySide2 based interface
+
+Sub-Modules:
+    - Spinach: Render Preparation System
+    - Kale: Scene Checker
+    - Arugula: Render Settings Handler
+
+External Dependencies:
+    - PyMXS
+    - MaxPlus
+    - PySide2
+    - PyInstaller (For compiling the automatic installer)
+
+Copyright ©2018 Brooklyn Digital Foundry
+"""
+
 import pymxs
 import MaxPlus
 import os
