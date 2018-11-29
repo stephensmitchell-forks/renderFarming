@@ -10,6 +10,7 @@ import renderFarmingSpinach as rFS
 import renderFarmingKale as rFK
 import renderFarmingTools as rFT
 import renderFarmingSATSDialogUI as rFSATS
+import renderFarmingQWidgets as rFQtW
 
 # 3DS Max Specific
 import MaxPlus
@@ -18,7 +19,7 @@ import MaxPlus
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QColor
 import PySide2.QtWidgets as QtW
-from PySide2.QtCore import QFile, QTimer, QSortFilterProxyModel
+from PySide2.QtCore import QObject, QFile, QTimer, QSortFilterProxyModel, Signal
 
 
 class RenderFarmingUI(QtW.QDialog):
@@ -79,6 +80,7 @@ class RenderFarmingUI(QtW.QDialog):
         ui_file.open(QFile.ReadOnly)
 
         loader = QUiLoader()
+        loader.registerCustomWidget(rFQtW.QMaxRollup)
         self._tabbed_widget = loader.load(ui_file)
 
         ui_file.close()
@@ -102,10 +104,35 @@ class RenderFarmingUI(QtW.QDialog):
         self._camera = self._rt.getActiveCamera()
 
         # ---------------------------------------------------
+        #               Tab Initializing
+        # ---------------------------------------------------
+
+        self._spinach_tbdg = SpinachTBDG(
+            self._tabbed_widget.findChild(QtW.QWidget, "spinach_tbdg"),
+            self._rt,
+            self._cfg)
+        self._kale_tbdg = KaleTBDG(
+            self._tabbed_widget.findChild(QtW.QWidget, "kale_tbdg"),
+            self._rt,
+            self._cfg)
+        self._config_tbdg = ConfigTBDG(
+            self._tabbed_widget.findChild(QtW.QWidget, "config_tbdg"),
+            self._rt,
+            self._cfg)
+        self._log_tbdg = LogTBDG(
+            self._tabbed_widget.findChild(QtW.QWidget, "log_tbdg"),
+            self._rt,
+            self._cfg)
+
+        # ---------------------------------------------------
         #               Function Connections
         # ---------------------------------------------------
 
         self._tabbed_widget.currentChanged.connect(self._tab_change_handler)
+
+        self._config_tbdg.saved.connect(self.config_apply_all)
+        self._config_tbdg.edit.connect(self._config_edit_handler)
+        self._config_tbdg.reset.connect(self._config_reset_handler)
 
         vpc_code = MaxPlus.NotificationCodes.ViewportChange
         self._viewport_change_handler = MaxPlus.NotificationManager.Register(vpc_code, self.cam_change_handler)
@@ -113,11 +140,6 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
         #               Final Initializing
         # ---------------------------------------------------
-
-        self._spinach_tbdg = SpinachTBDG(self, self._rt, self._cfg)
-        self._kale_tbdg = KaleTBDG(self, self._rt, self._cfg)
-        self._config_tbdg = ConfigTBDG(self, self._rt, self._cfg)
-        self._log_tbdg = LogTBDG(self, self._rt, self._cfg)
 
         self._spinach_tbdg.set_spinach_status(self._spinach_tbdg.get_status_message())
 
@@ -152,6 +174,15 @@ class RenderFarmingUI(QtW.QDialog):
                 flg.debug("Applying without saving")
         else:
             flg.info("Nothing to Save")
+
+    def _config_edit_handler(self):
+        if self.get_saved_status():
+            self.setWindowTitle("{} *".format(self.get_window_title()))
+            self.set_saved_status(False)
+
+    def _config_reset_handler(self):
+        self.set_saved_status(True)
+        self.setWindowTitle(self.get_window_title())
 
     # ---------------------------------------------------
     #                  Handler Function
@@ -204,22 +235,6 @@ class RenderFarmingUI(QtW.QDialog):
 
     def set_saved_status(self, saved):
         self._saved = saved
-
-    # ---------------------------------------------------
-    #                    Dialogs
-    # ---------------------------------------------------
-
-    def sats_dialog_opener(self):
-        self._clg.debug("Opening the \"Set Active Time Segment\" dialog")
-        dialog = rFSATS.RenderFarmingSATSDialogUI(self._ui_path, self._rt, self._parent)
-        if not dialog.exec_():
-            self._spinach_tbdg.set_spinach_status(dialog.get_status_message())
-            self._spinach_tbdg.set_nth_frame(dialog.get_nth_frame())
-            dialog.destroy()
-            return False
-        else:
-            dialog.destroy()
-            return True
 
     # ---------------------------------------------------
     #                Layout Functions
@@ -277,15 +292,16 @@ class RenderFarmingUI(QtW.QDialog):
         event.accept()
 
 
-class KaleTBDG:
-    def __init__(self, parent, rt, cfg):
+class KaleTBDG(QObject):
+    def __init__(self, tab, rt, cfg):
         """
         Class for the Kale page of the RenderFarming Dialog
-        :param parent: the renderFarming Dialog
+        :param tab: the renderFarming Dialog
         :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
-        self._parent = parent
+        super(KaleTBDG, self).__init__()
+        self._tab = tab
 
         # Variables
 
@@ -301,14 +317,15 @@ class KaleTBDG:
         self._kale = None
 
         # Table
+        self._kl_results_text_tbvw = self._tab.findChild(QtW.QTableView, "kl_results_text_tbvw")
 
-        self._table = KaleTableView(self._parent, self._kale)
+        self._table = KaleTableView(self._kl_results_text_tbvw, self._kale)
 
         # ---------------------------------------------------
         #                 Button Definitions
         # ---------------------------------------------------
 
-        self._kl_run_btn = self._parent.findChild(QtW.QPushButton, 'kl_run_btn')
+        self._kl_run_btn = self._tab.findChild(QtW.QPushButton, 'kl_run_btn')
 
         # ---------------------------------------------------
         #               Function Connections
@@ -331,25 +348,24 @@ class KaleTBDG:
 
 
 class KaleTableView:
-    def __init__(self, parent, kale):
-        self._parent = parent
+    def __init__(self, table, kale):
         self._kale = kale
 
-        self._kl_results_text_tbvw = self._parent.findChild(QtW.QTableView, "kl_results_text_tbvw")
+        self._table = table
 
         self._ktm = None
 
         if self._kale is None:
             self._ktm = DummyKaleTableModel()
-            self._kl_results_text_tbvw.setModel(self._ktm)
+            self._table.setModel(self._ktm)
         else:
             self._model_to_table()
 
     def _model_to_table(self):
         self._ktm = KaleTableModel(self._kale)
-        self._kl_results_text_tbvw.setModel(self._ktm)
+        self._table.setModel(self._ktm)
 
-        self._kl_results_text_tbvw.resizeRowsToContents()
+        self._table.resizeRowsToContents()
 
     def update_model(self, kale):
         self._kale = kale
@@ -382,7 +398,7 @@ class KaleTableModel(QSortFilterProxyModel):
     def _populate_row(self, row, kale_item):
         priority = kale_item.get_priority()
         row_list = [
-            rFT.clean_title(kale_item.get_title()),
+            kale_item.get_title(),
             kale_item.get_text(),
             kale_item.get_category(),
             self._priority_to_text(priority)
@@ -444,15 +460,16 @@ class DummyKaleTableModel(QStandardItemModel):
         self.setItem(row, 3, priority)
 
 
-class SpinachTBDG:
-    def __init__(self, parent, rt, cfg):
+class SpinachTBDG(QObject):
+    def __init__(self, tab, rt, cfg):
         """
         Class for the Spinach page of the RenderFarming Dialog
-        :param parent: the renderFarming Dialog
+        :param tab: the renderFarming Dialog
         :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
-        self._parent = parent
+        self._tab = tab
+        super(SpinachTBDG, self).__init__()
 
         # Variables
 
@@ -473,60 +490,56 @@ class SpinachTBDG:
         #                 Button Definitions
         # ---------------------------------------------------
 
-        self._sp_man_prepass_btn = self._parent.findChild(QtW.QPushButton, 'sp_1f_man_prepass_btn')
-        self._sp_man_beauty_btn = self._parent.findChild(QtW.QPushButton, 'sp_1f_man_beauty_btn')
-        self._sp_backburner_submit_btn = self._parent.findChild(QtW.QPushButton, 'sp_backburner_submit_btn')
-        self._sp_reset_btn = self._parent.findChild(QtW.QPushButton, 'sp_reset_btn')
-
-        self._sp_settings_btn = self._parent.findChild(QtW.QPushButton, 'sp_settings_btn')
+        self._sp_man_prepass_btn = self._tab.findChild(QtW.QPushButton, 'sp_1f_man_prepass_btn')
+        self._sp_man_beauty_btn = self._tab.findChild(QtW.QPushButton, 'sp_1f_man_beauty_btn')
+        self._sp_backburner_submit_btn = self._tab.findChild(QtW.QPushButton, 'sp_backburner_submit_btn')
+        self._sp_reset_btn = self._tab.findChild(QtW.QPushButton, 'sp_reset_btn')
 
         # ---------------------------------------------------
         #               Spin Box Definitions
         # ---------------------------------------------------
 
-        self._sp_multi_frame_increment_sb = self._parent.findChild(QtW.QSpinBox, 'sp_multi_frame_increment_sb')
+        self._sp_multi_frame_increment_sb = self._tab.findChild(QtW.QSpinBox, 'sp_multi_frame_increment_sb')
 
         # ---------------------------------------------------
         #               Check Box Definitions
         # ---------------------------------------------------
 
-        self._sp_pad_gi_range_ckbx = self._parent.findChild(QtW.QCheckBox, 'sp_pad_gi_range_ckbx')
-        self._sp_sub_fold_name_gi_ckbx = self._parent.findChild(QtW.QCheckBox, 'sp_sub_fold_name_gi_ckbx')
-        self._sp_run_kale_ckbx = self._parent.findChild(QtW.QCheckBox, 'sp_run_kale_ckbx')
+        self._sp_pad_gi_range_ckbx = self._tab.findChild(QtW.QCheckBox, 'sp_pad_gi_range_ckbx')
+        self._sp_sub_fold_name_gi_ckbx = self._tab.findChild(QtW.QCheckBox, 'sp_sub_fold_name_gi_ckbx')
+        self._sp_run_kale_ckbx = self._tab.findChild(QtW.QCheckBox, 'sp_run_kale_ckbx')
 
         # ---------------------------------------------------
         #               Label Definitions
         # ---------------------------------------------------
 
-        self._spinach_status_lb = self._parent.findChild(QtW.QLabel, 'label_spinach_status')
+        self._spinach_status_lb = self._tab.findChild(QtW.QLabel, 'label_spinach_status')
 
         # ---------------------------------------------------
         #               Line Edit Definitions
         # ---------------------------------------------------
 
-        self._sp_frm_subFolder_le = self._parent.findChild(QtW.QLineEdit, 'sp_frm_subFolder_le')
+        self._sp_frm_subFolder_le = self._tab.findChild(QtW.QLineEdit, 'sp_frm_subFolder_le')
 
         # ---------------------------------------------------
         #             Layout Element Definitions
         # ---------------------------------------------------
 
-        self._sp_settings_gb = self._parent.findChild(QtW.QGroupBox, 'sp_settings_gb')
+        self._sp_settings_gb = self._tab.findChild(rFQtW.QMaxRollup, 'sp_settings_gb')
 
         # ---------------------------------------------------
         #               Combo Box Connections
         # ---------------------------------------------------
 
-        self._sp_gi_mode_cmbx = GIModeComboBox(self._parent.findChild(QtW.QComboBox, 'sp_gi_mode_cmbx'))
+        self._sp_gi_mode_cmbx = GIModeComboBox(self._tab.findChild(QtW.QComboBox, 'sp_gi_mode_cmbx'))
 
-        self._sp_vfb_type_cmbx = IndexBasedComboBox(self._parent.findChild(QtW.QComboBox, 'sp_vfb_type_cmbx'))
-        self._sp_img_filt_ovr_cmbx = IndexBasedComboBox(self._parent.findChild(QtW.QComboBox, 'sp_img_filt_ovr_cmbx'))
-        self._sp_sats_prompt_cmbx = SATSPromptComboBox(self._parent.findChild(QtW.QComboBox, 'sp_sats_prompt_cmbx'))
+        self._sp_vfb_type_cmbx = IndexBasedComboBox(self._tab.findChild(QtW.QComboBox, 'sp_vfb_type_cmbx'))
+        self._sp_img_filt_ovr_cmbx = IndexBasedComboBox(self._tab.findChild(QtW.QComboBox, 'sp_img_filt_ovr_cmbx'))
+        self._sp_sats_prompt_cmbx = SATSPromptComboBox(self._tab.findChild(QtW.QComboBox, 'sp_sats_prompt_cmbx'))
 
         # ---------------------------------------------------
         #               Function Connections
         # ---------------------------------------------------
-
-        self._sp_settings_btn.clicked.connect(self._sp_settings_hide_handler)
 
         self._sp_gi_mode_cmbx.cmbx.activated.connect(self._sp_gi_mode_cmbx_handler)
 
@@ -596,13 +609,12 @@ class SpinachTBDG:
         Hides settings section
         :return:
         """
-        self._parent.hide_qwidget(self._sp_settings_gb)
+        self._sp_settings_gb.toggle()
         self._settings_visible = not self._settings_visible
 
     def _sp_settings_hide_initializer(self):
         if not self._settings_visible:
-            self._sp_settings_btn.setChecked(False)
-            self._sp_settings_gb.setVisible(False)
+            self._sp_settings_gb.setExpanded(False)
 
     def _backburner_submit_handler(self):
         """
@@ -621,7 +633,7 @@ class SpinachTBDG:
         flg.debug("Executing Prepass")
         if self._sp_sats_prompt_cmbx.prepass():
             flg.debug("SATS Dialog Requested")
-            if not self._parent.sats_dialog_opener():
+            if not self.sats_dialog_opener():
                 flg.warning("SATS Dialog cancelled, interrupting prepass")
                 return
         self._spinach.check_camera()
@@ -646,7 +658,7 @@ class SpinachTBDG:
         flg.debug("Executing Beauty Pass")
         if self._sp_sats_prompt_cmbx.beauty():
             flg.debug("SATS Dialog Requested")
-            if not self._parent.sats_dialog_opener():
+            if not self._tab.sats_dialog_opener():
                 flg.warning("SATS Dialog cancelled, interrupting beauty pass")
                 return
         self._spinach.check_camera()
@@ -731,16 +743,37 @@ class SpinachTBDG:
     def set_nth_frame(self, nth_frame):
         self._spinach.set_nth_frame(nth_frame)
 
+    # ---------------------------------------------------
+    #                    Dialogs
+    # ---------------------------------------------------
 
-class ConfigTBDG:
-    def __init__(self, parent, rt, cfg):
+    def sats_dialog_opener(self):
+        self._clg.debug("Opening the \"Set Active Time Segment\" dialog")
+        dialog = rFSATS.RenderFarmingSATSDialogUI(self._rt)
+        if not dialog.exec_():
+            self.set_spinach_status(dialog.get_status_message())
+            self.set_nth_frame(dialog.get_nth_frame())
+            dialog.destroy()
+            return False
+        else:
+            dialog.destroy()
+            return True
+
+
+class ConfigTBDG(QObject):
+    saved = Signal()
+    reset = Signal()
+    edit = Signal()
+
+    def __init__(self, tab, rt, cfg):
         """
         Class for the Configuration page of the RenderFarming Dialog
-        :param parent: the renderFarming Dialog
+        :param tab: the renderFarming Dialog
         :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
-        self._parent = parent
+        super(ConfigTBDG, self).__init__()
+        self._tab = tab
 
         # Variables
 
@@ -755,36 +788,36 @@ class ConfigTBDG:
         #                 Button Definitions
         # ---------------------------------------------------
 
-        self._cfg_save_btn = self._parent.findChild(QtW.QPushButton, 'config_save_btn')
-        self._cfg_reset_btn = self._parent.findChild(QtW.QPushButton, 'config_reset_btn')
-        self._cfg_test_btn = self._parent.findChild(QtW.QPushButton, 'config_test_btn')
+        self._cfg_save_btn = self._tab.findChild(QtW.QPushButton, 'config_save_btn')
+        self._cfg_reset_btn = self._tab.findChild(QtW.QPushButton, 'config_reset_btn')
+        self._cfg_test_btn = self._tab.findChild(QtW.QPushButton, 'config_test_btn')
 
         # ---------------------------------------------------
         #               Line Edit Definitions
         # ---------------------------------------------------
 
         # - Projects
-        self._cfg_prj_projectCode_le = self._parent.findChild(QtW.QLineEdit, 'config_project_projectCode_le')
-        self._cfg_prj_fullName_le = self._parent.findChild(QtW.QLineEdit, 'config_project_fullName_le')
+        self._cfg_prj_projectCode_le = self._tab.findChild(QtW.QLineEdit, 'config_project_projectCode_le')
+        self._cfg_prj_fullName_le = self._tab.findChild(QtW.QLineEdit, 'config_project_fullName_le')
 
         # - Paths
-        self._cfg_pth_projectsDirectory_le = self._parent.findChild(QtW.QLineEdit, 'config_paths_projectsDirectory_le')
-        self._cfg_pth_logDirectory_le = self._parent.findChild(QtW.QLineEdit, 'config_paths_logDirectory_le')
-        self._cfg_pth_framesDirectory_le = self._parent.findChild(QtW.QLineEdit, 'config_paths_framesDirectory_le')
-        self._cfg_pth_irradianceMapDirectory_le = self._parent.findChild(QtW.QLineEdit,
-                                                                         'config_paths_irradianceMapDirectory_le')
-        self._cfg_pth_lightCacheDirectory_le = self._parent.findChild(QtW.QLineEdit,
-                                                                      'config_paths_lightCacheDirectory_le')
+        self._cfg_pth_projectsDirectory_le = self._tab.findChild(QtW.QLineEdit, 'config_paths_projectsDirectory_le')
+        self._cfg_pth_logDirectory_le = self._tab.findChild(QtW.QLineEdit, 'config_paths_logDirectory_le')
+        self._cfg_pth_framesDirectory_le = self._tab.findChild(QtW.QLineEdit, 'config_paths_framesDirectory_le')
+        self._cfg_pth_irradianceMapDirectory_le = self._tab.findChild(QtW.QLineEdit,
+                                                                      'config_paths_irradianceMapDirectory_le')
+        self._cfg_pth_lightCacheDirectory_le = self._tab.findChild(QtW.QLineEdit,
+                                                                   'config_paths_lightCacheDirectory_le')
 
         # - Backburner
-        self._cfg_bb_manager_le = self._parent.findChild(QtW.QLineEdit, 'config_backburner_manager_le')
+        self._cfg_bb_manager_le = self._tab.findChild(QtW.QLineEdit, 'config_backburner_manager_le')
 
         # ---------------------------------------------------
         #               Combo Box Connections
         # ---------------------------------------------------
 
-        self._cfg_lg_loggingLevel_cmbx = LogLevelComboBox(self._parent.findChild(QtW.QComboBox,
-                                                                                 'config_logging_loggingLevel_cmbx'))
+        self._cfg_lg_loggingLevel_cmbx = LogLevelComboBox(self._tab.findChild(QtW.QComboBox,
+                                                                              'config_logging_loggingLevel_cmbx'))
 
         # ---------------------------------------------------
         #               Function Connections
@@ -827,8 +860,6 @@ class ConfigTBDG:
 
         self._cfg_lg_loggingLevel_cmbx.set_by_level(self._cfg.get_log_level())
 
-        return
-
     def config_apply_config_page(self):
         self._cfg.set_project_code(self._cfg_prj_projectCode_le.text())
         self._cfg.set_project_full_name(self._cfg_prj_fullName_le.text())
@@ -865,38 +896,31 @@ class ConfigTBDG:
         self._cfg_pth_logDirectory_le.setText(self._cfg.get_log_path(raw))
 
     def _config_save_handler(self):
-        flg = logging.getLogger("renderFarming.UI._config_save_handler")
-        flg.debug("Applying User edits to configuration and saving changes to the configuration file")
-        self._parent.config_apply_all()
-        return
+        self._clg.debug("Applying User edits to configuration and saving changes to the configuration file")
+        self.saved.emit()
 
     def _config_reset_handler(self):
-        flg = logging.getLogger("renderFarming.UI._config_reset_handler")
-        flg.debug("Resetting Configuration to Stored")
+        self._clg.debug("Resetting Configuration to Stored")
         self.config_page_setup()
-
-        self._parent.set_saved_status(True)
-        self._parent.setWindowTitle(self._parent.get_window_title())
-        return
+        self.reset.emit()
 
     def _edit_handler(self):
-        if self._parent.get_saved_status():
-            self._parent.setWindowTitle("{} *".format(self._parent.get_window_title()))
-            self._parent.set_saved_status(False)
+        self.edit.emit()
 
     def config_reset(self):
         self._config_reset_handler()
 
 
-class LogTBDG:
-    def __init__(self, parent, rt, cfg):
+class LogTBDG(QObject):
+    def __init__(self, tab, rt, cfg):
         """
         Class for the Log page of the RenderFarming Dialog
-        :param parent: the renderFarming Dialog
+        :param tab: the renderFarming Dialog
         :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
-        self._parent = parent
+        super(LogTBDG, self).__init__()
+        self._tab = tab
 
         # Variables
 
@@ -911,13 +935,13 @@ class LogTBDG:
         #                 Button Definitions
         # ---------------------------------------------------
 
-        self._lg_open_explorer_btn = self._parent.findChild(QtW.QPushButton, 'lg_open_explorer_btn')
+        self._lg_open_explorer_btn = self._tab.findChild(QtW.QPushButton, 'lg_open_explorer_btn')
 
         # ---------------------------------------------------
         #             Plain Text Edit Definitions
         # ---------------------------------------------------
 
-        self._lg_text_pte = self._parent.findChild(QtW.QPlainTextEdit, 'lg_text_pte')
+        self._lg_text_pte = self._tab.findChild(QtW.QPlainTextEdit, 'lg_text_pte')
 
         # ---------------------------------------------------
         #               Function Connections
