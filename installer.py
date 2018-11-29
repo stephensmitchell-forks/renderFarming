@@ -821,8 +821,11 @@ class RenderFarmingInstaller(QThread):
         # Infinite loop prevention
         max_depth = 130
         if depth >= max_depth:
-            raise RuntimeError("{} {}".format("The folder creation recursion depth has exceeded the limit.",
-                                              "This is Fatal and the installer cannot continue."))
+            raise RuntimeError("{}\n{}\n{}\n{}".format("The folder creation recursion depth has exceeded the limit.",
+                                                       "This is Fatal and the installer cannot continue.",
+                                                       "Current Folder: {}".format(directory),
+                                                       "Original Folder: {}".format(original)
+                                                       ))
         # If the directory exists, do nothing.
         if not os.path.isdir(directory):
             parent = os.path.split(directory)[0]
