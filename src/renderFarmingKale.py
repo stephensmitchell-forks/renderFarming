@@ -86,81 +86,81 @@ class Kale:
 
     def _global_switches(self):
         if self._vr.options_dontRenderImage:
-            self.append_item(KaleItem("options_render_final_image",
+            self.append_item(KaleItem("Don't Render Final Image",
                                       "Don't Render Final Image is enabled", "Settings", 2))
         if not self._vr.options_reflectionRefraction:
-            self.append_item(KaleItem("options_reflection_refraction",
+            self.append_item(KaleItem("Reflection and Refraction Disabled",
                                       "Reflections and refractions are globally disabled", "Settings", 1))
         if self._vr.options_defaultLights is 1:
-            self.append_item(KaleItem("options_default_lights",
+            self.append_item(KaleItem("Default Lights Enabled",
                                       "Default lights are enabled", "Settings", 1))
         if not self._vr.options_lights:
-            self.append_item(KaleItem("options_lights",
+            self.append_item(KaleItem("Lights Disabled",
                                       "Lights are globally disabled", "Settings", 1))
         if not self._vr.options_shadows:
-            self.append_item(KaleItem("options_shadows",
+            self.append_item(KaleItem("Shadows Disabled",
                                       "Shadows are globally disabled", "Settings", 1))
         if not self._vr.options_glossyEffects:
-            self.append_item(KaleItem("options_glossy_effects",
+            self.append_item(KaleItem("Glossy Effects Disabled",
                                       "Glossy Effects are globally disabled", "Settings", 1))
         if not self._vr.options_maps:
-            self.append_item(KaleItem("options_maps",
+            self.append_item(KaleItem("Maps Disabled",
                                       "Maps are globally disabled", "Settings", 1))
         if self._vr.options_overrideMtl_on:
-            self.append_item(KaleItem("options_override_material",
+            self.append_item(KaleItem("Override Material",
                                       "An Override Material is enabled", "Settings", 1))
         if self._vr.options_hiddenLights:
-            self.append_item(KaleItem("options_hidden_lights",
+            self.append_item(KaleItem("Hidden Lights",
                                       "Hidden lights are enabled", "Settings", 0))
 
     def _image_sampler(self):
         if self._vr.imageSampler_renderMask_type == 1:
-            self.append_item(KaleItem("texture_render_mask",
+            self.append_item(KaleItem("Texture Render Mask",
                                       "A texture render mask is enabled", "Settings", 1))
             if self._vr.imageSampler_renderMask_texmap is None:
-                self.append_item(KaleItem("missing_texture_render_mask",
+                self.append_item(KaleItem("Texture Render Mask Missing",
                                           "A texture render mask is enabled, but there is no texture specified",
                                           "Settings", 3))
         elif self._vr.imageSampler_renderMask_type == 2:
-            self.append_item(KaleItem("selection_render_mask",
+            self.append_item(KaleItem("Selection Render Mask",
                                       "A selection render mask is enabled.  This CANNOT be rendered using Backburner",
                                       "Settings", 3))
         elif self._vr.imageSampler_renderMask_type == 3:
-            self.append_item(KaleItem("include_exclude_render_mask",
+            self.append_item(KaleItem("Include/Exclude Render Mask",
                                       "An include/exclude list render mask is enabled", "Settings", 1))
         elif self._vr.imageSampler_renderMask_type == 4:
-            self.append_item(KaleItem("layers_render_mask",
+            self.append_item(KaleItem("Layer Render Mask",
                                       "A layers render mask is enabled", "Settings", 1))
             if self._vr.imageSampler_renderMask_layers.count == 0:
-                self.append_item(KaleItem("missing_layer_render_mask",
+                self.append_item(KaleItem("Layer Render Mask Missing",
                                           "A layer render mask is enabled, but there are no layers specified",
                                           "Settings", 3))
         elif self._vr.imageSampler_renderMask_type == 4:
-            self.append_item(KaleItem("obj_id_render_mask",
+            self.append_item(KaleItem("Object ID Render Mask",
                                       "An Object ID render mask is enabled", "Settings", 1))
             if self._vr.imageSampler_renderMask_objectIDs == '':
-                self.append_item(KaleItem("missing_onj_id_render_mask",
+                self.append_item(KaleItem("Object ID Render Mask Missing",
                                           "An object ID render mask is enabled, but there are no object IDs specified",
                                           "Settings", 3))
 
     def _environment_overrides(self):
         if self._vr.environment_gi_on:
-            self.append_item(KaleItem("environment_gi_on",
+            self.append_item(KaleItem("Global Illumination Override",
                                       "A GI environment override is enabled", "Settings", 1))
 
         if self._vr.environment_rr_on:
-            self.append_item(KaleItem("environment_reflection_refraction_on",
+            self.append_item(KaleItem("Reflection Override",
                                       "A reflection/refraction environment override is enabled", "Settings", 1))
 
         if self._vr.environment_refract_on:
-            self.append_item(KaleItem("environment_refraction_on",
+            self.append_item(KaleItem("Refraction Override",
                                       "A refraction environment override is enabled", "Settings", 1))
 
         if self._vr.environment_secondaryMatte_on:
-            self.append_item(KaleItem("environment_secondary_matte_on",
+            self.append_item(KaleItem("Secondary Matte Override",
                                       "A secondary matte environment override is enabled", "Settings", 1))
         if not self._rt.useEnvironmentMap:
-            self.append_item(KaleItem("environment_use_map",
+            self.append_item(KaleItem("No Environment Map",
                                       "Environment is not using a map", "Scene", 1))
 
     def _atmosphere_effects(self):
@@ -183,60 +183,60 @@ class Kale:
                         vray_env_fog_active = True
 
             if num_active > 1:
-                self.append_item(KaleItem("atmospheres_multiple_active",
+                self.append_item(KaleItem("Multiple Atmospheres Active",
                                           "More than one atmosphere is active in the scene", "Scene", 2))
             if vray_toon_active:
-                self.append_item(KaleItem("atmospheres_vray_toon",
+                self.append_item(KaleItem("V-Ray Toon",
                                           "A VRay toon effect is active in the scene", "Scene", 2))
             if vray_env_fog_active:
-                self.append_item(KaleItem("atmospheres_vray_toon",
+                self.append_item(KaleItem("Environment Fog",
                                           "A VRay environment fog effect is active in the scene", "Scene", 2))
 
     def _frame_buffer_effects(self):
         if self._rt.vrayVFBGetRegionEnabled():
-            self.append_item(KaleItem("vfb_region_rendering",
+            self.append_item(KaleItem("Region Render",
                                       "Region rendering is enabled", "VFB", 3))
         if self._rt.vfbControl(self._rt.name("exposure"))[0]:
-            self.append_item(KaleItem("vfb_exposure",
+            self.append_item(KaleItem("VFB Exposure",
                                       "The exposure adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("whitebalance"))[0]:
-            self.append_item(KaleItem("vfb_white_balance",
+            self.append_item(KaleItem("VFB WB",
                                       "The white balance adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("huesat"))[0]:
-            self.append_item(KaleItem("vfb_hue_and_saturation",
+            self.append_item(KaleItem("VFB HSL",
                                       "The hue and saturation adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("colorbalance"))[0]:
-            self.append_item(KaleItem("vfb_color_balance",
+            self.append_item(KaleItem("VFB Color Balance",
                                       "The color balance adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("levels"))[0]:
-            self.append_item(KaleItem("vfb_levels",
+            self.append_item(KaleItem("VFB Levels",
                                       "The levels adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("curve"))[0]:
-            self.append_item(KaleItem("vfb_curve",
+            self.append_item(KaleItem("VFB Curve",
                                       "The curve adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("lut"))[0]:
-            self.append_item(KaleItem("vfb_look_up_table",
+            self.append_item(KaleItem("VFB Look Up Table",
                                       "The look up table adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("ocio"))[0]:
-            self.append_item(KaleItem("vfb_ocio",
+            self.append_item(KaleItem("BFB OCIO",
                                       "The OpenColorIO adjustment is enabled", "VFB", 2))
         if self._rt.vfbControl(self._rt.name("icc"))[0]:
-            self.append_item(KaleItem("vfb_icc",
+            self.append_item(KaleItem("VFB ICC",
                                       "An ICC profile adjustment is enabled", "VFB", 2))
         if not self._rt.vfbControl(self._rt.name("srgb"))[0]:
-            self.append_item(KaleItem("vfb_srgb",
+            self.append_item(KaleItem("VFB is not sRGB",
                                       "The VFB is not displaying in sRGB space", "VFB", 1))
         if self._rt.vfbControl(self._rt.name("bkgr"))[0]:
-            self.append_item(KaleItem("vfb_background",
+            self.append_item(KaleItem("VFB Background",
                                       "A background image is applied", "VFB", 3))
         if self._rt.vfbControl(self._rt.name("stamp"))[0]:
-            self.append_item(KaleItem("vfb_stamp",
+            self.append_item(KaleItem("VFB Stamp",
                                       "A stamp is enabled", "VFB", 1))
         if self._rt.vfbControl(self._rt.name("bloom"))[0]:
-            self.append_item(KaleItem("vfb_bloom",
+            self.append_item(KaleItem("VFB Bloom",
                                       "The bloom effect is enabled", "VFB", 1))
         if self._rt.vfbControl(self._rt.name("glare"))[0]:
-            self.append_item(KaleItem("vfb_glare",
+            self.append_item(KaleItem("VFB Glare",
                                       "The glare effect is enabled", "VFB", 1))
 
     def _render_passes(self):
@@ -245,26 +245,29 @@ class Kale:
     def _camera_check(self):
         cam = self._rt.getActiveCamera()
         if cam is None:
-            self.append_item(KaleItem("active_camera_is_viewport",
+            self.append_item(KaleItem("Active Camera is Viewport",
                                       "The active camera is assigned to a viewport camera", "Camera", 1))
+        elif self._rt.classOf(cam) != self._rt.Physical:
+            self.append_item(KaleItem("Camera is not Physical",
+                                      "The active camera is not a Max Physical Camera", "Camera", 1))
         else:
             exp = cam.exposure_value
             if exp < 10:
-                self.append_item(KaleItem("camera_exposure_high",
+                self.append_item(KaleItem("Camera Exposure too High",
                                           "The active camera's exposure target ({}) is very high".format(exp),
                                           "Camera",
                                           1))
             elif exp > 18:
-                self.append_item(KaleItem("camera_exposure_low",
+                self.append_item(KaleItem("Camera Exposure too Low",
                                           "The active camera's exposure target ({}) is very low".format(exp),
                                           "Camera",
                                           1))
 
             if cam.motion_blur_enabled:
-                self.append_item(KaleItem("camera_motion_blur",
+                self.append_item(KaleItem("Camera Motion Blur",
                                           "The active camera has motion blur enabled", "Camera", 2))
             if cam.use_dof:
-                self.append_item(KaleItem("camera_depth_of_field",
+                self.append_item(KaleItem("Camera Depth of Field",
                                           "The active camera has depth of field enabled", "Camera", 2))
 
 
