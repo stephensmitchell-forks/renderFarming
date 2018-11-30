@@ -46,10 +46,10 @@ def rf_open():
     # noinspection PyBroadException
     try:
         # noinspection PyUnboundLocalVariable,PyUnresolvedReferences
-        ui.close()
+        rf_ui.close()
     except NameError:
         pass
 
     app = MaxPlus.GetQMaxMainWindow()
-    ui = rFUI.RenderFarmingUI(uif, rt, app)
-    ui.show()
+    rf_ui = rFUI.RenderFarmingUI(uif, rt, app)
+    rf_ui.show()
