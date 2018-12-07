@@ -22,6 +22,7 @@ Sub-Modules:
     - Arugula: Render Settings Handler
 
 External Dependencies:
+    - 3ds Max 2018 (2019 may work?)
     - PyMXS
     - MaxPlus
     - PySide2
