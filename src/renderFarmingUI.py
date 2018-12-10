@@ -80,7 +80,7 @@ class RenderFarmingUI(QtW.QDialog):
         ui_file.open(QFile.ReadOnly)
 
         loader = QUiLoader()
-        loader.registerCustomWidget(rFQtW.QMaxRollup)
+        loader.registerCustomWidget(rFQtW.QMaxRollout)
         self._tabbed_widget = loader.load(ui_file)
 
         ui_file.close()
@@ -525,7 +525,7 @@ class SpinachTBDG(QObject):
         #             Layout Element Definitions
         # ---------------------------------------------------
 
-        self._sp_settings_gb = self._tab.findChild(rFQtW.QMaxRollup, 'sp_settings_gb')
+        self._sp_settings_mro = self._tab.findChild(rFQtW.QMaxRollout, 'sp_settings_mro')
 
         # ---------------------------------------------------
         #               Combo Box Connections
@@ -609,12 +609,12 @@ class SpinachTBDG(QObject):
         Hides settings section
         :return:
         """
-        self._sp_settings_gb.toggle()
+        self._sp_settings_mro.toggle()
         self._settings_visible = not self._settings_visible
 
     def _sp_settings_hide_initializer(self):
         if not self._settings_visible:
-            self._sp_settings_gb.setExpanded(False)
+            self._sp_settings_mro.setExpanded(False)
 
     def _backburner_submit_handler(self):
         """
