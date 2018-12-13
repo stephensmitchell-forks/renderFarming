@@ -19,7 +19,7 @@ import MaxPlus
 from PySide2.QtUiTools import QUiLoader
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QColor
 import PySide2.QtWidgets as QtW
-from PySide2.QtCore import QObject, QFile, QTimer, QSortFilterProxyModel, Signal
+from PySide2.QtCore import QObject, QFile, QTimer, QSortFilterProxyModel, Signal, Slot
 
 
 class RenderFarmingUI(QtW.QDialog):
@@ -140,8 +140,6 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
         #               Final Initializing
         # ---------------------------------------------------
-
-        self._spinach_tbdg.set_spinach_status(self._spinach_tbdg.get_status_message())
 
         self.config_setup_all()
 
@@ -547,6 +545,8 @@ class SpinachTBDG(QObject):
         self._sp_man_beauty_btn.clicked.connect(self._sp_man_beauty_btn_handler)
         self._sp_backburner_submit_btn.clicked.connect(self._backburner_submit_handler)
 
+        self._sp_settings_mro.toggled.connect(self._sp_settings_toggled)
+
         self._sp_vfb_type_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
         self._sp_img_filt_ovr_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
         self._sp_frm_subFolder_le.editingFinished.connect(self._sp_settings_change_handler)
@@ -558,8 +558,16 @@ class SpinachTBDG(QObject):
         self._sp_sub_fold_name_gi_ckbx.stateChanged.connect(self._sp_settings_change_handler)
         self._sp_run_kale_ckbx.stateChanged.connect(self._sp_settings_change_handler)
 
+        self._spinach.status_update.connect(self._spinach_status_handler)
+        self._spinach.not_ready.connect(self._spinach_not_ready_handler)
+
+        # ---------------------------------------------------
+        #                       Setup
+        # ---------------------------------------------------
+        self.spinach_page_setup()
+
     # ---------------------------------------------------
-    #                  Setup Function
+    #                 Config Functions
     # ---------------------------------------------------
 
     def spinach_page_setup(self):
@@ -604,17 +612,8 @@ class SpinachTBDG(QObject):
     #                  Handler Functions
     # ---------------------------------------------------
 
-    def _sp_settings_hide_handler(self):
-        """
-        Hides settings section
-        :return:
-        """
-        self._sp_settings_mro.toggle()
-        self._settings_visible = not self._settings_visible
-
     def _sp_settings_hide_initializer(self):
-        if not self._settings_visible:
-            self._sp_settings_mro.setExpanded(False)
+        self._sp_settings_mro.setDelayedExpanded(self._settings_visible)
 
     def _backburner_submit_handler(self):
         """
@@ -637,7 +636,6 @@ class SpinachTBDG(QObject):
                 flg.warning("SATS Dialog cancelled, interrupting prepass")
                 return
         self._spinach.check_camera()
-        self.set_spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             flg.debug("Spinach reports not ready, attempting to prepare the Job")
             self._spinach.prepare_job()
@@ -646,7 +644,6 @@ class SpinachTBDG(QObject):
             flg.debug("Spinach reports ready, preparing the pass")
             self._spinach.prepare_prepass(self._sp_gi_mode_cmbx.get_prepass_mode())
 
-        self.set_spinach_status(self._spinach.get_status_message())
         self._match_prefix()
 
     def _sp_man_beauty_btn_handler(self):
@@ -662,7 +659,6 @@ class SpinachTBDG(QObject):
                 flg.warning("SATS Dialog cancelled, interrupting beauty pass")
                 return
         self._spinach.check_camera()
-        self.set_spinach_status(self._spinach.get_status_message())
         if not self._spinach.get_ready_status():
             flg.debug("Spinach reports not ready, attempting to prepare the Job")
             self._spinach.prepare_job()
@@ -671,7 +667,6 @@ class SpinachTBDG(QObject):
             flg.debug("Spinach reports ready, preparing the pass")
             self._spinach.prepare_beauty_pass(self._sp_gi_mode_cmbx.get_beauty_mode())
 
-        self.set_spinach_status(self._spinach.get_status_message())
         self._match_prefix()
 
     def _sp_gi_mode_cmbx_handler(self):
@@ -691,7 +686,6 @@ class SpinachTBDG(QObject):
         :return:
         """
         self._spinach.reset_renderer()
-        self.set_spinach_status(self._spinach.get_status_message())
 
     def _sp_settings_change_handler(self):
         """
@@ -705,6 +699,9 @@ class SpinachTBDG(QObject):
         self._spinach.set_multi_frame_increment(self._sp_multi_frame_increment_sb.value())
         self._spinach.set_pad_gi(self._sp_pad_gi_range_ckbx.isChecked())
         self._spinach.set_sub_folder_as_gi_name(self._sp_sub_fold_name_gi_ckbx.isChecked())
+
+    def _sp_settings_toggled(self, state):
+        self._settings_visible = state
 
     # ---------------------------------------------------
     #                Checker Functions
@@ -728,7 +725,7 @@ class SpinachTBDG(QObject):
         Gets the current status message
         :return:
         """
-        self._spinach.get_status_message()
+        self._spinach_status_lb.text()
 
     def get_ready_status(self):
         return self._spinach.get_ready_status()
@@ -738,7 +735,16 @@ class SpinachTBDG(QObject):
     # ---------------------------------------------------
 
     def set_spinach_status(self, text):
+        self._clg.debug("Spinach status set to {}".format(text))
         self._spinach_status_lb.setText("Status: {}".format(text))
+
+    @Slot(str)
+    def _spinach_status_handler(self, message):
+        self.set_spinach_status(message)
+
+    def _spinach_not_ready_handler(self):
+        nr = rFT.html_color_text("Not Ready:", "Orange")
+        self.set_spinach_status("{} {}".format(nr, self._spinach_status_lb.text()))
 
     def set_nth_frame(self, nth_frame):
         self._spinach.set_nth_frame(nth_frame)

@@ -2,7 +2,7 @@ import logging
 import renderFarmingTools as rFT
 
 
-class Kale:
+class Kale(object):
     def __init__(self, rt, cfg):
         self._clg = logging.getLogger("renderFarming.Kale")
 

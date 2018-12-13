@@ -3,10 +3,15 @@ import renderFarmingTools as rFT
 import renderFarmingNetRender as rFNR
 import os
 import logging
+from PySide2.QtCore import QObject, Signal
 
 
-class SpinachJob:
+class SpinachJob(QObject):
+    status_update = Signal(str)
+    not_ready = Signal()
+
     def __init__(self, rt, cfg):
+        super(SpinachJob, self).__init__()
         # Logging
         self._clg = logging.getLogger("renderFarming.Spinach")
         self._clg.debug("Running Spinach")
@@ -36,8 +41,6 @@ class SpinachJob:
 
         self._ready = False
 
-        self._status_message = "Initialized"
-        self._log_status(self._clg)
         self._rsd_state = False
 
         # HTML Message macros
@@ -65,15 +68,6 @@ class SpinachJob:
         #                                          self._cfg.get_project_code())
         # self._orig_settings.capture_rps()
 
-    def _log_status(self, handler=logging.getLogger("renderFarming.Spinach")):
-        """
-        Logs the current program status to the debug level
-        :param handler: The logging handler
-        :return: None
-        """
-        flg = handler
-        flg.debug("Spinach Status: {}".format(self._status_message))
-
     def _verify_paths(self, *args):
         """
         A wrapper for verify_dir() in the render Farming Tools
@@ -86,7 +80,7 @@ class SpinachJob:
             # If any of the paths can't be found or made, returns false
             if not rFT.verify_dir(p):
                 flg.error("Path Error: {} does not resolve and cannot be created".format(p))
-                self._status_message = "{} One or more paths are invalid".format(self._rd_er_tx)
+                self.status_update.emit("{} One or more paths are invalid".format(self._rd_er_tx))
                 return False
         return True
 
@@ -140,8 +134,7 @@ class SpinachJob:
             self._ir_file = folder + "\\{0}_frame_.vrmap".format(sub_fold)
         else:
             # Displays an error message and returns
-            self._status_message = "Unable to find or create path for animation prepass rendering"
-            self._log_status(self._clg)
+            self.status_update.emit("Unable to find or create path for animation prepass rendering")
             self._ready = False
             return
 
@@ -352,7 +345,7 @@ class SpinachJob:
 
         if not renderer:
             flg.error("Cannot set renderer to VRay")
-            self._status_message = "{} Cannot set renderer to VRay".format(self._rd_er_tx)
+            self.status_update.emit("{} Cannot set renderer to VRay".format(self._rd_er_tx))
             return False
         else:
             self._vr = renderer
@@ -564,7 +557,7 @@ class SpinachJob:
             return
 
         # Prints a message
-        self._status_message = self._grn_rdy_tx
+        self.status_update.emit(self._grn_rdy_tx)
         self._ready = True
 
     def single_frame_prepass(self):
@@ -598,13 +591,12 @@ class SpinachJob:
 
         if render_type in (1, 3, 5, 7, 8, 9):
             flg.error("Attempting to render a beauty pass as a prepass")
-            self._status_message = "{} Attempting to render a beauty pass as a prepass".format(self._rd_er_tx)
+            self.status_update.emit("{} Attempting to render a beauty pass as a prepass".format(self._rd_er_tx))
             return
 
         if not self._ready:
             flg.info("Spinach reports not ready, job submission cannot continue")
-            nr = rFT.html_color_text("Not Ready:", "Orange")
-            self._status_message = "{0}: {1}".format(nr, self._status_message)
+            self.not_ready.emit()
             return
 
         # if is an Animation Prepass Irradiance Map, Light Cache, the ir path must be changed
@@ -624,9 +616,7 @@ class SpinachJob:
         flg.debug("Overriding Image Filter")
         self._override_image_filter()
 
-        self._status_message = "{0} - {1}".format(self._grn_rdy_tx,
-                                                  self._gi_type_status_msg(render_type))
-        self._log_status(flg)
+        self.status_update.emit("{0} - {1}".format(self._grn_rdy_tx, self._gi_type_status_msg(render_type)))
 
         flg.debug("Setting Output")
         self._set_output(self._frame_buffer_type, False)
@@ -652,13 +642,12 @@ class SpinachJob:
 
         if not self._ready:
             flg.info("Spinach reports not ready, job submission cannot continue")
-            self._status_message = "{0}: {1}".format(self._org_n_rdy_tx, self._status_message)
+            self.status_update.emit("{0}: Spinach Reports Not Ready".format(self._org_n_rdy_tx))
             return
 
         if render_type in (0, 2, 4, 6):
             flg.error("Attempting to render a prepass as a beauty pass")
-            nr = rFT.html_color_text("Not Ready:", "Orange")
-            self._status_message = "{} Attempting to render a prepass as a beauty pass".format(nr)
+            self.not_ready.emit()
             return
 
             # if is an Animation Prepass Irradiance Map, Light Cache, the ir path must be changed
@@ -682,8 +671,7 @@ class SpinachJob:
         self._override_image_filter()
 
         flg.debug("File Ready for Final Render")
-        self._status_message = "{0} - Beauty - {1}".format(self._grn_rdy_tx,
-                                                           self._gi_type_status_msg(render_type))
+        self.status_update.emit("{0} - Beauty - {1}".format(self._grn_rdy_tx, self._gi_type_status_msg(render_type)))
 
         self.rsd_toggle(True)
 
@@ -744,7 +732,7 @@ class SpinachJob:
             return None
 
         self._verify_vray()
-        self._status_message = "VRay has been reset"
+        self.status_update.emit("VRay has been reset")
         self.rsd_toggle(True)
 
     # noinspection PyMethodMayBeStatic
@@ -771,7 +759,7 @@ class SpinachJob:
         cam = self._rt.getActiveCamera()
         if cam is None:
             flg.warning("Active view is not a valid camera")
-            self._status_message = "{} Active view is not a valid camera".format(self._rd_er_tx)
+            self.status_update.emit("{} Active view is not a valid camera".format(self._rd_er_tx))
         else:
             flg.debug("Active camera selected: {}".format(cam.name))
         return cam
@@ -782,9 +770,6 @@ class SpinachJob:
         :return: Boolean: Status
         """
         return self._ready
-
-    def get_status_message(self):
-        return self._status_message
 
     # ---------------------------------------------------
     #                       Setters

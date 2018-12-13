@@ -1,6 +1,6 @@
 import PySide2.QtWidgets as QtW
 import PySide2.QtGui as QtG
-from PySide2.QtCore import Signal, Qt, QRect, QMargins, QPointF
+from PySide2.QtCore import Signal, Qt, QRect, QMargins, QPointF, QSize
 
 import math
 
@@ -8,10 +8,12 @@ import math
 class QMaxRollout(QtW.QWidget):
     collapsed = Signal()
     expanded = Signal()
+    toggled = Signal(bool)
 
     def __init__(self, *args):
         super(QMaxRollout, self).__init__(*args)
         self._expanded = True
+        self._delayed = False, False
 
         self.setSizePolicy(QtW.QSizePolicy(QtW.QSizePolicy.MinimumExpanding, QtW.QSizePolicy.Minimum))
 
@@ -30,6 +32,13 @@ class QMaxRollout(QtW.QWidget):
 
     # noinspection PyPep8Naming
     def setExpanded(self, state):
+        self._expand_collapse(state)
+
+    # noinspection PyPep8Naming
+    def setDelayedExpanded(self, state):
+        self._delayed = True, state
+
+    def _expand_collapse(self, state):
         self._expanded = state
 
         children = self.children()
@@ -45,6 +54,8 @@ class QMaxRollout(QtW.QWidget):
         else:
             self.collapsed.emit()
 
+        self.update()
+
     # noinspection PyPep8Naming
     def isExpanded(self):
         return self._expanded
@@ -57,8 +68,8 @@ class QMaxRollout(QtW.QWidget):
         self._full_title = title
 
     def toggle(self):
-        self.setExpanded(not self._expanded)
-        self.update()
+        self._expand_collapse(not self._expanded)
+        self.toggled.emit(self._expanded)
 
     # ---------------------------------------------------
     #                    Events
@@ -68,14 +79,24 @@ class QMaxRollout(QtW.QWidget):
         point = (e.localPos()).toPoint()
         if self._header_rect.contains(point):
             self.toggle()
+            e.accept()
+        else:
+            e.ignore()
 
     def paintEvent(self, e):
+        # If delayed expand/collapse is activated, it won't process until the next paint event
+        if self._delayed[0]:
+            self._expand_collapse(self._delayed[1])
+            self._delayed = False, False
+
+        # Object Repaint
         qp = QtG.QPainter()
         qp.begin(self)
         self._system_font = qp.font()
         self._recalculate_header()
         self._draw_widget(qp)
         qp.end()
+        e.accept()
 
     # ---------------------------------------------------
     #               Paint Event Helpers
@@ -264,9 +285,13 @@ def chop_title(title, title_space, title_width):
 
 
 def layout_collapse_and_restore(layout, state):
+    for child in layout.children():
+        layout_collapse_and_restore(child, state)
+
     if hasattr(layout, "setContentsMargins"):
         if state:
             prop = layout.property("OldContentsMargins")
+
             if prop is not None:
                 layout.setContentsMargins(QMargins(prop))
             else:
@@ -274,6 +299,7 @@ def layout_collapse_and_restore(layout, state):
         else:
             layout.setProperty("OldContentsMargins", layout.contentsMargins())
             layout.setContentsMargins(QMargins(0, 0, 0, 0))
+
     if hasattr(layout, "setSpacing"):
         if state:
             prop = layout.property("OldSpacing")
@@ -284,28 +310,9 @@ def layout_collapse_and_restore(layout, state):
         else:
             layout.setProperty("OldSpacing", layout.spacing())
             layout.setSpacing(0)
-    if hasattr(layout, "setVerticalSpacing"):
-        if state:
-            prop = layout.property("OldVerticalSpacing")
-            if prop is not None:
-                layout.setVerticalSpacing(prop)
-            else:
-                layout.setVerticalSpacing(0)
-        else:
-            layout.setProperty("OldVerticalSpacing", layout.verticalSpacing())
-            layout.setVerticalSpacing(0)
-    if hasattr(layout, "setHorizontalSpacing"):
-        if state:
-            prop = layout.property("OldHorizontalSpacing")
-            if prop is not None:
-                layout.setHorizontalSpacing(prop)
-            else:
-                layout.setHorizontalSpacing(0)
-        else:
-            layout.setProperty("OldHorizontalSpacing", layout.horizontalSpacing())
-            layout.setHorizontalSpacing(0)
-    for child in layout.children():
-        layout_collapse_and_restore(child, state)
+
+    if hasattr(layout, "invalidate"):
+        layout.invalidate()
 
 
 # class Window(QtW.QDialog):

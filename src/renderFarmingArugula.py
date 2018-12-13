@@ -1,5 +1,7 @@
 import os
 import logging
+import pymxs
+import MaxPlus
 
 import renderFarmingTools as rFT
 
@@ -165,14 +167,50 @@ class ArugulaJob:
                 flg.error("Error, Failed to load Render Presets: {0}, file: {1}".format(e, self._path))
 
 
-class ArugulaSetting:
+class ArugulaSetting(object):
+    _roots = {
+        "rt": pymxs.runtime,
+        "mp": MaxPlus
+    }
+
     def __init__(self, address, value):
-        self._set_add = address
+        self._address = address
+        self._attr_name = str()
+        self._attr_parent = object()
+
         self._value = value
         self._type = type(value)
 
+        self._address_to_object()
+
+    def _address_to_object(self):
+        if len(self._address) > 0:
+            ad_ls = self._address.split('.')
+            if len(ad_ls) > 1:
+                self._attr_name = ad_ls.pop()
+                root = self._roots.get(ad_ls[0], None)
+                if root is not None:
+                    segments = ad_ls[1:]
+                    if len(segments) > 0:
+                        for at in ad_ls[1:]:
+                            if hasattr(root, at):
+                                root = getattr(root, at)
+                            else:
+                                raise ArugulaInvalidAddressSegmentError(at, self._address, self._value)
+
+                    self._attr_parent = root
+
+                    if not hasattr(self._attr_parent, self._attr_name):
+                        raise ArugulaInvalidAttributeError(self._attr_name, self._address, self._value)
+                else:
+                    raise ArugulaInvalidAddressRootError(root, self._address, self._value)
+            else:
+                raise ArugulaInvalidAddressError(self._address, self._value)
+        else:
+            raise ArugulaEmptyAddressError(self._value)
+
     def get_address(self):
-        return self._set_add
+        return self._address
 
     def get_type(self):
         return self._type
@@ -180,13 +218,91 @@ class ArugulaSetting:
     def get_value(self):
         return self._value
 
-    def apply(self, runtime):
-        return
+    def apply(self):
+        setattr(self._attr_parent, self._attr_name, self._value)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "{}: {}, of type: {}".format(self._attr_name, self._value, self._type)
 
 
 class ArugulaFunctionSetting(ArugulaSetting):
-    def __init__(self, address, value):
-        super(ArugulaFunctionSetting, self).__init__(address, value)
+    def __init__(self, attribute_name, value):
+        super(ArugulaFunctionSetting, self).__init__(attribute_name, value)
 
-    def apply(self, runtime):
-        return
+    def apply(self):
+        func = getattr(self._attr_parent, self._attr_name)
+        func(self._value)
+
+
+class ArugulaEmptyAddressError(Exception):
+    """
+    Exception raised for errors in the Manifest List.
+    :attribute message: explanation of the error
+    """
+
+    def __init__(self, value):
+        self.message = "Address is empty. Value:\"{}\"".format(value)
+
+    def __str__(self):
+        return str(self.message)
+
+
+class ArugulaInvalidAddressError(Exception):
+    """
+    Exception raised for errors in the Manifest List.
+    :attribute message: explanation of the error
+    """
+
+    def __init__(self, address, value):
+        self.message = "Address: \"{}\" is invalid. Value: \"{}\"".format(address, value)
+
+    def __str__(self):
+        return str(self.message)
+
+
+class ArugulaInvalidAddressRootError(Exception):
+    """
+    Exception raised for an invalid root.
+    :attribute message: explanation of the error
+    """
+
+    def __init__(self, root, address, value):
+        self.message = "The root ({}) of Address: \"{}\" is invalid. Value: \"{}\"".format(
+            root, address, value
+        )
+
+    def __str__(self):
+        return str(self.message)
+
+
+class ArugulaInvalidAddressSegmentError(Exception):
+    """
+    Exception raised for an invalid segment of the address.
+    :attribute message: explanation of the error
+    """
+
+    def __init__(self, segment, address, value):
+        self.message = "The address segment ({}) of Address: \"{}\" is invalid. Value: \"{}\"".format(
+            segment, address, value
+        )
+
+    def __str__(self):
+        return str(self.message)
+
+
+class ArugulaInvalidAttributeError(Exception):
+    """
+    Exception raised for an invalid attribute.
+    :attribute message: explanation of the error
+    """
+
+    def __init__(self, segment, address, value):
+        self.message = "The attribute ({}) of Address: \"{}\" is invalid. Value: \"{}\"".format(
+            segment, address, value
+        )
+
+    def __str__(self):
+        return str(self.message)
