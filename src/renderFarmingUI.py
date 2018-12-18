@@ -152,6 +152,7 @@ class RenderFarmingUI(QtW.QDialog):
 
     def config_setup_all(self):
         self._config_tbdg.config_page_setup()
+        self._config_tbdg.config_page_ui_setup()
         self._spinach_tbdg.spinach_page_setup()
 
     def config_apply_all(self, save_file=True):
@@ -547,16 +548,28 @@ class SpinachTBDG(QObject):
 
         self._sp_settings_mro.toggled.connect(self._sp_settings_toggled)
 
-        self._sp_vfb_type_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
-        self._sp_img_filt_ovr_cmbx.cmbx.activated.connect(self._sp_settings_change_handler)
-        self._sp_frm_subFolder_le.editingFinished.connect(self._sp_settings_change_handler)
-        self._sp_multi_frame_increment_sb.valueChanged.connect(self._sp_settings_change_handler)
+        self._sp_vfb_type_cmbx.cmbx.activated.connect(
+            lambda: self._spinach.set_frame_buffer_type(self._sp_vfb_type_cmbx.get_index())
+        )
+        self._sp_img_filt_ovr_cmbx.cmbx.activated.connect(
+            lambda: self._spinach.set_image_filter_override(self._sp_img_filt_ovr_cmbx.get_index())
+        )
+        self._sp_frm_subFolder_le.editingFinished.connect(
+            lambda: self._spinach.set_frames_sub_folder(self._sp_frm_subFolder_le.text())
+        )
+        self._sp_multi_frame_increment_sb.valueChanged.connect(
+            lambda: self._spinach.set_multi_frame_increment(self._sp_multi_frame_increment_sb.value())
+        )
+        self._sp_pad_gi_range_ckbx.stateChanged.connect(
+            lambda: self._spinach.set_pad_gi(self._sp_pad_gi_range_ckbx.isChecked())
+        )
+        self._sp_sub_fold_name_gi_ckbx.stateChanged.connect(
+            lambda: self._spinach.set_sub_folder_as_gi_name(self._sp_sub_fold_name_gi_ckbx.isChecked())
+        )
 
-        self._sp_reset_btn.clicked.connect(self._spinach_reset_handler)
+        self._sp_reset_btn.clicked.connect(self._sp_reset_handler)
 
-        self._sp_pad_gi_range_ckbx.stateChanged.connect(self._sp_settings_change_handler)
-        self._sp_sub_fold_name_gi_ckbx.stateChanged.connect(self._sp_settings_change_handler)
-        self._sp_run_kale_ckbx.stateChanged.connect(self._sp_settings_change_handler)
+        # self._sp_run_kale_ckbx.stateChanged.connect(self._sp_settings_change_handler)
 
         self._spinach.status_update.connect(self._spinach_status_handler)
         self._spinach.not_ready.connect(self._spinach_not_ready_handler)
@@ -589,7 +602,7 @@ class SpinachTBDG(QObject):
 
         self._settings_visible = self._cfg.get_interface_setting("sp_settings_bool", 3)
 
-        self._sp_settings_change_handler()
+        self._sp_apply_initial_settings()
         self._sp_settings_hide_initializer()
 
     def config_apply_spinach_page(self):
@@ -613,7 +626,7 @@ class SpinachTBDG(QObject):
     # ---------------------------------------------------
 
     def _sp_settings_hide_initializer(self):
-        self._sp_settings_mro.setDelayedExpanded(self._settings_visible)
+        self._sp_settings_mro.setExpandedDelay(self._settings_visible)
 
     def _backburner_submit_handler(self):
         """
@@ -680,16 +693,16 @@ class SpinachTBDG(QObject):
         else:
             self._sp_man_prepass_btn.setEnabled(True)
 
-    def _spinach_reset_handler(self):
+    def _sp_reset_handler(self):
         """
         Handler for reset button
         :return:
         """
         self._spinach.reset_renderer()
 
-    def _sp_settings_change_handler(self):
+    def _sp_apply_initial_settings(self):
         """
-        Handler for changes in spinach settings
+        Handler for altering the spinach object based on the initial ui state
         :return:
         """
         self._spinach.set_frame_buffer_type(self._sp_vfb_type_cmbx.get_index())
@@ -819,11 +832,20 @@ class ConfigTBDG(QObject):
         self._cfg_bb_manager_le = self._tab.findChild(QtW.QLineEdit, 'config_backburner_manager_le')
 
         # ---------------------------------------------------
-        #               Combo Box Connections
+        #               Combo Box Definitions
         # ---------------------------------------------------
 
         self._cfg_lg_loggingLevel_cmbx = LogLevelComboBox(self._tab.findChild(QtW.QComboBox,
                                                                               'config_logging_loggingLevel_cmbx'))
+
+        # ---------------------------------------------------
+        #               Layout Definitions
+        # ---------------------------------------------------
+
+        self._config_project_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_project_mro')
+        self._config_paths_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_paths_mro')
+        self._config_backburner_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_backburner_mro')
+        self._config_logging_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_logging_mro')
 
         # ---------------------------------------------------
         #               Function Connections
@@ -853,6 +875,8 @@ class ConfigTBDG(QObject):
     # ---------------------------------------------------
 
     def config_page_setup(self):
+        # Config
+
         self._cfg_prj_projectCode_le.setText(self._cfg.get_project_code())
         self._cfg_prj_fullName_le.setText(self._cfg.get_project_full_name())
 
@@ -866,7 +890,15 @@ class ConfigTBDG(QObject):
 
         self._cfg_lg_loggingLevel_cmbx.set_by_level(self._cfg.get_log_level())
 
+    def config_page_ui_setup(self):
+        self._config_project_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_project_mro", 3))
+        self._config_paths_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_paths_mro", 3))
+        self._config_backburner_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_backburner_mro", 3))
+        self._config_logging_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_logging_mro", 3))
+
     def config_apply_config_page(self):
+        # Config
+
         self._cfg.set_project_code(self._cfg_prj_projectCode_le.text())
         self._cfg.set_project_full_name(self._cfg_prj_fullName_le.text())
 
@@ -881,6 +913,13 @@ class ConfigTBDG(QObject):
         log_level = self._cfg_lg_loggingLevel_cmbx.get_level()
         self._cfg.set_log_level(log_level)
         self._clg.setLevel(log_level)
+
+        # UI only
+
+        self._cfg.set_interface_setting("cg_project_mro", self._config_project_mro.isExpanded())
+        self._cfg.set_interface_setting("cg_paths_mro", self._config_paths_mro.isExpanded())
+        self._cfg.set_interface_setting("cg_backburner_mro", self._config_backburner_mro.isExpanded())
+        self._cfg.set_interface_setting("cg_logging_mro", self._config_logging_mro.isExpanded())
 
     # ---------------------------------------------------
     #                  Handler Function

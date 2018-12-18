@@ -35,7 +35,7 @@ class QMaxRollout(QtW.QWidget):
         self._expand_collapse(state)
 
     # noinspection PyPep8Naming
-    def setDelayedExpanded(self, state):
+    def setExpandedDelay(self, state):
         self._delayed = True, state
 
     def _expand_collapse(self, state):
