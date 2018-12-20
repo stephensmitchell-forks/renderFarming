@@ -2,13 +2,17 @@ import os
 import logging
 import pymxs
 import MaxPlus
+import xml.etree.cElementTree as Et
 
 import renderFarmingTools as rFT
 
+from PySide2.QtCore import Signal, Slot, QObject, QThread
 
-class ArugulaJob:
+
+class ArugulaJob(QObject):
 
     def __init__(self, rt, user_scripts, code):
+        super(ArugulaJob, self).__init__()
 
         self._clg = logging.getLogger("renderFarming.Classes.RenderSettings")
 
@@ -165,6 +169,31 @@ class ArugulaJob:
                 flg.error("IO Error, Failed to load Render Presets: {0}, file: {1}".format(e, self._path))
             except os.error as e:
                 flg.error("Error, Failed to load Render Presets: {0}, file: {1}".format(e, self._path))
+
+
+class ArugulaXML(QObject):
+    error = Signal(str)
+
+    def __init__(self):
+        super(ArugulaXML, self).__init__()
+        self._file = str()
+
+        self._root = Et.Element("Arugula")
+        self._tree = Et.ElementTree(self._root)
+
+    def read(self):
+        self._tree = Et.parse(self._file)
+        self._root = self._tree.getroot()
+
+    def write(self, settings):
+        sl = list(settings)
+        rt = self._root
+        for item in sl:
+            Et.SubElement(
+                rt, "setting", attrib={
+                    "address": item.get_address(), "value": item.get_value(), "type": item.get_type()
+                }
+            )
 
 
 class ArugulaSetting(object):
