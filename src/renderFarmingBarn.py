@@ -135,6 +135,7 @@ class ToggleSphericalWidget(RenderFarmingSheep):
         if len(objects) == 1:
             self._VRayStereoscopic_node = objects[0]
         elif len(objects) > 1:
+            self._VRayStereoscopic_node = objects[0]
             print("ERROR: Multiple VRayStereoscopic helpers found.  Please clean them up.")
         else:
             new_helper = rt.VRayStereoscopic()
