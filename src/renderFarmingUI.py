@@ -355,13 +355,13 @@ class KaleTableView:
         self._ktm = None
 
         if self._kale is None:
-            self._ktm = DummyKaleTableModel()
+            self._ktm = KaleTableModel()
             self._table.setModel(self._ktm)
         else:
             self._model_to_table()
 
     def _model_to_table(self):
-        self._ktm = KaleTableModel(self._kale)
+        self._ktm = KaleSortModel(self._kale)
         self._table.setModel(self._ktm)
 
         self._table.resizeRowsToContents()
@@ -371,23 +371,19 @@ class KaleTableView:
         self._model_to_table()
 
 
-class KaleTableModel(QSortFilterProxyModel):
+class KaleSortModel(QSortFilterProxyModel):
     def __init__(self, kale):
-        super(KaleTableModel, self).__init__()
+        super(KaleSortModel, self).__init__()
         self._kale = kale
         self._priorities_dict = self._kale.get_priorities()
         self._priorities_inverted_dict = dict(zip(self._priorities_dict.values(), self._priorities_dict.keys()))
 
-        self._model = QStandardItemModel()
+        self._model = KaleTableModel()
+        self._model.refresh()
 
         self.setSourceModel(self._model)
 
         self._populate_columns()
-        self._create_headers()
-
-    def _create_headers(self):
-        label_list = "Title", "Text", "Category", "Priority"
-        self._model.setHorizontalHeaderLabels(label_list)
 
     def _populate_columns(self):
         kale_list = self._kale.get_list()
@@ -432,22 +428,30 @@ class KaleTableModel(QSortFilterProxyModel):
             return int_left < int_right
 
 
-class DummyKaleTableModel(QStandardItemModel):
+class KaleTableModel(QStandardItemModel):
     def __init__(self):
-        super(DummyKaleTableModel, self).__init__()
+        super(KaleTableModel, self).__init__()
 
-        self._populate_columns()
+        self._init_populate_columns()
         self._create_headers()
 
     def _create_headers(self):
-        label_list = "Title", "Text", "Category", "Priority"
+        label_list = rFK.label_list
         self.setHorizontalHeaderLabels(label_list)
 
-    def _populate_columns(self):
-        for row in range(10):
-            self._populate_row(row)
+    def refresh(self):
+        self.clear()
+        self._create_headers()
 
-    def _populate_row(self, row):
+    # ---------------------------------------------------
+    #        Initial Population Function
+    # ---------------------------------------------------
+
+    def _init_populate_columns(self):
+        for row in range(10):
+            self._init_populate_row(row)
+
+    def _init_populate_row(self, row):
         title = QStandardItem(" ")
         text = QStandardItem(" ")
         category = QStandardItem(" ")

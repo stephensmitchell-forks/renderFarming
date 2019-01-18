@@ -34,6 +34,7 @@ class Kale(object):
         self._atmosphere_effects()
         self._frame_buffer_effects()
         self._camera_check()
+        self._color_mapping()
 
     # ---------------------------------------------------
     #                  Setter Functions
@@ -270,6 +271,44 @@ class Kale(object):
                 self.append_item(KaleItem("Camera Depth of Field",
                                           "The active camera has depth of field enabled", "Camera", 2))
 
+    def _color_mapping(self):
+        gamma = self._vr.colorMapping_gamma
+        if not rFT.isclose(gamma, 2.2, 0.001):
+            self.append_item(KaleItem("Gamma {0}".format(round(gamma, 3)),
+                                      "Color mapping gamma is set to a value of \"{0}\". ".format(round(gamma, 3)) +
+                                      "Typically, this is set to a value of \"2.2\".",
+                                      "Settings", 0))
+
+        mode_index = self._vr.colorMapping_type
+        if mode_index != 6:
+            mapping_modes = {
+                0: "Linear Multiply",
+                1: "Exponential",
+                2: "HSV Exponential",
+                3: "Intensity Exponential",
+                4: "Gamma Correction",
+                5: "Intensity Gamma",
+                6: "Reinhard"
+            }
+            mode = mapping_modes.get(mode_index, 0)
+            self.append_item(KaleItem("Color Mapping Mode {0}".format(mode),
+                                      "Color mapping mode is set to \"{0}\". ".format(mode) +
+                                      "Typically, this is set to \"Reinhard\".",
+                                      "Settings", 2))
+
+        adaptation_mode_index = self._vr.colorMapping_adaptationOnly
+        if adaptation_mode_index != 2:
+            adaptation_mode = {
+                0: "Color mapping and gamma",
+                1: "None (Don't apply anything)",
+                2: "Color mapping only (No Gamma)",
+            }
+            mode = adaptation_mode.get(adaptation_mode_index, 0)
+            self.append_item(KaleItem("Color Mapping Adaptation Mode {0}".format(mode),
+                                      "Color mapping adaptation mode is set to \"{0}\". ".format(mode) +
+                                      "Typically, this is set to \"Color mapping only (No Gamma)\".",
+                                      "Settings", 2))
+
 
 class KaleItem:
     def __init__(self, title, text, category, priority):
@@ -323,3 +362,6 @@ class KaleItem:
 
     def __repr__(self):
         return self.__str__()
+
+
+label_list = "Title", "Text", "Category", "Priority"

@@ -17,7 +17,7 @@
    <string>Render Farming</string>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>1</number>
   </property>
   <property name="elideMode">
    <enum>Qt::ElideNone</enum>
@@ -598,12 +598,22 @@
         </property>
        </spacer>
       </item>
+      <item>
+       <widget class="QPushButton" name="kl_filter_btn">
+        <property name="text">
+         <string>Filter</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
      <widget class="QTableView" name="kl_results_text_tbvw">
       <property name="sizeAdjustPolicy">
        <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
       </property>
       <property name="alternatingRowColors">
        <bool>true</bool>

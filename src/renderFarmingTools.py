@@ -134,6 +134,11 @@ def match_prefix(file_name, code, html=True):
         return None
 
 
+# From PEP 485 documentation
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+
 def max_aa_filter(rt, filter_index):
     """
     Generates a 3ds Max aa filter

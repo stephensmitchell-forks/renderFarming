@@ -20,6 +20,7 @@ Sub-Modules:
     - Spinach: Render Preparation System
     - Kale: Scene Checker
     - Arugula: Render Settings Handler
+    - Barn: Toolbar with helpful utilities
 
 External Dependencies:
     - 3ds Max 2018 (2019 may work?)
