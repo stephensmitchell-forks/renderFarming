@@ -304,10 +304,19 @@ class Kale(object):
                 2: "Color mapping only (No Gamma)",
             }
             mode = adaptation_mode.get(adaptation_mode_index, 0)
-            self.append_item(KaleItem("Color Mapping Adaptation Mode {0}".format(mode),
-                                      "Color mapping adaptation mode is set to \"{0}\". ".format(mode) +
-                                      "Typically, this is set to \"Color mapping only (No Gamma)\".",
-                                      "Settings", 2))
+            msg = "Color mapping adaptation mode is set to \"{0}\". ".format(mode)
+            msg2 = "Typically, this is set to \"Color mapping only (No Gamma)\"."
+
+            self.append_item(KaleItem("Color Mapping Adaptation Mode {0}".format(mode), msg + msg2, "Settings", 2))
+
+        if self._vr.colorMapping_clampOutput:
+            clamp_level = round(self._vr.colorMapping_clampLevel, 2)
+            msg = "Output clamping enabled, this will clamp HDR images to a maximum value of {0}".format(clamp_level)
+            self.append_item(KaleItem("Output Clamp", msg, "Settings", 3))
+
+        if self._vr.colorMapping_subpixel:
+            msg = "Sub-Pixel mapping is enabled, this is not recommended in VRay 3"
+            self.append_item(KaleItem("Sub-Pixel Mapping", msg, "Settings", 3))
 
 
 class KaleItem:

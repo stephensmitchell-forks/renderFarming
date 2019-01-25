@@ -755,9 +755,9 @@ class SpinachTBDG(QObject):
         self._clg.debug("Spinach status set to {}".format(text))
         self._spinach_status_lb.setText("Status: {}".format(text))
 
-    @Slot(str)
+    @Slot(rFS.SpinachMessage)
     def _spinach_status_handler(self, message):
-        self.set_spinach_status(message)
+        self.set_spinach_status(message.styled_message())
 
     def _spinach_not_ready_handler(self):
         nr = rFT.html_color_text("Not Ready:", "Orange")

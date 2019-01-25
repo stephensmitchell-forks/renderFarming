@@ -6,8 +6,43 @@ import logging
 from PySide2.QtCore import QObject, Signal
 
 
+class SpinachMessage(object):
+    message_colors = {
+        "Error": "Red",
+        "Ready": "Green",
+        "Not Ready": "Orange"
+    }
+
+    def __init__(self, message, message_type, full_color=False):
+        self._message = message
+        self._message_type = message_type
+        self._full_color = full_color
+
+    def styled_message(self):
+        if self._message_type is None:
+            return self.raw_message()
+        elif self._full_color:
+            return "{}".format(
+                rFT.html_color_text(self._message, self.message_colors.get(self._message_type, "Red"))
+            )
+        else:
+            return "{}: {}".format(
+                rFT.html_color_text(self._message_type, self.message_colors.get(self._message_type, "Red")),
+                self._message
+            )
+
+    def raw_message(self):
+        return self._message
+
+    def __str__(self):
+        return self.raw_message()
+
+    def __repr__(self):
+        return self.styled_message()
+
+
 class SpinachJob(QObject):
-    status_update = Signal(str)
+    status_update = Signal(SpinachMessage)
     not_ready = Signal()
 
     def __init__(self, rt, cfg):
@@ -43,12 +78,6 @@ class SpinachJob(QObject):
 
         self._rsd_state = False
 
-        # HTML Message macros
-
-        self._rd_er_tx = rFT.html_color_text("ERROR:", "Red")
-        self._grn_rdy_tx = rFT.html_color_text("Ready!", "Green")
-        self._org_n_rdy_tx = rFT.html_color_text("Not Ready:", "Orange")
-
         # UI Settings Attributes
 
         self._frame_buffer_type = 0
@@ -80,7 +109,7 @@ class SpinachJob(QObject):
             # If any of the paths can't be found or made, returns false
             if not rFT.verify_dir(p):
                 flg.error("Path Error: {} does not resolve and cannot be created".format(p))
-                self.status_update.emit("{} One or more paths are invalid".format(self._rd_er_tx))
+                self.status_update.emit(SpinachMessage("One or more paths are invalid", "Error"))
                 return False
         return True
 
@@ -134,7 +163,9 @@ class SpinachJob(QObject):
             self._ir_file = folder + "\\{0}_frame_.vrmap".format(sub_fold)
         else:
             # Displays an error message and returns
-            self.status_update.emit("Unable to find or create path for animation prepass rendering")
+            self.status_update.emit(
+                SpinachMessage("Unable to find or create path for animation prepass rendering", "Error")
+            )
             self._ready = False
             return
 
@@ -345,7 +376,7 @@ class SpinachJob(QObject):
 
         if not renderer:
             flg.error("Cannot set renderer to VRay")
-            self.status_update.emit("{} Cannot set renderer to VRay".format(self._rd_er_tx))
+            self.status_update.emit(SpinachMessage("Cannot set renderer to VRay", "Error"))
             return False
         else:
             self._vr = renderer
@@ -506,6 +537,24 @@ class SpinachJob(QObject):
             # Sets the blank string for the element
             self._rem.SetRenderElementFilename(i, str())
 
+    def _denoise(self, enabled):
+        """
+        Sets all of the scene's render elements to use the frames_dir path
+        :return: None
+        """
+        flg = logging.getLogger("renderFarming.Spinach._denoise")
+        # Max's render element manger uses indexes instead of returning actual objects
+        num = self._rem.NumRenderElements()
+        flg.debug("Checking for Denoiser")
+
+        for i in range(num):
+            # retrieves the element and gets its name
+            el = self._rem.GetRenderElement(i)
+
+            if self._rt.classof(el) == self._rt.VRayDenoiser:
+                flg.debug("Denoiser Found: {}".format("Enabling" if enabled else "Disabling"))
+                el.vrayVFB = enabled
+
     # ---------------------------------------------------
     #                       Public
     # ---------------------------------------------------
@@ -557,7 +606,7 @@ class SpinachJob(QObject):
             return
 
         # Prints a message
-        self.status_update.emit(self._grn_rdy_tx)
+        self.status_update.emit(SpinachMessage("Ready!", "Ready", True))
         self._ready = True
 
     def single_frame_prepass(self):
@@ -591,11 +640,12 @@ class SpinachJob(QObject):
 
         if render_type in (1, 3, 5, 7, 8, 9):
             flg.error("Attempting to render a beauty pass as a prepass")
-            self.status_update.emit("{} Attempting to render a beauty pass as a prepass".format(self._rd_er_tx))
+            self.status_update.emit(SpinachMessage("Attempting to render a beauty pass as a prepass", "Error"))
             return
 
         if not self._ready:
-            flg.info("Spinach reports not ready, job submission cannot continue")
+            flg.warning("Spinach reports not ready, job submission cannot continue")
+            self.status_update.emit(SpinachMessage("Spinach Reports Not Ready", "Not Ready"))
             self.not_ready.emit()
             return
 
@@ -616,10 +666,13 @@ class SpinachJob(QObject):
         flg.debug("Overriding Image Filter")
         self._override_image_filter()
 
-        self.status_update.emit("{0} - {1}".format(self._grn_rdy_tx, self._gi_type_status_msg(render_type)))
+        self.status_update.emit(SpinachMessage("Prepass - {}".format(self._gi_type_status_msg(render_type)), "Ready"))
 
         flg.debug("Setting Output")
         self._set_output(self._frame_buffer_type, False)
+
+        flg.debug("Disabling VRayDenoiser")
+        self._denoise(False)
 
         self.rsd_toggle(True)
 
@@ -641,13 +694,15 @@ class SpinachJob(QObject):
         self.rsd_toggle()
 
         if not self._ready:
-            flg.info("Spinach reports not ready, job submission cannot continue")
-            self.status_update.emit("{0}: Spinach Reports Not Ready".format(self._org_n_rdy_tx))
+            flg.warning("Spinach reports not ready, job submission cannot continue")
+            self.status_update.emit(SpinachMessage("Spinach Reports Not Ready", "Not Ready"))
+            self.not_ready.emit()
+
             return
 
         if render_type in (0, 2, 4, 6):
             flg.error("Attempting to render a prepass as a beauty pass")
-            self.not_ready.emit()
+            self.status_update.emit(SpinachMessage("Attempting to render a prepass as a beauty pass", "Error"))
             return
 
             # if is an Animation Prepass Irradiance Map, Light Cache, the ir path must be changed
@@ -667,11 +722,14 @@ class SpinachJob(QObject):
         flg.debug("Setting Output")
         self._set_output(self._frame_buffer_type, True)
 
+        flg.debug("Enabling VRayDenoiser")
+        self._denoise(True)
+
         flg.debug("Overriding Image Filter")
         self._override_image_filter()
 
         flg.debug("File Ready for Final Render")
-        self.status_update.emit("{0} - Beauty - {1}".format(self._grn_rdy_tx, self._gi_type_status_msg(render_type)))
+        self.status_update.emit(SpinachMessage("Beauty - {}".format(self._gi_type_status_msg(render_type)), "Ready"))
 
         self.rsd_toggle(True)
 
@@ -732,7 +790,7 @@ class SpinachJob(QObject):
             return None
 
         self._verify_vray()
-        self.status_update.emit("VRay has been reset")
+        self.status_update.emit(SpinachMessage("VRay has been reset", None))
         self.rsd_toggle(True)
 
     # noinspection PyMethodMayBeStatic
@@ -759,7 +817,7 @@ class SpinachJob(QObject):
         cam = self._rt.getActiveCamera()
         if cam is None:
             flg.warning("Active view is not a valid camera")
-            self.status_update.emit("{} Active view is not a valid camera".format(self._rd_er_tx))
+            self.status_update.emit(SpinachMessage("Active view is not a valid camera", "Error"))
         else:
             flg.debug("Active camera selected: {}".format(cam.name))
         return cam
