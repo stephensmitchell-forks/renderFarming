@@ -7,6 +7,9 @@ from PySide2.QtCore import QObject, Signal
 
 
 class SpinachMessage(object):
+    """
+    Class for transmitting ui messages of different types to be interpreted by the UI
+    """
     message_colors = {
         "Error": "Red",
         "Ready": "Green",
@@ -21,18 +24,19 @@ class SpinachMessage(object):
     def styled_message(self):
         if self._message_type is None:
             return self.raw_message()
-        elif self._full_color:
-            return "{}".format(
-                rFT.html_color_text(self._message, self.message_colors.get(self._message_type, "Red"))
-            )
         else:
-            return "{}: {}".format(
-                rFT.html_color_text(self._message_type, self.message_colors.get(self._message_type, "Red")),
-                self._message
-            )
+            if self._full_color:
+                return "{}".format(
+                    rFT.html_color_text(self._message, self.message_colors.get(self._message_type, "Red"))
+                )
+            else:
+                return "{}: {}".format(
+                    rFT.html_color_text(self._message_type, self.message_colors.get(self._message_type, "Red")),
+                    self._message
+                )
 
     def raw_message(self):
-        return self._message
+        return "{} - Type: {}".format(self._message, self._message_type)
 
     def __str__(self):
         return self.raw_message()

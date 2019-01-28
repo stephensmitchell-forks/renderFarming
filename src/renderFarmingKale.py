@@ -1,9 +1,16 @@
 import logging
 import renderFarmingTools as rFT
 
+import PySide2.QtCore as QtC
+from PySide2.QtCore import Signal
 
-class Kale(object):
+
+class Kale(QtC.QObject):
+    set_tasks = Signal(int)
+    add_task = Signal(int)
+
     def __init__(self, rt, cfg):
+        super(Kale, self).__init__()
         self._clg = logging.getLogger("renderFarming.Kale")
 
         self._rt = rt
@@ -26,6 +33,8 @@ class Kale(object):
 
         # Checks
         # --------------------
+
+        self.set_tasks.emit(8)
 
         self.match_prefix()
         self._global_switches()
@@ -113,6 +122,7 @@ class Kale(object):
         if self._vr.options_hiddenLights:
             self.append_item(KaleItem("Hidden Lights",
                                       "Hidden lights are enabled", "Settings", 0))
+        self.add_task.emit(1)
 
     def _image_sampler(self):
         if self._vr.imageSampler_renderMask_type == 1:
@@ -143,6 +153,7 @@ class Kale(object):
                 self.append_item(KaleItem("Object ID Render Mask Missing",
                                           "An object ID render mask is enabled, but there are no object IDs specified",
                                           "Settings", 3))
+        self.add_task.emit(1)
 
     def _environment_overrides(self):
         if self._vr.environment_gi_on:
@@ -163,6 +174,7 @@ class Kale(object):
         if not self._rt.useEnvironmentMap:
             self.append_item(KaleItem("No Environment Map",
                                       "Environment is not using a map", "Scene", 1))
+        self.add_task.emit(1)
 
     def _atmosphere_effects(self):
         num_atmos = self._rt.numAtmospherics
@@ -192,6 +204,7 @@ class Kale(object):
             if vray_env_fog_active:
                 self.append_item(KaleItem("Environment Fog",
                                           "A VRay environment fog effect is active in the scene", "Scene", 2))
+        self.add_task.emit(1)
 
     def _frame_buffer_effects(self):
         if self._rt.vrayVFBGetRegionEnabled():
@@ -239,6 +252,7 @@ class Kale(object):
         if self._rt.vfbControl(self._rt.name("glare"))[0]:
             self.append_item(KaleItem("VFB Glare",
                                       "The glare effect is enabled", "VFB", 1))
+        self.add_task.emit(1)
 
     def _render_passes(self):
         return
@@ -270,6 +284,7 @@ class Kale(object):
             if cam.use_dof:
                 self.append_item(KaleItem("Camera Depth of Field",
                                           "The active camera has depth of field enabled", "Camera", 2))
+        self.add_task.emit(1)
 
     def _color_mapping(self):
         gamma = self._vr.colorMapping_gamma
@@ -317,6 +332,7 @@ class Kale(object):
         if self._vr.colorMapping_subpixel:
             msg = "Sub-Pixel mapping is enabled, this is not recommended in VRay 3"
             self.append_item(KaleItem("Sub-Pixel Mapping", msg, "Settings", 3))
+        self.add_task.emit(1)
 
 
 class KaleItem:

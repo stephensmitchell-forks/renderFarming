@@ -17,9 +17,12 @@ import MaxPlus
 
 # PySide 2
 from PySide2.QtUiTools import QUiLoader
-from PySide2.QtGui import QStandardItemModel, QStandardItem, QColor
+import PySide2.QtGui as QtG
 import PySide2.QtWidgets as QtW
-from PySide2.QtCore import QObject, QFile, QTimer, QSortFilterProxyModel, Signal, Slot
+import PySide2.QtCore as QtC
+
+Signal = QtC.Signal
+Slot = QtC.Slot
 
 
 class RenderFarmingUI(QtW.QDialog):
@@ -76,8 +79,8 @@ class RenderFarmingUI(QtW.QDialog):
 
         # UI Loader
 
-        ui_file = QFile(os.path.join(self._ui_path, "renderFarmingMainWidget.ui"))
-        ui_file.open(QFile.ReadOnly)
+        ui_file = QtC.QFile(os.path.join(self._ui_path, "renderFarmingMainWidget.ui"))
+        ui_file.open(QtC.QFile.ReadOnly)
 
         loader = QUiLoader()
         loader.registerCustomWidget(rFQtW.QMaxRollout)
@@ -133,6 +136,7 @@ class RenderFarmingUI(QtW.QDialog):
         self._config_tbdg.saved.connect(self.config_apply_all)
         self._config_tbdg.edit.connect(self._config_edit_handler)
         self._config_tbdg.reset.connect(self._config_reset_handler)
+        self._config_tbdg.set_log_level.connect(self._set_log_level_handler)
 
         vpc_code = MaxPlus.NotificationCodes.ViewportChange
         self._viewport_change_handler = MaxPlus.NotificationManager.Register(vpc_code, self.cam_change_handler)
@@ -182,6 +186,11 @@ class RenderFarmingUI(QtW.QDialog):
     def _config_reset_handler(self):
         self.set_saved_status(True)
         self.setWindowTitle(self.get_window_title())
+
+    @Slot(str)
+    def _set_log_level_handler(self, level):
+        self._clg.setLevel(level)
+        self._refresh_log()
 
     # ---------------------------------------------------
     #                  Handler Function
@@ -253,7 +262,7 @@ class RenderFarmingUI(QtW.QDialog):
 
             # Waits on the minimumSizeHint to re-calculate before shrinking the QDialog
             if new_height < self.minimumSizeHint().height():
-                _timer = QTimer()
+                _timer = QtC.QTimer()
                 _timer.singleShot(30, self._resize_height)
             else:
                 self.resize(self.width(), new_height)
@@ -291,7 +300,7 @@ class RenderFarmingUI(QtW.QDialog):
         event.accept()
 
 
-class KaleTBDG(QObject):
+class KaleTBDG(QtC.QObject):
     def __init__(self, tab, rt, cfg):
         """
         Class for the Kale page of the RenderFarming Dialog
@@ -325,6 +334,8 @@ class KaleTBDG(QObject):
         # ---------------------------------------------------
 
         self._kl_run_btn = self._tab.findChild(QtW.QPushButton, 'kl_run_btn')
+        self._kl_completion_pb = self._tab.findChild(QtW.QProgressBar, 'kl_completion_pb')
+        self._kl_completion_pb.setVisible(False)
 
         # ---------------------------------------------------
         #               Function Connections
@@ -337,9 +348,29 @@ class KaleTBDG(QObject):
     # ---------------------------------------------------
 
     def _kl_run_handler(self):
+        self._kl_completion_pb.setVisible(True)
+
         self._kale = rFK.Kale(self._rt, self._cfg)
         self._table.update_model(self._kale)
+
+        self._kale.set_tasks.connect(self._pb_set_tasks_handler)
+        self._kale.add_task.connect(self._pb_add_task_handler)
+
+        self._kl_completion_pb.setVisible(False)
         return
+
+    @Slot(int)
+    def _pb_set_tasks_handler(self, task_number):
+        if task_number > 0:
+            self._kl_completion_pb.setTextVisible(True)
+            self._kl_completion_pb.setRange(0, task_number)
+        else:
+            self._kl_completion_pb.setTextVisible(False)
+            self._kl_completion_pb.setRange(0, 0)
+
+    @Slot(int)
+    def _pb_add_task_handler(self, num):
+        self._kl_completion_pb.setValue(self._progress_bar.value() + num)
 
     # ---------------------------------------------------
     #                  Wrapper Function
@@ -371,7 +402,7 @@ class KaleTableView:
         self._model_to_table()
 
 
-class KaleSortModel(QSortFilterProxyModel):
+class KaleSortModel(QtC.QSortFilterProxyModel):
     def __init__(self, kale):
         super(KaleSortModel, self).__init__()
         self._kale = kale
@@ -400,7 +431,7 @@ class KaleSortModel(QSortFilterProxyModel):
         ]
 
         for col, item in enumerate(row_list):
-            qt_item = QStandardItem(item)
+            qt_item = QtG.QStandardItem(item)
             qt_item.setBackground(self._priority_to_color(priority))
             self._model.setItem(row, col, qt_item)
 
@@ -410,12 +441,12 @@ class KaleSortModel(QSortFilterProxyModel):
     # noinspection PyMethodMayBeStatic
     def _priority_to_color(self, priority_integer):
         color_dict = {
-            0: QColor(30, 78, 125),
-            1: QColor(76, 54, 136),
-            2: QColor(117, 56, 123),
-            3: QColor(255, 60, 90)
+            0: QtG.QColor(30, 78, 125),
+            1: QtG.QColor(76, 54, 136),
+            2: QtG.QColor(117, 56, 123),
+            3: QtG.QColor(255, 60, 90)
         }
-        return color_dict.get(priority_integer, QColor(100, 100, 150))
+        return color_dict.get(priority_integer, QtG.QColor(100, 100, 150))
 
     def lessThan(self, source_left, source_right):
         left_data = source_left.data()
@@ -428,7 +459,7 @@ class KaleSortModel(QSortFilterProxyModel):
             return int_left < int_right
 
 
-class KaleTableModel(QStandardItemModel):
+class KaleTableModel(QtG.QStandardItemModel):
     def __init__(self):
         super(KaleTableModel, self).__init__()
 
@@ -452,10 +483,10 @@ class KaleTableModel(QStandardItemModel):
             self._init_populate_row(row)
 
     def _init_populate_row(self, row):
-        title = QStandardItem(" ")
-        text = QStandardItem(" ")
-        category = QStandardItem(" ")
-        priority = QStandardItem(" ")
+        title = QtG.QStandardItem(" ")
+        text = QtG.QStandardItem(" ")
+        category = QtG.QStandardItem(" ")
+        priority = QtG.QStandardItem(" ")
 
         self.setItem(row, 0, title)
         self.setItem(row, 1, text)
@@ -463,7 +494,7 @@ class KaleTableModel(QStandardItemModel):
         self.setItem(row, 3, priority)
 
 
-class SpinachTBDG(QObject):
+class SpinachTBDG(QtC.QObject):
     def __init__(self, tab, rt, cfg):
         """
         Class for the Spinach page of the RenderFarming Dialog
@@ -752,11 +783,11 @@ class SpinachTBDG(QObject):
     # ---------------------------------------------------
 
     def set_spinach_status(self, text):
-        self._clg.debug("Spinach status set to {}".format(text))
         self._spinach_status_lb.setText("Status: {}".format(text))
 
     @Slot(rFS.SpinachMessage)
     def _spinach_status_handler(self, message):
+        self._clg.debug("Spinach status set to {}".format(message.raw_message()))
         self.set_spinach_status(message.styled_message())
 
     def _spinach_not_ready_handler(self):
@@ -783,10 +814,11 @@ class SpinachTBDG(QObject):
             return True
 
 
-class ConfigTBDG(QObject):
+class ConfigTBDG(QtC.QObject):
     saved = Signal()
     reset = Signal()
     edit = Signal()
+    set_log_level = Signal(str)
 
     def __init__(self, tab, rt, cfg):
         """
@@ -916,7 +948,7 @@ class ConfigTBDG(QObject):
 
         log_level = self._cfg_lg_loggingLevel_cmbx.get_level()
         self._cfg.set_log_level(log_level)
-        self._clg.setLevel(log_level)
+        self.set_log_level.emit(log_level)
 
         # UI only
 
@@ -960,7 +992,7 @@ class ConfigTBDG(QObject):
         self._config_reset_handler()
 
 
-class LogTBDG(QObject):
+class LogTBDG(QtC.QObject):
     def __init__(self, tab, rt, cfg):
         """
         Class for the Log page of the RenderFarming Dialog
@@ -991,6 +1023,7 @@ class LogTBDG(QObject):
         # ---------------------------------------------------
 
         self._lg_text_pte = self._tab.findChild(QtW.QPlainTextEdit, 'lg_text_pte')
+        LogSyntaxHighlighter(self._lg_text_pte.document())
 
         # ---------------------------------------------------
         #               Function Connections
@@ -1011,7 +1044,71 @@ class LogTBDG(QObject):
     # ---------------------------------------------------
 
     def append_log_text(self, text):
+        old = self._lg_text_pte.toPlainText()
+        self._lg_text_pte.setPlainText(self._filter_empty_lines(old))
         self._lg_text_pte.appendPlainText(text)
+
+    # noinspection PyMethodMayBeStatic
+    def _filter_empty_lines(self, text):
+        """
+        Filters out empty lines from the log text
+        Frome: https://stackoverflow.com/a/24172715
+        :param text: The string to be filtered
+        :return:
+        """
+        return "".join([s for s in text.strip().splitlines(True) if s.strip("\r\n").strip()])
+
+
+class LogSyntaxHighlighter(QtG.QSyntaxHighlighter):
+    def __init__(self, parent):
+        super(LogSyntaxHighlighter, self).__init__(parent)
+        # noinspection SpellCheckingInspection
+        self.rules = (
+            HighlightRule("\\bDEBUG:\\b", QtG.QColor(28, 205, 207), "bold", "underline"),
+            HighlightRule("\\bINFO:\\b", QtG.QColor(112, 239, 27), "bold", "underline"),
+            HighlightRule("\\bWARNING:\\b", QtG.QColor(245, 231, 0), "bold", "underline"),
+            HighlightRule("\\bERROR:\\b", QtG.QColor(255, 84, 0), "bold", "underline"),
+            HighlightRule("\\bCRITICAL:\\b", QtG.QColor(186, 12, 12), "bold", "underline"),
+            HighlightRule("renderFarming|RenderFarming", QtG.QColor(17, 186, 104), "italic"),
+            HighlightRule("Kale|kale|\\bConfig\\b|\\bconfig\\b|Spinach|spinach", QtG.QColor(255, 167, 227), "italic")
+        )
+
+    def highlightBlock(self, text):
+        for rule in self.rules:
+
+            expression = QtC.QRegExp(rule.pattern)
+
+            index = expression.indexIn(text, 0)
+
+            while index >= 0:
+                length = expression.matchedLength()
+                self.setFormat(index, length, rule.style)
+                index = expression.indexIn(text, index + length)
+
+
+class HighlightRule(object):
+    """
+    From: https://wiki.python.org/moin/PyQt/Python%20syntax%20highlighting
+    Constructs a QTextCharFormat and a QRegExp and keeps them together for later use
+    """
+    def __init__(self, pattern, color, *args):
+        self.pattern = QtC.QRegExp(pattern)
+        self.style = QtG.QTextCharFormat()
+
+        if color is not None:
+            if type(color) is QtG.QColor:
+                self.style.setForeground(color)
+            else:
+                _color = QtG.QColor()
+                _color.setNamedColor(color)
+                self.style.setForeground(_color)
+
+        if 'bold' in args:
+            self.style.setFontWeight(QtG.QFont.Bold)
+        if 'italic' in args:
+            self.style.setFontItalic(True)
+        if 'underline' in args:
+            self.style.setFontUnderline(True)
 
 
 class LogLevelComboBox:

@@ -641,6 +641,16 @@
       </attribute>
      </widget>
     </item>
+    <item>
+     <widget class="QProgressBar" name="kl_completion_pb">
+      <property name="value">
+       <number>0</number>
+      </property>
+      <property name="textVisible">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QWidget" name="config_tbdg">
