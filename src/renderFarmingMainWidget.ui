@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>670</width>
-    <height>624</height>
+    <height>658</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -273,14 +273,14 @@
              </item>
             </widget>
            </item>
-           <item row="2" column="0">
+           <item row="3" column="0">
             <widget class="QLabel" name="label_image_filter_override">
              <property name="text">
               <string>Image Filter Override</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
+           <item row="3" column="1">
             <widget class="QComboBox" name="sp_img_filt_ovr_cmbx">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Allows overriding the Image Filter in a file with one from the list.  &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -388,14 +388,14 @@
              </item>
             </widget>
            </item>
-           <item row="3" column="0">
+           <item row="4" column="0">
             <widget class="QLabel" name="label_time_segment_prompt">
              <property name="text">
               <string>Time Segment Prompt</string>
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
+           <item row="4" column="1">
             <widget class="QComboBox" name="sp_sats_prompt_cmbx">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Activates a pop-up everytime either &amp;quot;Prepare Prepass&amp;quot; or &amp;quot;Prepare Beauty Pass&amp;quot; are clicked. It asks the user to confirm the frame range of the shot they are sending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -422,7 +422,7 @@
              </item>
             </widget>
            </item>
-           <item row="4" column="0">
+           <item row="5" column="0">
             <widget class="QLabel" name="label_multi_frame_increment">
              <property name="enabled">
               <bool>true</bool>
@@ -432,7 +432,7 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="1">
+           <item row="5" column="1">
             <widget class="QSpinBox" name="sp_multi_frame_increment_sb">
              <property name="enabled">
               <bool>true</bool>
@@ -454,6 +454,32 @@
              </property>
              <property name="displayIntegerBase">
               <number>10</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QComboBox" name="sp_save_format_cmbx">
+             <item>
+              <property name="text">
+               <string>OpenEXR</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>MultiChannel OpenEXR</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRImg</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_save_format">
+             <property name="text">
+              <string>Save Format</string>
              </property>
             </widget>
            </item>

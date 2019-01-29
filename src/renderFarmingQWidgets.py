@@ -94,6 +94,7 @@ class QMaxRollout(QtW.QWidget):
         qp.begin(self)
         self._system_font = qp.font()
         self._recalculate_header()
+        super(QMaxRollout, self).paintEvent(e)
         self._draw_widget(qp)
         qp.end()
         e.accept()
@@ -288,33 +289,28 @@ def layout_collapse_and_restore(layout, state):
     for child in layout.children():
         layout_collapse_and_restore(child, state)
 
-    if hasattr(layout, "setContentsMargins"):
-        if state:
-            prop = layout.property("OldContentsMargins")
-
-            if prop is not None:
-                layout.setContentsMargins(QMargins(prop))
-            else:
-                layout.setContentsMargins(QMargins(0, 0, 0, 0))
-        else:
-            layout.setProperty("OldContentsMargins", layout.contentsMargins())
-            layout.setContentsMargins(QMargins(0, 0, 0, 0))
-
-    if hasattr(layout, "setSpacing"):
-        if state:
-            prop = layout.property("OldSpacing")
-            if prop is not None:
-                layout.setSpacing(prop)
-            else:
-                layout.setSpacing(0)
-        else:
-            layout.setProperty("OldSpacing", layout.spacing())
-            layout.setSpacing(0)
+    attribute_store_and_set(layout, state, QMargins(0, 0, 0, 0), "contentsMargins", "setContentsMargins")
+    attribute_store_and_set(layout, state, 0, "spacing", "setSpacing")
+    attribute_store_and_set(layout, state, 0, "verticalSpacing", "setVerticalSpacing")
+    attribute_store_and_set(layout, state, 0, "horizontalSpacing", "setHorizontalSpacing")
 
     if hasattr(layout, "invalidate"):
         layout.invalidate()
 
 
+def attribute_store_and_set(widget, state, new_value, get_func, set_func):
+    if hasattr(widget, set_func):
+        attr_name = "Old{}".format(set_func)
+        if state:
+            prop = widget.property(attr_name)
+            if prop is not None:
+                getattr(widget, set_func)(prop)
+        else:
+            widget.setProperty(attr_name, getattr(widget, get_func)())
+            getattr(widget, set_func)(new_value)
+
+
+# # noinspection PyUnresolvedReferences
 # class Window(QtW.QDialog):
 #     def __init__(self, parent=MaxPlus.GetQMaxMainWindow()):
 #         super(Window, self).__init__(parent)
@@ -326,7 +322,7 @@ def layout_collapse_and_restore(layout, state):
 #         self._rollup_test2 = QMaxRollout()
 #         self._rollup_test2.setTitle("Big Ass MuthaFunkin Buttons Baby")
 #         self._rollup_test3 = QMaxRollout()
-#         self._rollup_test3.setTitle("Empty :'(")
+#         self._rollup_test3.setTitle("Non-Empty Boy")
 #
 #         self.radio1 = QtW.QRadioButton("Radio button 1")
 #         self.radio2 = QtW.QRadioButton("Radio button 2")
@@ -344,6 +340,8 @@ def layout_collapse_and_restore(layout, state):
 #         self.push2 = QtW.QPushButton("Push button 2")
 #         self.push3 = QtW.QPushButton("Push button 3")
 #
+#         self.push1.clicked.connect(self.expand_layout_handler)
+#
 #         self.radio4 = QtW.QRadioButton("Radio button 4")
 #         self.radio5 = QtW.QRadioButton("Radio button 5")
 #         self.radio6 = QtW.QRadioButton("Radio button 6")
@@ -351,6 +349,18 @@ def layout_collapse_and_restore(layout, state):
 #         self.check1 = QtW.QCheckBox("Check Box 1")
 #         self.check2 = QtW.QCheckBox("Check Box 2")
 #         self.check3 = QtW.QCheckBox("Check Box 3")
+#
+#         self.label1 = QtW.QLabel("Combo Box 1")
+#         self.label2 = QtW.QLabel("Combo Box 2")
+#         self.label3 = QtW.QLabel("Combo Box 3")
+#
+#         self.cmbx1 = QtW.QComboBox()
+#         self.cmbx2 = QtW.QComboBox()
+#         self.cmbx3 = QtW.QComboBox()
+#
+#         self.cmbx1.addItems(("Box 1", "Tube 1", "Sphere 1"))
+#         self.cmbx2.addItems(("Box 2", "Tube 2", "Sphere 2"))
+#         self.cmbx3.addItems(("Box 3", "Tube 3", "Sphere 3"))
 #
 #         self.v_box2 = QtW.QVBoxLayout()
 #         self.v_box2.addWidget(self.push1)
@@ -370,11 +380,19 @@ def layout_collapse_and_restore(layout, state):
 #         self.form1.addWidget(self.check2)
 #         self.form1.addWidget(self.check3)
 #
+#         self.form2 = QtW.QFormLayout()
+#         self.form2.setVerticalSpacing(10)
+#         self.form2.setHorizontalSpacing(10)
+#         self.form2.insertRow(1, self.label1, self.cmbx1)
+#         self.form2.insertRow(2, self.label2, self.cmbx2)
+#         self.form2.insertRow(3, self.label3, self.cmbx3)
+#
 #         self.v_box2.addLayout(self.form1)
 #         self.v_box2.addLayout(self.v_box2a)
 #         self.v_box2.addStretch(1)
 #
 #         self.v_box3 = QtW.QVBoxLayout()
+#         self.v_box3.addLayout(self.form2)
 #
 #         self._rollup_test1.setLayout(self.v_box1)
 #
@@ -390,6 +408,9 @@ def layout_collapse_and_restore(layout, state):
 #         self.setLayout(self._main_layout)
 #
 #         print("Window Initialized!")
+#
+#     def expand_layout_handler(self):
+#         self.form2.setHorizontalSpacing(10)
 #
 #
 # import MaxPlus
