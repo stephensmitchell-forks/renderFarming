@@ -85,6 +85,7 @@ class SpinachJob(QObject):
         # UI Settings Attributes
 
         self._frame_buffer_type = 0
+        self._file_format = 0
         self._image_filter_override = 17
         self._frames_sub_folder = "$(cam)"
 
@@ -848,6 +849,23 @@ class SpinachJob(QObject):
         else:
             flg.debug("Changing Frame Buffer Type to {}".format("Max" if fb_type is 0 else "VRay"))
             self._frame_buffer_type = fb_type
+
+    def set_file_format(self, file_format):
+        flg = logging.getLogger("renderFarming.Spinach.set_file_format")
+        file_format_str = {
+            0: "OpenEXR",
+            1: "MultiChannel OpenEXR",
+            2: "VRImg"
+        }
+        if file_format > 2:
+            flg.error("Index Error: Index is greater than allowed")
+            self._file_format = 0
+        elif file_format < 0:
+            flg.error("Index Error: Index is less than 0")
+            self._file_format = 0
+        else:
+            flg.debug("Changing File Format to {}".format(file_format_str.get(file_format)))
+            self._file_format = file_format
 
     def set_image_filter_override(self, if_type):
         flg = logging.getLogger("renderFarming.Spinach.set_frame_buffer_type")

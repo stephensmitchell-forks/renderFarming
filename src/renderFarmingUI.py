@@ -138,6 +138,9 @@ class RenderFarmingUI(QtW.QDialog):
         self._config_tbdg.reset.connect(self._config_reset_handler)
         self._config_tbdg.set_log_level.connect(self._set_log_level_handler)
 
+        self._spinach_tbdg.run_kale.connect(self._spinach_run_kale_handler)
+        self._kale_tbdg.back.connect(self._kl_tbdg_back_btn_handler)
+
         vpc_code = MaxPlus.NotificationCodes.ViewportChange
         self._viewport_change_handler = MaxPlus.NotificationManager.Register(vpc_code, self.cam_change_handler)
 
@@ -197,8 +200,9 @@ class RenderFarmingUI(QtW.QDialog):
     # ---------------------------------------------------
 
     def _tab_change_handler(self):
-        if self._tabbed_widget.currentIndex() is 3:
+        if self._tabbed_widget.currentIndex() == 3:
             return self._refresh_log()
+        self._kale_tbdg.reset_back_btn()
 
     def _refresh_log(self):
         log_value = self._log_stream.getvalue()
@@ -230,6 +234,15 @@ class RenderFarmingUI(QtW.QDialog):
                 wrn = rFT.html_color_text("Warning:", "Orange")
                 self._spinach_tbdg.set_spinach_status("{} Camera has changed".format(wrn))
             self._camera = self._rt.getActiveCamera()
+
+    def _spinach_run_kale_handler(self):
+        index = self._tabbed_widget.currentIndex()
+        self._tabbed_widget.setCurrentWidget(self._kale_tbdg.tab())
+        self._kale_tbdg.external_run(index)
+
+    @Slot(int)
+    def _kl_tbdg_back_btn_handler(self, index):
+        self._tabbed_widget.setCurrentIndex(index)
 
     # ---------------------------------------------------
     #                    Getters
@@ -301,6 +314,8 @@ class RenderFarmingUI(QtW.QDialog):
 
 
 class KaleTBDG(QtC.QObject):
+    back = Signal(int)
+
     def __init__(self, tab, rt, cfg):
         """
         Class for the Kale page of the RenderFarming Dialog
@@ -315,6 +330,9 @@ class KaleTBDG(QtC.QObject):
 
         self._cfg = cfg
         self._rt = rt
+
+        # External Run
+        self._original_index = 0
 
         # Logger
 
@@ -337,11 +355,16 @@ class KaleTBDG(QtC.QObject):
         self._kl_completion_pb = self._tab.findChild(QtW.QProgressBar, 'kl_completion_pb')
         self._kl_completion_pb.setVisible(False)
 
+        self._kl_back_btn = self._tab.findChild(QtW.QPushButton, 'kl_back_btn')
+        self._kl_back_hide_widget = self._tab.findChild(QtW.QWidget, 'kl_back_hide_widget')
+        self.reset_back_btn()
+
         # ---------------------------------------------------
         #               Function Connections
         # ---------------------------------------------------
 
         self._kl_run_btn.clicked.connect(self._kl_run_handler)
+        self._kl_back_btn.clicked.connect(self._kl_back_btn_handler)
 
     # ---------------------------------------------------
     #                  Handler Function
@@ -359,6 +382,10 @@ class KaleTBDG(QtC.QObject):
         self._kl_completion_pb.setVisible(False)
         return
 
+    def _kl_back_btn_handler(self):
+        self.back.emit(self._original_index)
+        self.reset_back_btn()
+
     @Slot(int)
     def _pb_set_tasks_handler(self, task_number):
         if task_number > 0:
@@ -372,9 +399,20 @@ class KaleTBDG(QtC.QObject):
     def _pb_add_task_handler(self, num):
         self._kl_completion_pb.setValue(self._progress_bar.value() + num)
 
+    def external_run(self, original_index):
+        self._original_index = original_index
+        self._kl_run_handler()
+        self._kl_back_hide_widget.setVisible(True)
+
+    def reset_back_btn(self):
+        self._kl_back_hide_widget.setVisible(False)
+
     # ---------------------------------------------------
-    #                  Wrapper Function
+    #                  Getter Function
     # ---------------------------------------------------
+
+    def tab(self):
+        return self._tab
 
 
 class KaleTableView:
@@ -495,6 +533,8 @@ class KaleTableModel(QtG.QStandardItemModel):
 
 
 class SpinachTBDG(QtC.QObject):
+    run_kale = Signal()
+
     def __init__(self, tab, rt, cfg):
         """
         Class for the Spinach page of the RenderFarming Dialog
@@ -571,6 +611,8 @@ class SpinachTBDG(QtC.QObject):
         self._sp_img_filt_ovr_cmbx = IndexBasedComboBox(self._tab.findChild(QtW.QComboBox, 'sp_img_filt_ovr_cmbx'))
         self._sp_sats_prompt_cmbx = SATSPromptComboBox(self._tab.findChild(QtW.QComboBox, 'sp_sats_prompt_cmbx'))
 
+        self._sp_file_format_cmbx = IndexBasedComboBox(self._tab.findChild(QtW.QComboBox, 'sp_file_format_cmbx'))
+
         # ---------------------------------------------------
         #               Function Connections
         # ---------------------------------------------------
@@ -583,9 +625,9 @@ class SpinachTBDG(QtC.QObject):
 
         self._sp_settings_mro.toggled.connect(self._sp_settings_toggled)
 
-        self._sp_vfb_type_cmbx.cmbx.activated.connect(
-            lambda: self._spinach.set_frame_buffer_type(self._sp_vfb_type_cmbx.get_index())
-        )
+        self._sp_vfb_type_cmbx.cmbx.activated.connect(self._sp_vfb_type_cmbx_handler)
+        self._sp_file_format_cmbx.cmbx.activated.connect(self._sp_file_format_cmbx_handler)
+
         self._sp_img_filt_ovr_cmbx.cmbx.activated.connect(
             lambda: self._spinach.set_image_filter_override(self._sp_img_filt_ovr_cmbx.get_index())
         )
@@ -623,6 +665,7 @@ class SpinachTBDG(QtC.QObject):
         self._sp_gi_mode_cmbx_handler()
 
         cmbx_set_cur_ind(self._sp_vfb_type_cmbx.cmbx, (self._cfg.get_interface_setting("sp_vfb_type_cmbx_ind", 1)))
+        cmbx_set_cur_ind(self._sp_file_format_cmbx.cmbx, (self._cfg.get_interface_setting("sp_file_format_ind", 1)))
         cmbx_set_cur_ind(self._sp_img_filt_ovr_cmbx.cmbx,
                          (self._cfg.get_interface_setting("sp_img_filt_ovr_cmbx_ind", 1)))
         cmbx_set_cur_ind(self._sp_sats_prompt_cmbx.cmbx,
@@ -644,6 +687,7 @@ class SpinachTBDG(QtC.QObject):
         self._cfg.set_interface_setting("sp_gi_mode_cmbx_ind", self._sp_gi_mode_cmbx.cmbx.currentIndex())
 
         self._cfg.set_interface_setting("sp_vfb_type_cmbx_ind", self._sp_vfb_type_cmbx.cmbx.currentIndex())
+        self._cfg.set_interface_setting("sp_file_format_ind", self._sp_file_format_cmbx.cmbx.currentIndex())
         self._cfg.set_interface_setting("sp_img_filt_ovr_cmbx_ind", self._sp_img_filt_ovr_cmbx.cmbx.currentIndex())
         self._cfg.set_interface_setting("sp_sats_prompt_cmbx_ind", self._sp_sats_prompt_cmbx.cmbx.currentIndex())
         self._cfg.set_interface_setting("sp_multi_frame_increment_int", self._sp_multi_frame_increment_sb.value())
@@ -693,6 +737,7 @@ class SpinachTBDG(QtC.QObject):
             self._spinach.prepare_prepass(self._sp_gi_mode_cmbx.get_prepass_mode())
 
         self._match_prefix()
+        self._run_kale()
 
     def _sp_man_beauty_btn_handler(self):
         """
@@ -716,6 +761,7 @@ class SpinachTBDG(QtC.QObject):
             self._spinach.prepare_beauty_pass(self._sp_gi_mode_cmbx.get_beauty_mode())
 
         self._match_prefix()
+        self._run_kale()
 
     def _sp_gi_mode_cmbx_handler(self):
         """
@@ -727,6 +773,21 @@ class SpinachTBDG(QtC.QObject):
             self._sp_man_prepass_btn.setEnabled(False)
         else:
             self._sp_man_prepass_btn.setEnabled(True)
+
+    def _sp_file_format_cmbx_handler(self):
+        self._spinach.set_file_format(self._sp_file_format_cmbx.get_index())
+
+    def _sp_vfb_type_cmbx_handler(self):
+        index = self._sp_vfb_type_cmbx.get_index()
+        self._spinach.set_frame_buffer_type(index)
+
+        # Disables Save Formats that are not compatible with the Max Frame Buffer
+        if index == 0:
+            cmbx_set_cur_ind(self._sp_file_format_cmbx.cmbx, 0)
+            self._sp_file_format_cmbx_handler()
+            self._sp_file_format_cmbx.cmbx.setEnabled(False)
+        else:
+            self._sp_file_format_cmbx.cmbx.setEnabled(True)
 
     def _sp_reset_handler(self):
         """
@@ -740,7 +801,8 @@ class SpinachTBDG(QtC.QObject):
         Handler for altering the spinach object based on the initial ui state
         :return:
         """
-        self._spinach.set_frame_buffer_type(self._sp_vfb_type_cmbx.get_index())
+        self._sp_vfb_type_cmbx_handler()
+        self._spinach.set_file_format(self._sp_file_format_cmbx.get_index())
         self._spinach.set_image_filter_override(self._sp_img_filt_ovr_cmbx.get_index())
         self._spinach.set_frames_sub_folder(self._sp_frm_subFolder_le.text())
 
@@ -763,6 +825,10 @@ class SpinachTBDG(QtC.QObject):
         chk = rFT.match_prefix(self._rt.maxFileName, self._cfg.get_project_code())
         if chk is not None:
             self.set_spinach_status(chk)
+
+    def _run_kale(self):
+        if self._sp_run_kale_ckbx.isChecked():
+            self.run_kale.emit()
 
     # ---------------------------------------------------
     #                  Getter Functions

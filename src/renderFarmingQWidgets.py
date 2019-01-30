@@ -289,10 +289,13 @@ def layout_collapse_and_restore(layout, state):
     for child in layout.children():
         layout_collapse_and_restore(child, state)
 
+    if type(layout) is QtW.QFormLayout():
+        attribute_store_and_set(layout, state, 0, "verticalSpacing", "setVerticalSpacing")
+        attribute_store_and_set(layout, state, 0, "horizontalSpacing", "setHorizontalSpacing")
+    else:
+        attribute_store_and_set(layout, state, 0, "spacing", "setSpacing")
+
     attribute_store_and_set(layout, state, QMargins(0, 0, 0, 0), "contentsMargins", "setContentsMargins")
-    attribute_store_and_set(layout, state, 0, "spacing", "setSpacing")
-    attribute_store_and_set(layout, state, 0, "verticalSpacing", "setVerticalSpacing")
-    attribute_store_and_set(layout, state, 0, "horizontalSpacing", "setHorizontalSpacing")
 
     if hasattr(layout, "invalidate"):
         layout.invalidate()
@@ -306,7 +309,8 @@ def attribute_store_and_set(widget, state, new_value, get_func, set_func):
             if prop is not None:
                 getattr(widget, set_func)(prop)
         else:
-            widget.setProperty(attr_name, getattr(widget, get_func)())
+            old = getattr(widget, get_func)()
+            widget.setProperty(attr_name, old)
             getattr(widget, set_func)(new_value)
 
 
@@ -341,6 +345,7 @@ def attribute_store_and_set(widget, state, new_value, get_func, set_func):
 #         self.push3 = QtW.QPushButton("Push button 3")
 #
 #         self.push1.clicked.connect(self.expand_layout_handler)
+#         self.push2.clicked.connect(self.print_layout_handler)
 #
 #         self.radio4 = QtW.QRadioButton("Radio button 4")
 #         self.radio5 = QtW.QRadioButton("Radio button 5")
@@ -411,6 +416,9 @@ def attribute_store_and_set(widget, state, new_value, get_func, set_func):
 #
 #     def expand_layout_handler(self):
 #         self.form2.setHorizontalSpacing(10)
+#
+#     def print_layout_handler(self):
+#         print(self.form2.horizontalSpacing())
 #
 #
 # import MaxPlus

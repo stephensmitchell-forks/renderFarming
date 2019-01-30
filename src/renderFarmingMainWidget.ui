@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>670</width>
-    <height>658</height>
+    <width>1252</width>
+    <height>816</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -229,54 +229,16 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
-        <layout class="QHBoxLayout" name="sp_settings_hl">
+        <layout class="QHBoxLayout" name="sp_gi_settings_hl">
          <item>
           <layout class="QFormLayout" name="formLayout_2">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_frames_sub_folder">
-             <property name="text">
-              <string>Frames Sub-Folder</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="sp_frm_subFolder_le">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The sub-folder in the frames directory that the shot will render it's frames to.  The token &amp;quot;$(cam)&amp;quot; inserts the name of the current camera.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>$(cam)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_vfb_save_type">
-             <property name="text">
-              <string>VFB Save Type</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QComboBox" name="sp_vfb_type_cmbx">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes whether the image is rendered using the Max Frame Buffer or the VRay Frame Buffer.  This changes how the images will be saved and what they will be named.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <item>
-              <property name="text">
-               <string>Max</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>VRay</string>
-              </property>
-             </item>
-            </widget>
-           </item>
            <item row="3" column="0">
             <widget class="QLabel" name="label_image_filter_override">
              <property name="text">
               <string>Image Filter Override</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_img_filt_ovr_cmbx</cstring>
              </property>
             </widget>
            </item>
@@ -388,14 +350,127 @@
              </item>
             </widget>
            </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_time_segment_prompt">
+           <item row="2" column="1">
+            <widget class="QComboBox" name="sp_file_format_cmbx">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The File Format to render with.  Disabled while using the Max Frame Buffer.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="whatsThis">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The File Format to render with. Disabled while using the Max Frame Buffer. Available Formats are:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;OpenExr: Saves every render element as an OpenExr file.&lt;/li&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;MultiChannel OpenExr: Saves all render elements to a single file.&lt;/li&gt;&lt;li style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;VRImg: Saves using VRay's built-in format.&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>OpenEXR</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>MultiChannel OpenEXR</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRImg</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_save_format">
              <property name="text">
-              <string>Time Segment Prompt</string>
+              <string>Save Format</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_file_format_cmbx</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="sp_vfb_type_cmbx">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes whether the image is rendered using the Max Frame Buffer or the VRay Frame Buffer. This changes how the images will be saved and what they will be named.  &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>Max</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRay</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_vfb_save_type">
+             <property name="text">
+              <string>VFB Save Type</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_vfb_type_cmbx</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="sp_frm_subFolder_le">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The sub-folder in the frames directory that the shot will render it's frames to.  The token &amp;quot;$(cam)&amp;quot; inserts the name of the current camera.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>$(cam)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_frames_sub_folder">
+             <property name="text">
+              <string>Frames Sub-Folder</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_frm_subFolder_le</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_multi_frame_increment">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="text">
+              <string>Multi Frame Increment</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_multi_frame_increment_sb</cstring>
              </property>
             </widget>
            </item>
            <item row="4" column="1">
+            <widget class="QSpinBox" name="sp_multi_frame_increment_sb">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The increment between Irradiance Map calculations used by &amp;quot;Multi Frame Incremental Mode&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="singleStep">
+              <number>10</number>
+             </property>
+             <property name="value">
+              <number>50</number>
+             </property>
+             <property name="displayIntegerBase">
+              <number>10</number>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
             <widget class="QComboBox" name="sp_sats_prompt_cmbx">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Activates a pop-up everytime either &amp;quot;Prepare Prepass&amp;quot; or &amp;quot;Prepare Beauty Pass&amp;quot; are clicked. It asks the user to confirm the frame range of the shot they are sending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -423,63 +498,25 @@
             </widget>
            </item>
            <item row="5" column="0">
-            <widget class="QLabel" name="label_multi_frame_increment">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
+            <widget class="QLabel" name="label_time_segment_prompt">
              <property name="text">
-              <string>Multi Frame Increment</string>
+              <string>Time Segment Prompt</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_sats_prompt_cmbx</cstring>
              </property>
             </widget>
            </item>
-           <item row="5" column="1">
-            <widget class="QSpinBox" name="sp_multi_frame_increment_sb">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The increment between Irradiance Map calculations used by &amp;quot;Multi Frame Incremental Mode&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="maximum">
-              <number>65535</number>
-             </property>
-             <property name="singleStep">
-              <number>10</number>
-             </property>
-             <property name="value">
-              <number>50</number>
-             </property>
-             <property name="displayIntegerBase">
-              <number>10</number>
-             </property>
-            </widget>
+           <item row="6" column="1">
+            <widget class="QSpinBox" name="sp_autosave_interval_sb"/>
            </item>
-           <item row="2" column="1">
-            <widget class="QComboBox" name="sp_save_format_cmbx">
-             <item>
-              <property name="text">
-               <string>OpenEXR</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>MultiChannel OpenEXR</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>VRImg</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_save_format">
+           <item row="6" column="0">
+            <widget class="QLabel" name="label_autosave_interval">
              <property name="text">
-              <string>Save Format</string>
+              <string>Autosave Interval</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_autosave_interval_sb</cstring>
              </property>
             </widget>
            </item>
@@ -500,6 +537,19 @@
          </item>
          <item>
           <layout class="QFormLayout" name="formLayout">
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="sp_sub_fold_name_gi_ckbx">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes the name of the GI file to match the specified sub-folder name to prevent naming conflicts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Use Sub Folder Name for GI</string>
+             </property>
+            </widget>
+           </item>
            <item row="2" column="0">
             <widget class="QCheckBox" name="sp_pad_gi_range_ckbx">
              <property name="enabled">
@@ -526,16 +576,10 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="sp_sub_fold_name_gi_ckbx">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes the name of the GI file to match the specified sub-folder name to prevent naming conflicts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
+           <item row="4" column="0">
+            <widget class="QCheckBox" name="sp_resumable_rendering_ckbx">
              <property name="text">
-              <string>Use Sub Folder Name for GI</string>
+              <string>Resumable Rendering</string>
              </property>
             </widget>
            </item>
@@ -665,6 +709,47 @@
       <attribute name="verticalHeaderVisible">
        <bool>false</bool>
       </attribute>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="kl_back_hide_widget" native="true">
+      <layout class="QHBoxLayout" name="horizontalLayout_6">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QPushButton" name="kl_back_btn">
+         <property name="text">
+          <string>Back</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
      </widget>
     </item>
     <item>
@@ -1147,12 +1232,31 @@
   <tabstop>sp_backburner_submit_btn</tabstop>
   <tabstop>sp_frm_subFolder_le</tabstop>
   <tabstop>sp_vfb_type_cmbx</tabstop>
+  <tabstop>sp_file_format_cmbx</tabstop>
   <tabstop>sp_img_filt_ovr_cmbx</tabstop>
+  <tabstop>sp_multi_frame_increment_sb</tabstop>
   <tabstop>sp_sats_prompt_cmbx</tabstop>
+  <tabstop>sp_autosave_interval_sb</tabstop>
+  <tabstop>sp_sub_fold_name_gi_ckbx</tabstop>
   <tabstop>sp_pad_gi_range_ckbx</tabstop>
   <tabstop>sp_run_kale_ckbx</tabstop>
+  <tabstop>sp_resumable_rendering_ckbx</tabstop>
   <tabstop>sp_reset_btn</tabstop>
   <tabstop>kl_run_btn</tabstop>
+  <tabstop>kl_filter_btn</tabstop>
+  <tabstop>kl_results_text_tbvw</tabstop>
+  <tabstop>kl_back_btn</tabstop>
+  <tabstop>config_project_projectCode_le</tabstop>
+  <tabstop>config_project_fullName_le</tabstop>
+  <tabstop>config_paths_projectsDirectory_le</tabstop>
+  <tabstop>config_paths_framesDirectory_le</tabstop>
+  <tabstop>config_paths_irradianceMapDirectory_le</tabstop>
+  <tabstop>config_paths_lightCacheDirectory_le</tabstop>
+  <tabstop>config_paths_logDirectory_le</tabstop>
+  <tabstop>config_paths_arugulaDirectory_le</tabstop>
+  <tabstop>config_test_btn</tabstop>
+  <tabstop>config_backburner_manager_le</tabstop>
+  <tabstop>config_logging_loggingLevel_cmbx</tabstop>
   <tabstop>config_save_btn</tabstop>
   <tabstop>config_reset_btn</tabstop>
   <tabstop>lg_open_explorer_btn</tabstop>
