@@ -550,8 +550,6 @@ class SpinachTBDG(QtC.QObject):
         self._cfg = cfg
         self._rt = rt
 
-        self._settings_visible = True
-
         # Logger
 
         self._clg = logging.getLogger("renderFarming.UI.SpinachTBDG")
@@ -574,6 +572,7 @@ class SpinachTBDG(QtC.QObject):
         # ---------------------------------------------------
 
         self._sp_multi_frame_increment_sb = self._tab.findChild(QtW.QSpinBox, 'sp_multi_frame_increment_sb')
+        self._sp_autosave_interval_dsb = self._tab.findChild(QtW.QDoubleSpinBox, 'sp_autosave_interval_dsb')
 
         # ---------------------------------------------------
         #               Check Box Definitions
@@ -582,12 +581,14 @@ class SpinachTBDG(QtC.QObject):
         self._sp_pad_gi_range_ckbx = self._tab.findChild(QtW.QCheckBox, 'sp_pad_gi_range_ckbx')
         self._sp_sub_fold_name_gi_ckbx = self._tab.findChild(QtW.QCheckBox, 'sp_sub_fold_name_gi_ckbx')
         self._sp_run_kale_ckbx = self._tab.findChild(QtW.QCheckBox, 'sp_run_kale_ckbx')
+        self._sp_resumable_rendering_ckbx = self._tab.findChild(QtW.QCheckBox, 'sp_resumable_rendering_ckbx')
 
         # ---------------------------------------------------
         #               Label Definitions
         # ---------------------------------------------------
 
         self._spinach_status_lb = self._tab.findChild(QtW.QLabel, 'label_spinach_status')
+        self._label_autosave_interval = self._tab.findChild(QtW.QLabel, 'label_autosave_interval')
 
         # ---------------------------------------------------
         #               Line Edit Definitions
@@ -599,7 +600,8 @@ class SpinachTBDG(QtC.QObject):
         #             Layout Element Definitions
         # ---------------------------------------------------
 
-        self._sp_settings_mro = self._tab.findChild(rFQtW.QMaxRollout, 'sp_settings_mro')
+        self._sp_gi_settings_mro = self._tab.findChild(rFQtW.QMaxRollout, 'sp_gi_settings_mro')
+        self._sp_frame_buffer_mro = self._tab.findChild(rFQtW.QMaxRollout, 'sp_frame_buffer_mro')
 
         # ---------------------------------------------------
         #               Combo Box Connections
@@ -623,8 +625,6 @@ class SpinachTBDG(QtC.QObject):
         self._sp_man_beauty_btn.clicked.connect(self._sp_man_beauty_btn_handler)
         self._sp_backburner_submit_btn.clicked.connect(self._backburner_submit_handler)
 
-        self._sp_settings_mro.toggled.connect(self._sp_settings_toggled)
-
         self._sp_vfb_type_cmbx.cmbx.activated.connect(self._sp_vfb_type_cmbx_handler)
         self._sp_file_format_cmbx.cmbx.activated.connect(self._sp_file_format_cmbx_handler)
 
@@ -637,11 +637,17 @@ class SpinachTBDG(QtC.QObject):
         self._sp_multi_frame_increment_sb.valueChanged.connect(
             lambda: self._spinach.set_multi_frame_increment(self._sp_multi_frame_increment_sb.value())
         )
+        self._sp_autosave_interval_dsb.valueChanged.connect(
+            lambda: self._spinach.set_autosave_interval(self._sp_autosave_interval_dsb.value())
+        )
         self._sp_pad_gi_range_ckbx.stateChanged.connect(
             lambda: self._spinach.set_pad_gi(self._sp_pad_gi_range_ckbx.isChecked())
         )
         self._sp_sub_fold_name_gi_ckbx.stateChanged.connect(
             lambda: self._spinach.set_sub_folder_as_gi_name(self._sp_sub_fold_name_gi_ckbx.isChecked())
+        )
+        self._sp_resumable_rendering_ckbx.stateChanged.connect(
+            lambda: self._spinach.set_resumable_rendering(self._sp_resumable_rendering_ckbx.isChecked())
         )
 
         self._sp_reset_btn.clicked.connect(self._sp_reset_handler)
@@ -673,15 +679,17 @@ class SpinachTBDG(QtC.QObject):
 
         self._sp_frm_subFolder_le.setText(self._cfg.get_interface_setting("sp_frm_subFolder_le_str", 0))
         self._sp_multi_frame_increment_sb.setValue(self._cfg.get_interface_setting("sp_multi_frame_increment_int", 1))
+        self._sp_autosave_interval_dsb.setValue(self._cfg.get_interface_setting("sp_autosave_interval_flt", 2))
 
         self._sp_pad_gi_range_ckbx.setChecked(self._cfg.get_interface_setting("sp_pad_gi_range_bool", 3))
         self._sp_run_kale_ckbx.setChecked(self._cfg.get_interface_setting("sp_run_kale_bool", 3))
         self._sp_sub_fold_name_gi_ckbx.setChecked(self._cfg.get_interface_setting("sp_sub_fold_name_gi_bool", 3))
+        self._sp_resumable_rendering_ckbx.setChecked(self._cfg.get_interface_setting("sp_resumable_render_bool", 3))
 
-        self._settings_visible = self._cfg.get_interface_setting("sp_settings_bool", 3)
+        self._mro_set_delay(self._sp_gi_settings_mro, self._cfg.get_interface_setting("sp_gi_settings_bool", 3))
+        self._mro_set_delay(self._sp_frame_buffer_mro, self._cfg.get_interface_setting("sp_fb_settings_bool", 3))
 
         self._sp_apply_initial_settings()
-        self._sp_settings_hide_initializer()
 
     def config_apply_spinach_page(self):
         self._cfg.set_interface_setting("sp_gi_mode_cmbx_ind", self._sp_gi_mode_cmbx.cmbx.currentIndex())
@@ -691,21 +699,25 @@ class SpinachTBDG(QtC.QObject):
         self._cfg.set_interface_setting("sp_img_filt_ovr_cmbx_ind", self._sp_img_filt_ovr_cmbx.cmbx.currentIndex())
         self._cfg.set_interface_setting("sp_sats_prompt_cmbx_ind", self._sp_sats_prompt_cmbx.cmbx.currentIndex())
         self._cfg.set_interface_setting("sp_multi_frame_increment_int", self._sp_multi_frame_increment_sb.value())
+        self._cfg.set_interface_setting("sp_autosave_interval_flt", self._sp_autosave_interval_dsb.value())
 
         self._cfg.set_interface_setting("sp_pad_gi_range_bool", self._sp_pad_gi_range_ckbx.isChecked())
         self._cfg.set_interface_setting("sp_run_kale_bool", self._sp_run_kale_ckbx.isChecked())
         self._cfg.set_interface_setting("sp_sub_fold_name_gi_bool", self._sp_sub_fold_name_gi_ckbx.isChecked())
+        self._cfg.set_interface_setting("sp_resumable_render_bool", self._sp_resumable_rendering_ckbx.isChecked())
 
         self._cfg.set_interface_setting("sp_frm_subFolder_le_str", self._sp_frm_subFolder_le.text())
 
-        self._cfg.set_interface_setting("sp_settings_bool", self._settings_visible)
+        self._cfg.set_interface_setting("sp_gi_settings_bool", self._sp_gi_settings_mro.isExpanded())
+        self._cfg.set_interface_setting("sp_fb_settings_bool", self._sp_frame_buffer_mro.isExpanded())
 
     # ---------------------------------------------------
     #                  Handler Functions
     # ---------------------------------------------------
 
-    def _sp_settings_hide_initializer(self):
-        self._sp_settings_mro.setExpandedDelay(self._settings_visible)
+    # noinspection PyMethodMayBeStatic
+    def _mro_set_delay(self, widget, state):
+        widget.setExpandedDelay(state)
 
     def _backburner_submit_handler(self):
         """
@@ -784,10 +796,20 @@ class SpinachTBDG(QtC.QObject):
         # Disables Save Formats that are not compatible with the Max Frame Buffer
         if index == 0:
             cmbx_set_cur_ind(self._sp_file_format_cmbx.cmbx, 0)
+            self._sp_resumable_rendering_ckbx.setChecked(False)
+
             self._sp_file_format_cmbx_handler()
+            self._spinach.set_resumable_rendering(False)
+
             self._sp_file_format_cmbx.cmbx.setEnabled(False)
+            self._sp_autosave_interval_dsb.setEnabled(False)
+            self._sp_resumable_rendering_ckbx.setEnabled(False)
+            self._label_autosave_interval.setEnabled(False)
         else:
             self._sp_file_format_cmbx.cmbx.setEnabled(True)
+            self._sp_autosave_interval_dsb.setEnabled(True)
+            self._sp_resumable_rendering_ckbx.setEnabled(True)
+            self._label_autosave_interval.setEnabled(True)
 
     def _sp_reset_handler(self):
         """
@@ -805,13 +827,12 @@ class SpinachTBDG(QtC.QObject):
         self._spinach.set_file_format(self._sp_file_format_cmbx.get_index())
         self._spinach.set_image_filter_override(self._sp_img_filt_ovr_cmbx.get_index())
         self._spinach.set_frames_sub_folder(self._sp_frm_subFolder_le.text())
+        self._spinach.set_autosave_interval(self._sp_autosave_interval_dsb.value())
 
         self._spinach.set_multi_frame_increment(self._sp_multi_frame_increment_sb.value())
         self._spinach.set_pad_gi(self._sp_pad_gi_range_ckbx.isChecked())
         self._spinach.set_sub_folder_as_gi_name(self._sp_sub_fold_name_gi_ckbx.isChecked())
-
-    def _sp_settings_toggled(self, state):
-        self._settings_visible = state
+        self._spinach.set_resumable_rendering(self._sp_resumable_rendering_ckbx.isChecked())
 
     # ---------------------------------------------------
     #                Checker Functions
@@ -993,10 +1014,10 @@ class ConfigTBDG(QtC.QObject):
         self._cfg_lg_loggingLevel_cmbx.set_by_level(self._cfg.get_log_level())
 
     def config_page_ui_setup(self):
-        self._config_project_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_project_mro", 3))
-        self._config_paths_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_paths_mro", 3))
-        self._config_backburner_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_backburner_mro", 3))
-        self._config_logging_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_logging_mro", 3))
+        self._config_project_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_project_mro_bool", 3))
+        self._config_paths_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_paths_mro_bool", 3))
+        self._config_backburner_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_backburner_mro_bool", 3))
+        self._config_logging_mro.setExpandedDelay(self._cfg.get_interface_setting("cg_logging_mro_bool", 3))
 
     def config_apply_config_page(self):
         # Config
@@ -1018,10 +1039,10 @@ class ConfigTBDG(QtC.QObject):
 
         # UI only
 
-        self._cfg.set_interface_setting("cg_project_mro", self._config_project_mro.isExpanded())
-        self._cfg.set_interface_setting("cg_paths_mro", self._config_paths_mro.isExpanded())
-        self._cfg.set_interface_setting("cg_backburner_mro", self._config_backburner_mro.isExpanded())
-        self._cfg.set_interface_setting("cg_logging_mro", self._config_logging_mro.isExpanded())
+        self._cfg.set_interface_setting("cg_project_mro_bool", self._config_project_mro.isExpanded())
+        self._cfg.set_interface_setting("cg_paths_mro_bool", self._config_paths_mro.isExpanded())
+        self._cfg.set_interface_setting("cg_backburner_mro_bool", self._config_backburner_mro.isExpanded())
+        self._cfg.set_interface_setting("cg_logging_mro_bool", self._config_logging_mro.isExpanded())
 
     # ---------------------------------------------------
     #                  Handler Function
@@ -1118,7 +1139,7 @@ class LogTBDG(QtC.QObject):
     def _filter_empty_lines(self, text):
         """
         Filters out empty lines from the log text
-        Frome: https://stackoverflow.com/a/24172715
+        From: https://stackoverflow.com/a/24172715
         :param text: The string to be filtered
         :return:
         """

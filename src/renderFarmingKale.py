@@ -34,16 +34,23 @@ class Kale(QtC.QObject):
         # Checks
         # --------------------
 
-        self.set_tasks.emit(8)
+        checks = [
+            self.match_prefix,
+            self._global_switches,
+            self._image_sampler,
+            self._environment_overrides,
+            self._atmosphere_effects,
+            self._frame_buffer_effects,
+            self._camera_check,
+            self._render_passes,
+            self._color_mapping,
+        ]
 
-        self.match_prefix()
-        self._global_switches()
-        self._image_sampler()
-        self._environment_overrides()
-        self._atmosphere_effects()
-        self._frame_buffer_effects()
-        self._camera_check()
-        self._color_mapping()
+        self.set_tasks.emit(len(checks))
+
+        for chk in checks:
+            chk()
+            self.add_task.emit(1)
 
     # ---------------------------------------------------
     #                  Setter Functions
@@ -122,7 +129,6 @@ class Kale(QtC.QObject):
         if self._vr.options_hiddenLights:
             self.append_item(KaleItem("Hidden Lights",
                                       "Hidden lights are enabled", "Settings", 0))
-        self.add_task.emit(1)
 
     def _image_sampler(self):
         if self._vr.imageSampler_renderMask_type == 1:
@@ -153,7 +159,6 @@ class Kale(QtC.QObject):
                 self.append_item(KaleItem("Object ID Render Mask Missing",
                                           "An object ID render mask is enabled, but there are no object IDs specified",
                                           "Settings", 3))
-        self.add_task.emit(1)
 
     def _environment_overrides(self):
         if self._vr.environment_gi_on:
@@ -174,7 +179,6 @@ class Kale(QtC.QObject):
         if not self._rt.useEnvironmentMap:
             self.append_item(KaleItem("No Environment Map",
                                       "Environment is not using a map", "Scene", 1))
-        self.add_task.emit(1)
 
     def _atmosphere_effects(self):
         num_atmos = self._rt.numAtmospherics
@@ -204,7 +208,6 @@ class Kale(QtC.QObject):
             if vray_env_fog_active:
                 self.append_item(KaleItem("Environment Fog",
                                           "A VRay environment fog effect is active in the scene", "Scene", 2))
-        self.add_task.emit(1)
 
     def _frame_buffer_effects(self):
         if self._rt.vrayVFBGetRegionEnabled():
@@ -252,10 +255,38 @@ class Kale(QtC.QObject):
         if self._rt.vfbControl(self._rt.name("glare"))[0]:
             self.append_item(KaleItem("VFB Glare",
                                       "The glare effect is enabled", "VFB", 1))
-        self.add_task.emit(1)
 
     def _render_passes(self):
-        return
+        if self._vr.output_resumableRendering:
+            self.append_item(KaleItem("Resumable Rendering",
+                                      "Resumable Rendering is enabled", "Settings", 2))
+
+            if self._vr.imageSampler_type_new == 1:
+                interval = self._vr.output_progressiveAutoSave
+
+                msg = "Resumable Autosave is set to a value of {}".format(interval)
+
+                if rFT.isclose(interval, 0.0, 0.01):
+                    self.append_item(KaleItem("Resumable Autosave Disabled",
+                                              "Resumable Autosave is set to a value of 0, disabling this feature",
+                                              "Settings", 1))
+                elif interval < 45.0:
+                    self.append_item(KaleItem(
+                        "Resumable Autosave Interval Very Low",
+                        "{}, which leads to very frequent saves".format(msg),
+                        "Settings",
+                        1
+                    ))
+                elif interval > 200.0:
+                    self.append_item(KaleItem(
+                        "Resumable Autosave Interval Very High",
+                        "{}, which leads to very infrequent saves".format(msg),
+                        "Settings",
+                        1
+                    ))
+            if self._vr.output_saveRawFile:
+                self.append_item(KaleItem("Save Raw File",
+                                          "V-Ray Raw Image file is enabled", "Settings", 2))
 
     def _camera_check(self):
         cam = self._rt.getActiveCamera()
@@ -284,7 +315,6 @@ class Kale(QtC.QObject):
             if cam.use_dof:
                 self.append_item(KaleItem("Camera Depth of Field",
                                           "The active camera has depth of field enabled", "Camera", 2))
-        self.add_task.emit(1)
 
     def _color_mapping(self):
         gamma = self._vr.colorMapping_gamma
@@ -332,7 +362,6 @@ class Kale(QtC.QObject):
         if self._vr.colorMapping_subpixel:
             msg = "Sub-Pixel mapping is enabled, this is not recommended in VRay 3"
             self.append_item(KaleItem("Sub-Pixel Mapping", msg, "Settings", 3))
-        self.add_task.emit(1)
 
 
 class KaleItem:

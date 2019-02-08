@@ -113,7 +113,7 @@ class QMaxRollout(QtW.QWidget):
                 self._title_bound_rect = font_metric.boundingRect(prop)
                 self._full_title = prop
             else:
-                self._title_bound_rect = font_metric.boundingRect("TEST")
+                self._title_bound_rect = font_metric.boundingRect("UNTITLED")
         else:
             self._title_bound_rect = font_metric.boundingRect(self._full_title)
 

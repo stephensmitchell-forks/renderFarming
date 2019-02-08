@@ -92,6 +92,9 @@ class SpinachJob(QObject):
         self._multi_frame_increment = 50
         self._pad_gi = False
 
+        self._autosave_interval = 0.0
+        self._resumable_rendering = False
+
         self._nth_frame = 1
         self._sp_sub_fold_name_gi = False
 
@@ -117,6 +120,14 @@ class SpinachJob(QObject):
                 self.status_update.emit(SpinachMessage("One or more paths are invalid", "Error"))
                 return False
         return True
+
+    def _file_format_extension(self):
+        formats = {
+            0: "exr",
+            1: "exr",
+            3: "vrimg"
+        }
+        return formats.get(self._file_format, "exr")
 
     def _rsd_open(self):
         """
@@ -393,21 +404,25 @@ class SpinachJob(QObject):
         :return: None
         """
         flg = logging.getLogger("renderFarming.Spinach._set_output")
+        path = "{0}\\frame_.{1}".format(self._frames_dir, self._file_format_extension())
+
         if beauty:
             if fb_type is 0:
                 self._rt.rendSaveFile = True
                 self._vr.output_on = False
+                self._vr.output_resumableRendering = False
                 flg.debug("3ds Max Frame Buffer is on")
 
                 self._vr.output_splitgbuffer = False
 
                 flg.debug("Setting 3ds Max Frame Buffer output directory to the folder specified for the camera")
-                flg.debug("{0}\\frame_.exr".format(self._frames_dir))
+                flg.debug(path)
 
-                self._rt.rendOutputFilename = "{0}\\frame_.exr".format(self._frames_dir)
+                self._rt.rendOutputFilename = path
                 self._set_render_element_output()
 
                 self._vr.output_splitFileName = ""
+                self._vr.output_rawFileName = ""
 
             elif fb_type is 1:
                 self._rt.rendSaveFile = False
@@ -417,36 +432,58 @@ class SpinachJob(QObject):
                 self._vr.output_splitgbuffer = True
 
                 flg.debug("Setting VRay Frame Buffer output directory to the folder specified for the camera")
-                flg.debug("{0}\\frame_.exr".format(self._frames_dir))
+                flg.debug(path)
 
                 self._clear_render_element_output()
-                self._vr.output_splitFileName = "{0}\\frame_.exr".format(self._frames_dir)
                 self._rt.rendOutputFilename = ""
+
+                if self._resumable_rendering:
+                    self._vr.output_progressiveAutoSave = self._autosave_interval
+                    self._vr.output_resumableRendering = True
+                else:
+                    self._vr.output_resumableRendering = False
+
+                if self._file_format == 0:
+                    self._vr.output_saveRawFile = False
+                    self._vr.output_splitgbuffer = True
+                    self._vr.output_rawFileName = ""
+                    self._vr.output_splitFileName = path
+                else:
+                    self._vr.output_saveRawFile = True
+                    self._vr.output_splitgbuffer = False
+                    self._vr.output_rawFileName = path
+                    self._vr.output_splitFileName = ""
 
         else:
             if fb_type is 0:
                 self._rt.rendSaveFile = False
                 self._vr.output_on = False
+                self._vr.output_resumableRendering = False
                 flg.debug("3ds Max Frame Buffer is on")
 
                 self._vr.output_splitgbuffer = False
+                self._vr.output_saveRawFile = False
 
                 flg.debug("Clearing Output Directory")
                 self._clear_render_element_output()
                 self._rt.rendOutputFilename = ""
                 self._vr.output_splitFileName = ""
+                self._vr.output_rawFileName = ""
 
             elif fb_type is 1:
                 self._rt.rendSaveFile = False
                 self._vr.output_on = True
+                self._vr.output_resumableRendering = False
                 flg.debug("VRay Frame Buffer is on")
 
                 self._vr.output_splitgbuffer = False
+                self._vr.output_saveRawFile = False
 
                 flg.debug("Clearing Output Directory")
                 self._clear_render_element_output()
                 self._rt.rendOutputFilename = ""
                 self._vr.output_splitFileName = ""
+                self._vr.output_rawFileName = ""
 
     def _override_image_filter(self):
         flg = logging.getLogger("renderFarming.Spinach._override_image_filter")
@@ -888,9 +925,15 @@ class SpinachJob(QObject):
     def set_multi_frame_increment(self, increment):
         flg = logging.getLogger("renderFarming.Spinach.set_multi_frame_increment")
         if increment < 1:
-            flg.error("Index Error: Index is less than 1")
+            flg.error("Increment Error: Increment is less than 1")
         else:
             self._multi_frame_increment = increment
+
+    def set_autosave_interval(self, interval):
+        self._autosave_interval = interval
+
+    def set_resumable_rendering(self, state):
+        self._resumable_rendering = state
 
     def set_nth_frame(self, nth_frame):
         self._nth_frame = nth_frame

@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1252</width>
-    <height>816</height>
+    <width>749</width>
+    <height>761</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -223,7 +223,14 @@
      </widget>
     </item>
     <item>
-     <widget class="QMaxRollout" name="sp_settings_mro" native="true">
+     <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QMaxRollout" name="sp_gi_settings_mro" native="true">
       <property name="title" stdset="0">
        <string>Settings</string>
       </property>
@@ -232,7 +239,44 @@
         <layout class="QHBoxLayout" name="sp_gi_settings_hl">
          <item>
           <layout class="QFormLayout" name="formLayout_2">
-           <item row="3" column="0">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_time_segment_prompt">
+             <property name="text">
+              <string>Time Segment Prompt</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_sats_prompt_cmbx</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="sp_sats_prompt_cmbx">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Activates a pop-up everytime either &amp;quot;Prepare Prepass&amp;quot; or &amp;quot;Prepare Beauty Pass&amp;quot; are clicked. It asks the user to confirm the frame range of the shot they are sending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>None</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Prepass</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Beauty</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Both</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="1" column="0">
             <widget class="QLabel" name="label_image_filter_override">
              <property name="text">
               <string>Image Filter Override</string>
@@ -242,7 +286,7 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
+           <item row="1" column="1">
             <widget class="QComboBox" name="sp_img_filt_ovr_cmbx">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Allows overriding the Image Filter in a file with one from the list.  &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -350,6 +394,161 @@
              </item>
             </widget>
            </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QFormLayout" name="formLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_multi_frame_increment">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="text">
+              <string>Multi Frame Increment</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_multi_frame_increment_sb</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="sp_pad_gi_range_ckbx">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When using &amp;quot;Animation Prepass&amp;quot; mode  or &amp;quot;Multi Frame Incremental&amp;quot; mode, Spinach will alter the frame ranget to ensure full Global Illumination converage across the shot.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Pad GI Range</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="sp_multi_frame_increment_sb">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The increment between Irradiance Map calculations used by &amp;quot;Multi Frame Incremental Mode&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>65535</number>
+             </property>
+             <property name="singleStep">
+              <number>10</number>
+             </property>
+             <property name="value">
+              <number>50</number>
+             </property>
+             <property name="displayIntegerBase">
+              <number>10</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QCheckBox" name="sp_run_kale_ckbx">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Runs the Kale Sanity Checker everytime either &amp;quot;Prepare Prepass&amp;quot; or &amp;quot;Prepare Beauty Pass&amp;quot; are clicked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Run Sanity Check</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_6">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QMaxRollout" name="sp_frame_buffer_mro" native="true">
+      <property name="title" stdset="0">
+       <string>Frame Buffer</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_11">
+       <item>
+        <layout class="QHBoxLayout" name="sp_frame_buffer_settings_hl">
+         <item>
+          <layout class="QFormLayout" name="formLayout_9">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_frames_sub_folder">
+             <property name="text">
+              <string>Frames Sub-Folder</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_frm_subFolder_le</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="sp_frm_subFolder_le">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The sub-folder in the frames directory that the shot will render it's frames to.  The token &amp;quot;$(cam)&amp;quot; inserts the name of the current camera.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>$(cam)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_vfb_save_type">
+             <property name="text">
+              <string>VFB Save Type</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_vfb_type_cmbx</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="sp_vfb_type_cmbx">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes whether the image is rendered using the Max Frame Buffer or the VRay Frame Buffer. This changes how the images will be saved and what they will be named.  &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>Max</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VRay</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_save_format">
+             <property name="text">
+              <string>Save Format</string>
+             </property>
+             <property name="buddy">
+              <cstring>sp_file_format_cmbx</cstring>
+             </property>
+            </widget>
+           </item>
            <item row="2" column="1">
             <widget class="QComboBox" name="sp_file_format_cmbx">
              <property name="toolTip">
@@ -375,148 +574,65 @@
              </item>
             </widget>
            </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_save_format">
-             <property name="text">
-              <string>Save Format</string>
-             </property>
-             <property name="buddy">
-              <cstring>sp_file_format_cmbx</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QComboBox" name="sp_vfb_type_cmbx">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes whether the image is rendered using the Max Frame Buffer or the VRay Frame Buffer. This changes how the images will be saved and what they will be named.  &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <item>
-              <property name="text">
-               <string>Max</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>VRay</string>
-              </property>
-             </item>
-            </widget>
-           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QFormLayout" name="formLayout_8">
            <item row="1" column="0">
-            <widget class="QLabel" name="label_vfb_save_type">
-             <property name="text">
-              <string>VFB Save Type</string>
-             </property>
-             <property name="buddy">
-              <cstring>sp_vfb_type_cmbx</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="sp_frm_subFolder_le">
+            <widget class="QCheckBox" name="sp_resumable_rendering_ckbx">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The sub-folder in the frames directory that the shot will render it's frames to.  The token &amp;quot;$(cam)&amp;quot; inserts the name of the current camera.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enables V-Ray Resumable Rendering.&lt;br/&gt;Only avalable using the V-Ray Frame Buffer.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="whatsThis">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enables V-Ray Resumable Rendering. Only avalable using the V-Ray Frame Buffer. &lt;/p&gt;&lt;p&gt;If there is a resumable file existing for the current frame, the rendering will be resumed from it. Otherwise a new render will be started and resumable files will be saved. If the rendering is already complete, the frame will be skipped and the next one (if any) will be started. For more details, please see the &lt;a href=&quot;https://docs.chaosgroup.com/display/VRAY3MAX/Continue+a+render+with+Resumable+Rendering&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;V-Ray Documentation&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;Note: Resumable information is stored in additional .vrimg or .vrprog files. Resuming a render with bucket sampling will use and create additional .vrimg files. Resuming a render with progressive sampling will use and create separate .vrprog (progressive resumable) files. For instance, if resumable rendering is enabled when rendering to a PNG file format using the progressive sampler, resumable information will be saved as a .vrprog file along with the output PNG.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
-              <string>$(cam)</string>
+              <string>Resumable Rendering</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_frames_sub_folder">
-             <property name="text">
-              <string>Frames Sub-Folder</string>
-             </property>
-             <property name="buddy">
-              <cstring>sp_frm_subFolder_le</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_multi_frame_increment">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="text">
-              <string>Multi Frame Increment</string>
-             </property>
-             <property name="buddy">
-              <cstring>sp_multi_frame_increment_sb</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QSpinBox" name="sp_multi_frame_increment_sb">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The increment between Irradiance Map calculations used by &amp;quot;Multi Frame Incremental Mode&amp;quot;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="maximum">
-              <number>65535</number>
-             </property>
-             <property name="singleStep">
-              <number>10</number>
-             </property>
-             <property name="value">
-              <number>50</number>
-             </property>
-             <property name="displayIntegerBase">
-              <number>10</number>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QComboBox" name="sp_sats_prompt_cmbx">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Activates a pop-up everytime either &amp;quot;Prepare Prepass&amp;quot; or &amp;quot;Prepare Beauty Pass&amp;quot; are clicked. It asks the user to confirm the frame range of the shot they are sending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <item>
-              <property name="text">
-               <string>None</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Prepass</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Beauty</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Both</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="label_time_segment_prompt">
-             <property name="text">
-              <string>Time Segment Prompt</string>
-             </property>
-             <property name="buddy">
-              <cstring>sp_sats_prompt_cmbx</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1">
-            <widget class="QSpinBox" name="sp_autosave_interval_sb"/>
-           </item>
-           <item row="6" column="0">
+           <item row="2" column="0">
             <widget class="QLabel" name="label_autosave_interval">
              <property name="text">
               <string>Autosave Interval</string>
              </property>
              <property name="buddy">
-              <cstring>sp_autosave_interval_sb</cstring>
+              <cstring>sp_autosave_interval_dsb</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QDoubleSpinBox" name="sp_autosave_interval_dsb">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies an interval in minutes for saving resumable files during rendering. This usage applies only to Progressive sampling. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="whatsThis">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies an interval in minutes for saving resumable files during rendering. This usage applies only to Progressive sampling; Bucket renderings are saved on every completed bucket. A value of 0 disables autosaving during rendering and resumable files will be saved only at the end of the rendering.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="decimals">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <double>16000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>60.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>180.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="sp_sub_fold_name_gi_ckbx">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes the name of the GI file to match the specified sub-folder name to prevent naming conflicts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Use Sub Folder Name for GI</string>
              </property>
             </widget>
            </item>
@@ -534,56 +650,6 @@
             </size>
            </property>
           </spacer>
-         </item>
-         <item>
-          <layout class="QFormLayout" name="formLayout">
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="sp_sub_fold_name_gi_ckbx">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Changes the name of the GI file to match the specified sub-folder name to prevent naming conflicts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Use Sub Folder Name for GI</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="sp_pad_gi_range_ckbx">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When using &amp;quot;Animation Prepass&amp;quot; mode  or &amp;quot;Multi Frame Incremental&amp;quot; mode, Spinach will alter the frame ranget to ensure full Global Illumination converage across the shot.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Pad GI Range</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QCheckBox" name="sp_run_kale_ckbx">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Runs the Kale Sanity Checker everytime either &amp;quot;Prepare Prepass&amp;quot; or &amp;quot;Prepare Beauty Pass&amp;quot; are clicked.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Run Sanity Check</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QCheckBox" name="sp_resumable_rendering_ckbx">
-             <property name="text">
-              <string>Resumable Rendering</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
          </item>
         </layout>
        </item>
@@ -1230,17 +1296,17 @@
   <tabstop>sp_1f_man_prepass_btn</tabstop>
   <tabstop>sp_1f_man_beauty_btn</tabstop>
   <tabstop>sp_backburner_submit_btn</tabstop>
+  <tabstop>sp_sats_prompt_cmbx</tabstop>
+  <tabstop>sp_img_filt_ovr_cmbx</tabstop>
+  <tabstop>sp_multi_frame_increment_sb</tabstop>
+  <tabstop>sp_pad_gi_range_ckbx</tabstop>
+  <tabstop>sp_run_kale_ckbx</tabstop>
   <tabstop>sp_frm_subFolder_le</tabstop>
   <tabstop>sp_vfb_type_cmbx</tabstop>
   <tabstop>sp_file_format_cmbx</tabstop>
-  <tabstop>sp_img_filt_ovr_cmbx</tabstop>
-  <tabstop>sp_multi_frame_increment_sb</tabstop>
-  <tabstop>sp_sats_prompt_cmbx</tabstop>
-  <tabstop>sp_autosave_interval_sb</tabstop>
   <tabstop>sp_sub_fold_name_gi_ckbx</tabstop>
-  <tabstop>sp_pad_gi_range_ckbx</tabstop>
-  <tabstop>sp_run_kale_ckbx</tabstop>
   <tabstop>sp_resumable_rendering_ckbx</tabstop>
+  <tabstop>sp_autosave_interval_dsb</tabstop>
   <tabstop>sp_reset_btn</tabstop>
   <tabstop>kl_run_btn</tabstop>
   <tabstop>kl_filter_btn</tabstop>
