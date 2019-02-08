@@ -249,14 +249,25 @@ class Configuration:
             -3 a bool
         :return: the data contained in the specified option
         """
-        if get_type is 1:
-            return self._Config.getint("interface", option)
-        elif get_type is 2:
-            return self._Config.getfloat("interface", option)
-        elif get_type is 3:
-            return self._Config.getboolean("interface", option)
-        else:
-            return self._Config.get("interface", option)
+        defaults = {
+            0: "",
+            1: 0,
+            2: 0.0,
+            3: False
+        }
+        try:
+            if get_type is 1:
+                return self._Config.getint("interface", option)
+            elif get_type is 2:
+                return self._Config.getfloat("interface", option)
+            elif get_type is 3:
+                return self._Config.getboolean("interface", option)
+            else:
+                return self._Config.get("interface", option)
+        except ConfigParser.NoOptionError:
+            data = defaults.get(get_type, 0)
+            self._Config.set("interface", option, data)
+            return data
 
     def __str__(self):
         cfg_str = ""
