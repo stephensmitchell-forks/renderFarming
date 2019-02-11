@@ -7,10 +7,13 @@ import PySide2.QtGui as QtG
 
 import renderFarmingTools as rFT
 
+import pymxs
+rt = pymxs.runtime
+
 
 class RenderFarmingSATSDialogUI(QtW.QDialog):
 
-    def __init__(self, runtime, parent=MaxPlus.GetQMaxMainWindow()):
+    def __init__(self, parent=MaxPlus.GetQMaxMainWindow()):
         super(RenderFarmingSATSDialogUI, self).__init__(parent)
 
         self._clg = logging.getLogger("renderFarming.UI.SATSDialog")
@@ -21,8 +24,6 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
         main_layout.addWidget(self._dialog_box)
 
         self.setLayout(main_layout)
-
-        self._rt = runtime
 
         self._start_frame = 0
         self._end_frame = 0
@@ -40,9 +41,9 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
         self._sats_start_sb = self._dialog_box.sats_start_sb
         self._sats_evr_nth_frm_sb = self._dialog_box.sats_evr_nth_frm_sb
 
-        self._sats_end_sb.setValue(int(self._rt.animationRange.end))
-        self._sats_start_sb.setValue(int(self._rt.animationRange.start))
-        self._sats_evr_nth_frm_sb.setValue(int(self._rt.rendNThFrame))
+        self._sats_end_sb.setValue(int(rt.animationRange.end))
+        self._sats_start_sb.setValue(int(rt.animationRange.start))
+        self._sats_evr_nth_frm_sb.setValue(int(rt.rendNThFrame))
 
         # ---------------------------------------------------
         #               Function Connections
@@ -79,8 +80,8 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
         return
 
     def _set_time_segment(self):
-        self._rt.animationRange = self._rt.interval(self._start_frame, self._end_frame)
-        self._rt.rendNThFrame = self._nth_frame
+        rt.animationRange = rt.interval(self._start_frame, self._end_frame)
+        rt.rendNThFrame = self._nth_frame
         # print("S: {}, E: {}, Nth: {}".format(self._start_frame, self._end_frame, self._nth_frame))
 
     def get_status_message(self):

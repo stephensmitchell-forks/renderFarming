@@ -5,6 +5,11 @@ import os
 import logging
 from PySide2.QtCore import QObject, Signal
 
+import pymxs
+
+rt = pymxs.runtime
+vr = rFT.verify_vray(rt)
+
 
 class SpinachMessage(object):
     """
@@ -49,20 +54,14 @@ class SpinachJob(QObject):
     status_update = Signal(SpinachMessage)
     not_ready = Signal()
 
-    def __init__(self, rt, cfg):
+    def __init__(self, cfg):
         super(SpinachJob, self).__init__()
         # Logging
         self._clg = logging.getLogger("renderFarming.Spinach")
         self._clg.debug("Running Spinach")
 
         # Variables
-
-        self._rt = rt
-        self._vr = None
-        self._verify_vray()
-
-        self._rem = self._rt.maxOps.GetCurRenderElementMgr()
-
+        self._rem = rt.maxOps.GetCurRenderElementMgr()
         self._cfg = cfg
 
         # Paths
@@ -100,7 +99,7 @@ class SpinachJob(QObject):
 
         # Other Attributes
 
-        # self._orig_settings = rFC.RenderSettings(self._rt,
+        # self._orig_settings = rFC.RenderSettings(rt,
         #                                          self._cfg.get_user_scripts_path(),
         #                                          self._cfg.get_project_code())
         # self._orig_settings.capture_rps()
@@ -136,7 +135,7 @@ class SpinachJob(QObject):
         :return: None
         """
         self._clg.debug("Opening \"Render Scene Dialog\" if closed")
-        self._rt.renderSceneDialog.open()
+        rt.renderSceneDialog.open()
 
     def _rsd_close(self):
         """
@@ -145,7 +144,7 @@ class SpinachJob(QObject):
         :return: None
         """
         self._clg.debug("Closing \"Render Scene Dialog\" if open")
-        self._rt.renderSceneDialog.close()
+        rt.renderSceneDialog.close()
 
     def _set_gi_paths(self):
         """
@@ -155,13 +154,13 @@ class SpinachJob(QObject):
         flg = logging.getLogger("renderFarming.Spinach._set_gi_paths")
         flg.debug("Applying Irradiance Map paths")
 
-        self._vr.adv_irradmap_autoSaveFileName = self._ir_file
-        self._vr.adv_irradmap_loadFileName = self._ir_file
+        vr.adv_irradmap_autoSaveFileName = self._ir_file
+        vr.adv_irradmap_loadFileName = self._ir_file
 
         flg.debug("Applying Light Cache paths")
 
-        self._vr.lightcache_autoSaveFileName = self._lc_file
-        self._vr.lightcache_loadFileName = self._lc_file
+        vr.lightcache_autoSaveFileName = self._lc_file
+        vr.lightcache_loadFileName = self._lc_file
 
     def _set_animation_prepass_path(self):
         # Checks if the containing folder should be named using the user specified sub folder field
@@ -185,6 +184,7 @@ class SpinachJob(QObject):
             self._ready = False
             return
 
+    # noinspection PyMethodMayBeStatic
     def _set_gi_engine(self, render_type=6):
         """
         Sets the GI type to the one specified
@@ -207,23 +207,23 @@ class SpinachJob(QObject):
 
         if render_type in (0, 1, 2, 3, 4):
             flg.debug("Setting Gi Engines to Irradiance Map and Light Cache")
-            self._vr.gi_primary_type = 0
-            self._vr.gi_secondary_type = 3
+            vr.gi_primary_type = 0
+            vr.gi_secondary_type = 3
 
         elif render_type is 5:
             flg.debug("Setting Gi Engines to Irradiance Map and None")
-            self._vr.gi_primary_type = 0
-            self._vr.gi_secondary_type = 0
+            vr.gi_primary_type = 0
+            vr.gi_secondary_type = 0
 
         elif render_type in (6, 7, 8):
             flg.debug("Setting Gi Engines to Brute Force and Light Cache")
-            self._vr.gi_primary_type = 2
-            self._vr.gi_secondary_type = 3
+            vr.gi_primary_type = 2
+            vr.gi_secondary_type = 3
 
         elif render_type is 9:
             flg.debug("Setting Gi Engines to Brute Force and Brute Force")
-            self._vr.gi_primary_type = 2
-            self._vr.gi_secondary_type = 2
+            vr.gi_primary_type = 2
+            vr.gi_secondary_type = 2
 
     def _set_frame_time_type(self, render_type=6):
         """
@@ -248,51 +248,52 @@ class SpinachJob(QObject):
         if render_type is 2:
             if not self._pad_gi:
                 flg.debug("Setting time to Active Segment frame")
-                self._rt.rendTimeType = 2
+                rt.rendTimeType = 2
             else:
                 flg.debug("Padding Multi Frame Incremental GI Range")
-                end = int(self._rt.animationRange.end)
-                start = int(self._rt.animationRange.start)
+                end = int(rt.animationRange.end)
+                start = int(rt.animationRange.start)
                 new_end = rFT.calculate_increment_padding(start, end, self._multi_frame_increment)
 
                 flg.debug("Range padded from frame {0} to frame {1}".format(end, new_end))
 
-                self._rt.rendTimeType = 3
-                self._rt.rendStart = start
-                self._rt.rendEnd = new_end
+                rt.rendTimeType = 3
+                rt.rendStart = start
+                rt.rendEnd = new_end
 
             flg.debug("Setting time to every Nth frame with an increment of {}".format(self._multi_frame_increment))
-            self._rt.rendNThFrame = self._multi_frame_increment
+            rt.rendNThFrame = self._multi_frame_increment
 
         elif render_type in (0, 6):
             flg.debug("Setting time to single frame")
-            self._rt.rendTimeType = 1
-            self._rt.rendNThFrame = self._nth_frame
+            rt.rendTimeType = 1
+            rt.rendNThFrame = self._nth_frame
 
         elif render_type is 4:
-            self._rt.rendNThFrame = 1
+            rt.rendNThFrame = 1
 
             if not self._pad_gi:
                 flg.debug("Setting time to Active Segment frame")
-                self._rt.rendTimeType = 2
+                rt.rendTimeType = 2
 
             else:
                 flg.debug("Padding Animation Prepass GI Range")
-                self._rt.rendTimeType = 3
+                rt.rendTimeType = 3
 
-                interp_frames = self._vr.gi_irradmap_interpFrames
+                interp_frames = vr.gi_irradmap_interpFrames
 
                 flg.debug("Padding Frame Range by {} Frames on either side".format(interp_frames))
 
-                self._rt.rendStart = int(self._rt.animationRange.start) - interp_frames
-                self._rt.rendEnd = int(self._rt.animationRange.end) + interp_frames
+                rt.rendStart = int(rt.animationRange.start) - interp_frames
+                rt.rendEnd = int(rt.animationRange.end) + interp_frames
 
         elif render_type in (1, 3, 5, 7, 8, 9):
             flg.debug("Setting time to Active Segment frame")
-            self._rt.rendTimeType = 2
-            self._rt.rendNThFrame = self._nth_frame
+            rt.rendTimeType = 2
+            rt.rendNThFrame = self._nth_frame
             return
 
+    # noinspection PyMethodMayBeStatic
     def _set_gi_save_to_frame(self, render_type=6):
         """
         Sets the GI options to save frame
@@ -313,13 +314,13 @@ class SpinachJob(QObject):
         flg = logging.getLogger("renderFarming.Spinach._set_gi_save_to_frame")
         flg.debug("Using Render Type {}".format(render_type))
 
-        self._vr.adv_irradmap_dontDelete = False
-        self._vr.adv_irradmap_switchToSavedMap = False
-        self._vr.gi_irradmap_multipleViews = True
+        vr.adv_irradmap_dontDelete = False
+        vr.adv_irradmap_switchToSavedMap = False
+        vr.gi_irradmap_multipleViews = True
 
-        self._vr.lightcache_switchToSavedMap = False
-        self._vr.lightcache_dontDelete = False
-        self._vr.lightcache_multipleViews = True
+        vr.lightcache_switchToSavedMap = False
+        vr.lightcache_dontDelete = False
+        vr.lightcache_multipleViews = True
 
         # ----------------
         # Irradiance Cache
@@ -327,29 +328,29 @@ class SpinachJob(QObject):
 
         if render_type is 0:
             flg.debug("Setting Irradiance Map to save single frame mode")
-            self._vr.adv_irradmap_mode = 0
-            self._vr.adv_irradmap_autoSave = True
+            vr.adv_irradmap_mode = 0
+            vr.adv_irradmap_autoSave = True
 
         if render_type in (1, 3):
             flg.debug("Setting Irradiance Map to read From File mode")
-            self._vr.adv_irradmap_mode = 2
-            self._vr.adv_irradmap_autoSave = False
+            vr.adv_irradmap_mode = 2
+            vr.adv_irradmap_autoSave = False
 
         elif render_type is 2:
             flg.debug("Setting Irradiance Map to Multi Frame Incremental Mode")
-            self._vr.adv_irradmap_mode = 1
-            self._vr.adv_irradmap_autoSave = True
-            self._vr.gi_irradmap_multipleViews = False
+            vr.adv_irradmap_mode = 1
+            vr.adv_irradmap_autoSave = True
+            vr.gi_irradmap_multipleViews = False
 
         elif render_type is 4:
             flg.debug("Setting Irradiance Map to Animation Prepass Mode")
-            self._vr.adv_irradmap_mode = 6
-            self._vr.adv_irradmap_autoSave = True
+            vr.adv_irradmap_mode = 6
+            vr.adv_irradmap_autoSave = True
 
         elif render_type is 5:
             flg.debug("Setting Irradiance Map to Animation Rendering Mode")
-            self._vr.adv_irradmap_mode = 7
-            self._vr.adv_irradmap_autoSave = False
+            vr.adv_irradmap_mode = 7
+            vr.adv_irradmap_autoSave = False
 
         # -----------
         # Light Cache
@@ -357,45 +358,46 @@ class SpinachJob(QObject):
 
         if render_type in (0, 6):
             flg.debug("Setting Light Cache to save single frame mode")
-            self._vr.lightcache_mode = 0
-            self._vr.lightcache_autoSave = True
+            vr.lightcache_mode = 0
+            vr.lightcache_autoSave = True
 
         elif render_type is 2:
             flg.debug("Setting Light Cache to save single frame mode")
-            self._vr.lightcache_mode = 0
-            self._vr.lightcache_autoSave = True
-            self._vr.lightcache_switchToSavedMap = True
+            vr.lightcache_mode = 0
+            vr.lightcache_autoSave = True
+            vr.lightcache_switchToSavedMap = True
 
         elif render_type in (1, 3, 7):
             flg.debug("Setting Light Cache to read from file mode")
-            self._vr.lightcache_mode = 2
-            self._vr.lightcache_autoSave = True
+            vr.lightcache_mode = 2
+            vr.lightcache_autoSave = True
 
         elif render_type is 4:
             flg.debug("Setting Light Cache to prepass single frame mode")
-            self._vr.lightcache_mode = 0
-            self._vr.lightcache_autoSave = False
+            vr.lightcache_mode = 0
+            vr.lightcache_autoSave = False
 
         elif 8 is render_type:
             flg.debug("Setting Light Cache to calculate each frame mode")
-            self._vr.lightcache_mode = 0
-            self._vr.lightcache_autoSave = False
-            self._vr.lightcache_dontDelete = True
+            vr.lightcache_mode = 0
+            vr.lightcache_autoSave = False
+            vr.lightcache_dontDelete = True
 
-    def _verify_vray(self):
+    def _reset_vray(self):
         """
         Checks that VRAY is the current renderer and if not, attempts to set it as such
         :return: True for success, False for failure
         """
-        flg = logging.getLogger("renderFarming.Spinach.verify_vray")
-        renderer = rFT.verify_vray(self._rt)
+        flg = logging.getLogger("renderFarming.Spinach._reset_vray")
+        renderer = rFT.verify_vray(rt)
 
         if not renderer:
-            flg.error("Cannot set renderer to VRay")
-            self.status_update.emit(SpinachMessage("Cannot set renderer to VRay", "Error"))
+            flg.error("Cannot reset VRay")
+            self.status_update.emit(SpinachMessage("Cannot reset VRay", "Error"))
             return False
         else:
-            self._vr = renderer
+            global vr 
+            vr = renderer
             return True
 
     def _set_output(self, fb_type, beauty=True):
@@ -408,82 +410,82 @@ class SpinachJob(QObject):
 
         if beauty:
             if fb_type is 0:
-                self._rt.rendSaveFile = True
-                self._vr.output_on = False
-                self._vr.output_resumableRendering = False
+                rt.rendSaveFile = True
+                vr.output_on = False
+                vr.output_resumableRendering = False
                 flg.debug("3ds Max Frame Buffer is on")
 
-                self._vr.output_splitgbuffer = False
+                vr.output_splitgbuffer = False
 
                 flg.debug("Setting 3ds Max Frame Buffer output directory to the folder specified for the camera")
                 flg.debug(path)
 
-                self._rt.rendOutputFilename = path
+                rt.rendOutputFilename = path
                 self._set_render_element_output()
 
-                self._vr.output_splitFileName = ""
-                self._vr.output_rawFileName = ""
+                vr.output_splitFileName = ""
+                vr.output_rawFileName = ""
 
             elif fb_type is 1:
-                self._rt.rendSaveFile = False
-                self._vr.output_on = True
+                rt.rendSaveFile = False
+                vr.output_on = True
                 flg.debug("VRay Frame Buffer is on")
 
-                self._vr.output_splitgbuffer = True
+                vr.output_splitgbuffer = True
 
                 flg.debug("Setting VRay Frame Buffer output directory to the folder specified for the camera")
                 flg.debug(path)
 
                 self._clear_render_element_output()
-                self._rt.rendOutputFilename = ""
+                rt.rendOutputFilename = ""
 
                 if self._resumable_rendering:
-                    self._vr.output_progressiveAutoSave = self._autosave_interval
-                    self._vr.output_resumableRendering = True
+                    vr.output_progressiveAutoSave = self._autosave_interval
+                    vr.output_resumableRendering = True
                 else:
-                    self._vr.output_resumableRendering = False
+                    vr.output_resumableRendering = False
 
                 if self._file_format == 0:
-                    self._vr.output_saveRawFile = False
-                    self._vr.output_splitgbuffer = True
-                    self._vr.output_rawFileName = ""
-                    self._vr.output_splitFileName = path
+                    vr.output_saveRawFile = False
+                    vr.output_splitgbuffer = True
+                    vr.output_rawFileName = ""
+                    vr.output_splitFileName = path
                 else:
-                    self._vr.output_saveRawFile = True
-                    self._vr.output_splitgbuffer = False
-                    self._vr.output_rawFileName = path
-                    self._vr.output_splitFileName = ""
+                    vr.output_saveRawFile = True
+                    vr.output_splitgbuffer = False
+                    vr.output_rawFileName = path
+                    vr.output_splitFileName = ""
 
         else:
             if fb_type is 0:
-                self._rt.rendSaveFile = False
-                self._vr.output_on = False
-                self._vr.output_resumableRendering = False
+                rt.rendSaveFile = False
+                vr.output_on = False
+                vr.output_resumableRendering = False
                 flg.debug("3ds Max Frame Buffer is on")
 
-                self._vr.output_splitgbuffer = False
-                self._vr.output_saveRawFile = False
+                vr.output_splitgbuffer = False
+                vr.output_saveRawFile = False
 
                 flg.debug("Clearing Output Directory")
                 self._clear_render_element_output()
-                self._rt.rendOutputFilename = ""
-                self._vr.output_splitFileName = ""
-                self._vr.output_rawFileName = ""
+                rt.rendOutputFilename = ""
+                vr.output_splitFileName = ""
+                vr.output_rawFileName = ""
 
             elif fb_type is 1:
-                self._rt.rendSaveFile = False
-                self._vr.output_on = True
-                self._vr.output_resumableRendering = False
+                rt.rendSaveFile = False
+                vr.output_on = True
+                vr.output_resumableRendering = False
                 flg.debug("VRay Frame Buffer is on")
 
-                self._vr.output_splitgbuffer = False
-                self._vr.output_saveRawFile = False
+                vr.output_splitgbuffer = False
+                vr.output_saveRawFile = False
 
                 flg.debug("Clearing Output Directory")
                 self._clear_render_element_output()
-                self._rt.rendOutputFilename = ""
-                self._vr.output_splitFileName = ""
-                self._vr.output_rawFileName = ""
+                rt.rendOutputFilename = ""
+                vr.output_splitFileName = ""
+                vr.output_rawFileName = ""
 
     def _override_image_filter(self):
         flg = logging.getLogger("renderFarming.Spinach._override_image_filter")
@@ -491,13 +493,13 @@ class SpinachJob(QObject):
 
         if filt is 18:
             flg.debug("Image Filter set to Off")
-            self._vr.filter_on = False
+            vr.filter_on = False
         elif filt is 17:
             flg.debug("Image Filter will not be changed")
         else:
-            self._vr.filter_on = True
+            vr.filter_on = True
             flg.debug("Image Filter set to index {}".format(self._image_filter_override))
-            self._vr.filter_kernel = rFT.max_aa_filter(self._rt, filt)
+            vr.filter_kernel = rFT.max_aa_filter(rt, filt)
 
     def _expand_frames_sub_folder(self):
         self._clg.debug("Sub Folder Edited")
@@ -593,7 +595,7 @@ class SpinachJob(QObject):
             # retrieves the element and gets its name
             el = self._rem.GetRenderElement(i)
 
-            if self._rt.classof(el) == self._rt.VRayDenoiser:
+            if rt.classof(el) == rt.VRayDenoiser:
                 flg.debug("Denoiser Found: {}".format("Enabling" if enabled else "Disabling"))
                 el.vrayVFB = enabled
 
@@ -620,7 +622,7 @@ class SpinachJob(QObject):
             self._cam_name = self._cam.name
 
         # Checks if VRay exists
-        if self._vr is None:
+        if vr is None:
             return
 
         # Checks if the containing folder should be named using the user specified sub folder field
@@ -700,7 +702,7 @@ class SpinachJob(QObject):
         self._set_gi_save_to_frame(render_type)
 
         flg.debug("Setting VRay to render only GI")
-        self._vr.options_dontRenderImage = True
+        vr.options_dontRenderImage = True
 
         flg.debug("Setting render time output")
         self._set_frame_time_type(render_type)
@@ -756,7 +758,7 @@ class SpinachJob(QObject):
         self._set_gi_save_to_frame(render_type)
 
         flg.debug("Setting VRay to render final image")
-        self._vr.options_dontRenderImage = False
+        vr.options_dontRenderImage = False
 
         flg.debug("Setting render time output")
         self._set_frame_time_type(render_type)
@@ -789,21 +791,21 @@ class SpinachJob(QObject):
         :return: None
         """
         if not restore:
-            if self._rt.renderSceneDialog.isOpen():
+            if rt.renderSceneDialog.isOpen():
                 self._rsd_state = True
                 self._clg.debug("Closing \"Render Scene Dialog\"")
-                self._rt.renderSceneDialog.close()
+                rt.renderSceneDialog.close()
             else:
                 self._rsd_state = False
 
         else:
             self._clg.debug("Updating \"Render Scene Dialog\"")
-            self._rt.renderSceneDialog.update()
+            rt.renderSceneDialog.update()
 
             self._clg.debug("\"Render Scene Dialog\" state: {}".format(self._rsd_state))
             if self._rsd_state:
                 self._clg.debug("Opening \"Render Scene Dialog\"")
-                self._rt.renderSceneDialog.open()
+                rt.renderSceneDialog.open()
 
     # def restore_original_render_settings(self):
     #     if self._orig_settings is not None:
@@ -813,7 +815,7 @@ class SpinachJob(QObject):
         flg = logging.getLogger("renderFarming.Spinach.reset_renderer")
         self.rsd_toggle()
 
-        rc = self._rt.RendererClass.classes
+        rc = rt.RendererClass.classes
         renderer_list = list(rc)
 
         vray_ind = -1
@@ -825,13 +827,13 @@ class SpinachJob(QObject):
             elif "Default_Scanline_Renderer" in renderer_name:
                 scan_ind = i
         try:
-            self._rt.renderers.current = rc[scan_ind]()
-            self._rt.renderers.current = rc[vray_ind]()
+            rt.renderers.current = rc[scan_ind]()
+            rt.renderers.current = rc[vray_ind]()
         except IndexError:
             flg.error("One or more renderers are not loaded, Unable to continue")
             return None
 
-        self._verify_vray()
+        self._reset_vray()
         self.status_update.emit(SpinachMessage("VRay has been reset", None))
         self.rsd_toggle(True)
 
@@ -856,7 +858,7 @@ class SpinachJob(QObject):
         :return: a 3DS Max Camera object
         """
         flg = logging.getLogger("renderFarming.Spinach.get_cam")
-        cam = self._rt.getActiveCamera()
+        cam = rt.getActiveCamera()
         if cam is None:
             flg.warning("Active view is not a valid camera")
             self.status_update.emit(SpinachMessage("Active view is not a valid camera", "Error"))

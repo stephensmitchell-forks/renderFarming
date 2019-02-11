@@ -29,7 +29,7 @@ External Dependencies:
     - PySide2
     - PyInstaller (For compiling the automatic installer)
 
-Copyright ©2018 Brooklyn Digital Foundry
+Copyright ©2019 Brooklyn Digital Foundry
 """
 
 import pymxs
@@ -53,5 +53,5 @@ def rf_open():
         pass
 
     app = MaxPlus.GetQMaxMainWindow()
-    rf_ui = rFUI.RenderFarmingUI(uif, rt, app)
+    rf_ui = rFUI.RenderFarmingUI(uif, app)
     rf_ui.show()

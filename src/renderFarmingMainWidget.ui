@@ -485,7 +485,7 @@
     <item>
      <widget class="QMaxRollout" name="sp_frame_buffer_mro" native="true">
       <property name="title" stdset="0">
-       <string>Frame Buffer</string>
+       <string>Frame buffer</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_11">
        <item>

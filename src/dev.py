@@ -20,5 +20,5 @@ except NameError:
     pass
 
 app = MaxPlus.GetQMaxMainWindow()
-ui = rFUI.RenderFarmingUI(uif, rt, app)
+ui = rFUI.RenderFarmingUI(uif, app)
 ui.show()

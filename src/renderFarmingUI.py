@@ -11,6 +11,7 @@ import renderFarmingKale as rFK
 import renderFarmingTools as rFT
 import renderFarmingSATSDialogUI as rFSATS
 import renderFarmingQWidgets as rFQtW
+import renderFarmingColors as rCL
 
 # 3DS Max Specific
 import MaxPlus
@@ -21,17 +22,20 @@ import PySide2.QtGui as QtG
 import PySide2.QtWidgets as QtW
 import PySide2.QtCore as QtC
 
+import pymxs
+
 Signal = QtC.Signal
 Slot = QtC.Slot
+
+rt = pymxs.runtime
 
 
 class RenderFarmingUI(QtW.QDialog):
 
-    def __init__(self, ui_path, runtime, parent=MaxPlus.GetQMaxMainWindow()):
+    def __init__(self, ui_path, parent=MaxPlus.GetQMaxMainWindow()):
         """
         The Initialization of the main UI class
         :param ui_path: The path to the .UI file from QDesigner
-        :param runtime: The pymxs runtime from max
         :param parent: The main Max Window
         """
         super(RenderFarmingUI, self).__init__(parent)
@@ -41,11 +45,10 @@ class RenderFarmingUI(QtW.QDialog):
         # ---------------------------------------------------
 
         self._ui_path = ui_path
-        self._rt = runtime
         self._parent = parent
 
         self._cfg = rFCfg.Configuration()
-        self._cfg.set_max_system_directories(self._rt)
+        self._cfg.set_max_system_directories(rt)
 
         # ---------------------------------------------------
         #                      Logging
@@ -104,28 +107,20 @@ class RenderFarmingUI(QtW.QDialog):
 
         self._saved = True
 
-        self._camera = self._rt.getActiveCamera()
+        self._camera = rt.getActiveCamera()
 
         # ---------------------------------------------------
         #               Tab Initializing
         # ---------------------------------------------------
 
         self._spinach_tbdg = SpinachTBDG(
-            self._tabbed_widget.findChild(QtW.QWidget, "spinach_tbdg"),
-            self._rt,
-            self._cfg)
+            self._tabbed_widget.findChild(QtW.QWidget, "spinach_tbdg"), self._cfg)
         self._kale_tbdg = KaleTBDG(
-            self._tabbed_widget.findChild(QtW.QWidget, "kale_tbdg"),
-            self._rt,
-            self._cfg)
+            self._tabbed_widget.findChild(QtW.QWidget, "kale_tbdg"), self._cfg)
         self._config_tbdg = ConfigTBDG(
-            self._tabbed_widget.findChild(QtW.QWidget, "config_tbdg"),
-            self._rt,
-            self._cfg)
+            self._tabbed_widget.findChild(QtW.QWidget, "config_tbdg"), self._cfg)
         self._log_tbdg = LogTBDG(
-            self._tabbed_widget.findChild(QtW.QWidget, "log_tbdg"),
-            self._rt,
-            self._cfg)
+            self._tabbed_widget.findChild(QtW.QWidget, "log_tbdg"), self._cfg)
 
         # ---------------------------------------------------
         #               Function Connections
@@ -223,8 +218,8 @@ class RenderFarmingUI(QtW.QDialog):
         else:
             stored_cam = "None"
 
-        if self._rt.getActiveCamera() is not None:
-            cur_cam = (self._rt.getActiveCamera())
+        if rt.getActiveCamera() is not None:
+            cur_cam = (rt.getActiveCamera())
         else:
             cur_cam = "None"
 
@@ -233,7 +228,7 @@ class RenderFarmingUI(QtW.QDialog):
             if self._spinach_tbdg.get_ready_status():
                 wrn = rFT.html_color_text("Warning:", "Orange")
                 self._spinach_tbdg.set_spinach_status("{} Camera has changed".format(wrn))
-            self._camera = self._rt.getActiveCamera()
+            self._camera = rt.getActiveCamera()
 
     def _spinach_run_kale_handler(self):
         index = self._tabbed_widget.currentIndex()
@@ -316,11 +311,10 @@ class RenderFarmingUI(QtW.QDialog):
 class KaleTBDG(QtC.QObject):
     back = Signal(int)
 
-    def __init__(self, tab, rt, cfg):
+    def __init__(self, tab, cfg):
         """
         Class for the Kale page of the RenderFarming Dialog
         :param tab: the renderFarming Dialog
-        :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
         super(KaleTBDG, self).__init__()
@@ -329,7 +323,6 @@ class KaleTBDG(QtC.QObject):
         # Variables
 
         self._cfg = cfg
-        self._rt = rt
 
         # External Run
         self._original_index = 0
@@ -373,7 +366,7 @@ class KaleTBDG(QtC.QObject):
     def _kl_run_handler(self):
         self._kl_completion_pb.setVisible(True)
 
-        self._kale = rFK.Kale(self._rt, self._cfg)
+        self._kale = rFK.Kale(self._cfg)
         self._table.update_model(self._kale)
 
         self._kale.set_tasks.connect(self._pb_set_tasks_handler)
@@ -479,12 +472,12 @@ class KaleSortModel(QtC.QSortFilterProxyModel):
     # noinspection PyMethodMayBeStatic
     def _priority_to_color(self, priority_integer):
         color_dict = {
-            0: QtG.QColor(30, 78, 125),
-            1: QtG.QColor(76, 54, 136),
-            2: QtG.QColor(117, 56, 123),
-            3: QtG.QColor(255, 60, 90)
+            0: rCL.kale_low,
+            1: rCL.kale_medium,
+            2: rCL.kale_high,
+            3: rCL.kale_critical
         }
-        return color_dict.get(priority_integer, QtG.QColor(100, 100, 150))
+        return color_dict.get(priority_integer, rCL.kale_default)
 
     def lessThan(self, source_left, source_right):
         left_data = source_left.data()
@@ -535,11 +528,10 @@ class KaleTableModel(QtG.QStandardItemModel):
 class SpinachTBDG(QtC.QObject):
     run_kale = Signal()
 
-    def __init__(self, tab, rt, cfg):
+    def __init__(self, tab, cfg):
         """
         Class for the Spinach page of the RenderFarming Dialog
         :param tab: the renderFarming Dialog
-        :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
         self._tab = tab
@@ -548,7 +540,6 @@ class SpinachTBDG(QtC.QObject):
         # Variables
 
         self._cfg = cfg
-        self._rt = rt
 
         # Logger
 
@@ -556,7 +547,7 @@ class SpinachTBDG(QtC.QObject):
 
         # Spinach Job
 
-        self._spinach = rFS.SpinachJob(self._rt, self._cfg)
+        self._spinach = rFS.SpinachJob(self._cfg)
 
         # ---------------------------------------------------
         #                 Button Definitions
@@ -843,7 +834,7 @@ class SpinachTBDG(QtC.QObject):
         Wrapper for rFT.match_prefix()
         :return: None
         """
-        chk = rFT.match_prefix(self._rt.maxFileName, self._cfg.get_project_code())
+        chk = rFT.match_prefix(rt.maxFileName, self._cfg.get_project_code())
         if chk is not None:
             self.set_spinach_status(chk)
 
@@ -890,7 +881,7 @@ class SpinachTBDG(QtC.QObject):
 
     def sats_dialog_opener(self):
         self._clg.debug("Opening the \"Set Active Time Segment\" dialog")
-        dialog = rFSATS.RenderFarmingSATSDialogUI(self._rt)
+        dialog = rFSATS.RenderFarmingSATSDialogUI()
         if not dialog.exec_():
             self.set_spinach_status(dialog.get_status_message())
             self.set_nth_frame(dialog.get_nth_frame())
@@ -907,11 +898,10 @@ class ConfigTBDG(QtC.QObject):
     edit = Signal()
     set_log_level = Signal(str)
 
-    def __init__(self, tab, rt, cfg):
+    def __init__(self, tab, cfg):
         """
         Class for the Configuration page of the RenderFarming Dialog
         :param tab: the renderFarming Dialog
-        :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
         super(ConfigTBDG, self).__init__()
@@ -920,7 +910,6 @@ class ConfigTBDG(QtC.QObject):
         # Variables
 
         self._cfg = cfg
-        self._rt = rt
 
         # Logger
 
@@ -1080,11 +1069,10 @@ class ConfigTBDG(QtC.QObject):
 
 
 class LogTBDG(QtC.QObject):
-    def __init__(self, tab, rt, cfg):
+    def __init__(self, tab, cfg):
         """
         Class for the Log page of the RenderFarming Dialog
         :param tab: the renderFarming Dialog
-        :param rt: pymxs.runtime
         :param cfg: renderFarming Configuration
         """
         super(LogTBDG, self).__init__()
@@ -1093,7 +1081,6 @@ class LogTBDG(QtC.QObject):
         # Variables
 
         self._cfg = cfg
-        self._rt = rt
 
         # Logger
 
@@ -1123,7 +1110,7 @@ class LogTBDG(QtC.QObject):
     # ---------------------------------------------------
 
     def _log_open_explorer_handler(self):
-        self._rt.ShellLaunch("explorer.exe", self._cfg.get_log_path())
+        rt.ShellLaunch("explorer.exe", self._cfg.get_log_path())
         return
 
     # ---------------------------------------------------
@@ -1151,13 +1138,13 @@ class LogSyntaxHighlighter(QtG.QSyntaxHighlighter):
         super(LogSyntaxHighlighter, self).__init__(parent)
         # noinspection SpellCheckingInspection
         self.rules = (
-            HighlightRule("\\bDEBUG:\\b", QtG.QColor(28, 205, 207), "bold", "underline"),
-            HighlightRule("\\bINFO:\\b", QtG.QColor(112, 239, 27), "bold", "underline"),
-            HighlightRule("\\bWARNING:\\b", QtG.QColor(245, 231, 0), "bold", "underline"),
-            HighlightRule("\\bERROR:\\b", QtG.QColor(255, 84, 0), "bold", "underline"),
-            HighlightRule("\\bCRITICAL:\\b", QtG.QColor(186, 12, 12), "bold", "underline"),
-            HighlightRule("renderFarming|RenderFarming", QtG.QColor(17, 186, 104), "italic"),
-            HighlightRule("Kale|kale|\\bConfig\\b|\\bconfig\\b|Spinach|spinach", QtG.QColor(255, 167, 227), "italic")
+            HighlightRule("\\bDEBUG:\\b", rCL.log_debug, "bold", "underline"),
+            HighlightRule("\\bINFO:\\b", rCL.log_info, "bold", "underline"),
+            HighlightRule("\\bWARNING:\\b", rCL.log_warning, "bold", "underline"),
+            HighlightRule("\\bERROR:\\b", rCL.log_error, "bold", "underline"),
+            HighlightRule("\\bCRITICAL:\\b", rCL.log_critical, "bold", "underline"),
+            HighlightRule("renderFarming|RenderFarming", rCL.log_renderFarming, "italic"),
+            HighlightRule("Kale|kale|\\bConfig\\b|\\bconfig\\b|Spinach|spinach", rCL.log_module, "italic")
         )
 
     def highlightBlock(self, text):

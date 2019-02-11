@@ -1,9 +1,11 @@
-#version|0044
+#version|0045
 "__init__.py"|$(main)
 "renderFarmingKale.py"|$(main)
 "renderFarmingSpinach.py"|$(main)
 "renderFarmingArugula.py"|$(main)
+"renderFarmingBarn.py"|$(main)
 "renderFarmingClasses.py"|$(main)
+"renderFarmingColors.py"|$(main)
 "renderFarmingConfig.py"|$(main)
 "renderFarmingNetRender.py"|$(main)
 "renderFarmingSATSDialogUI.py"|$(main)

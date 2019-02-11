@@ -1,6 +1,9 @@
 import os
 import logging
 
+import renderFarmingColors as rCL
+import PySide2.QtGui as QtG
+
 mlg = logging.getLogger("renderFarming.Tools")
 
 # ---------------------------------------------------
@@ -26,11 +29,14 @@ def str_to_dir(path):
 
 
 def html_color_text(text, color):
-    presets = {"Orange": "#FFA500", "Red": "#ff3232", "Green": "#4ca64c"}
-    if color in presets:
-        hex_code = presets[color]
+    presets = {"Orange": rCL.label_orange, "Red": rCL.label_red, "Green": rCL.label_green}
+    if type(color) is QtG.QColor:
+        hex_code = color.name()
     else:
-        hex_code = color
+        if color in presets:
+            hex_code = presets[color].name()
+        else:
+            hex_code = color
     return " <font color=\"{1}\">{0}</font>".format(text, hex_code)
 
 
