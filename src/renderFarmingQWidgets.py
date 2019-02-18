@@ -195,6 +195,46 @@ class QMaxRollout(QtW.QWidget):
         qp.setFont(self._system_font)
 
 
+class QMaxRollout2(QtW.QWidget):
+    collapsed = Signal()
+    expanded = Signal()
+    toggled = Signal(bool)
+
+    def __init__(self, *args):
+        super(QMaxRollout2, self).__init__(*args)
+        self._expanded = True
+        self._delayed = False, False
+
+        self._full_title = str()
+        self._title = self._full_title
+
+    # ---------------------------------------------------
+    #               Paint Event Helpers
+    # ---------------------------------------------------
+
+    def paintEvent(self, e):
+        # Object Repaint
+        qp = QtW.QStylePainter(self)
+        self._draw_widget(qp)
+        e.accept()
+
+    def _draw_widget(self, painter):
+
+        main_frame = QtW.QStyleOptionFrame()
+        main_frame.initFrom(self)
+        main_frame.Rounded = True
+
+        painter.drawPrimitive(QtW.QStyle.PE_Frame, main_frame)
+
+    # ---------------------------------------------------
+    #               Getters and Setters
+    # ---------------------------------------------------
+
+    # noinspection PyPep8Naming
+    def setTitle(self, title):
+        self._full_title = title
+
+
 def calculate_round_corners(width, height, bevel):
     """
     Calculates percentages for a given width and height to produce even bevels on non-square rectangles
@@ -325,7 +365,7 @@ def attribute_store_and_set(widget, state, new_value, get_func, set_func):
 #         self._rollup_test1.setProperty("title", "DYNAMISM!")
 #         self._rollup_test2 = QMaxRollout()
 #         self._rollup_test2.setTitle("Big Ass MuthaFunkin Buttons Baby")
-#         self._rollup_test3 = QMaxRollout()
+#         self._rollup_test3 = QMaxRollout2()
 #         self._rollup_test3.setTitle("Non-Empty Boy")
 #
 #         self.radio1 = QtW.QRadioButton("Radio button 1")
