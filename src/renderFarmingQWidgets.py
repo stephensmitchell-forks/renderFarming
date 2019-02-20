@@ -141,10 +141,13 @@ class QMaxRollout(QtW.QWidget):
         mrgn = self._base_margin
 
         br_bkg = QtG.QBrush(QtG.QColor(80, 80, 80))
+        # pal = self.palette()
+        # br_bkg = pal.alternateBase()
         pn_bkg = QtG.QPen(QtG.QColor(62, 62, 62), 2)
         br_arr = QtG.QBrush(QtG.QColor(185, 185, 185))
         pn_arr = QtG.QPen(QtG.QColor(62, 62, 62), 0)
-        pn_test = QtG.QPen(Qt.red, 1)
+        # For debugging
+        # pn_test = QtG.QPen(Qt.red, 1)
         pn_txt = QtG.QPen(QtG.QColor(255, 255, 255))
 
         rnd_x, rnd_y = calculate_round_corners(w, h, 11)
@@ -189,50 +192,11 @@ class QMaxRollout(QtW.QWidget):
         mrgn = open_margins if self._expanded else closed_margins
         self.setContentsMargins(mrgn)
 
-        qp.setPen(pn_test)
+        # For debugging
+        # qp.setPen(pn_test)
         qp.setBrush(Qt.NoBrush)
 
         qp.setFont(self._system_font)
-
-
-class QMaxRollout2(QtW.QWidget):
-    collapsed = Signal()
-    expanded = Signal()
-    toggled = Signal(bool)
-
-    def __init__(self, *args):
-        super(QMaxRollout2, self).__init__(*args)
-        self._expanded = True
-        self._delayed = False, False
-
-        self._full_title = str()
-        self._title = self._full_title
-
-    # ---------------------------------------------------
-    #               Paint Event Helpers
-    # ---------------------------------------------------
-
-    def paintEvent(self, e):
-        # Object Repaint
-        qp = QtW.QStylePainter(self)
-        self._draw_widget(qp)
-        e.accept()
-
-    def _draw_widget(self, painter):
-
-        main_frame = QtW.QStyleOptionFrame()
-        main_frame.initFrom(self)
-        main_frame.Rounded = True
-
-        painter.drawPrimitive(QtW.QStyle.PE_Frame, main_frame)
-
-    # ---------------------------------------------------
-    #               Getters and Setters
-    # ---------------------------------------------------
-
-    # noinspection PyPep8Naming
-    def setTitle(self, title):
-        self._full_title = title
 
 
 def calculate_round_corners(width, height, bevel):
@@ -360,12 +324,12 @@ def attribute_store_and_set(widget, state, new_value, get_func, set_func):
 #         super(Window, self).__init__(parent)
 #
 #         self._main_layout = QtW.QVBoxLayout()
-#
+# 
 #         self._rollup_test1 = QMaxRollout()
 #         self._rollup_test1.setProperty("title", "DYNAMISM!")
 #         self._rollup_test2 = QMaxRollout()
 #         self._rollup_test2.setTitle("Big Ass MuthaFunkin Buttons Baby")
-#         self._rollup_test3 = QMaxRollout2()
+#         self._rollup_test3 = QMaxRollout()
 #         self._rollup_test3.setTitle("Non-Empty Boy")
 #
 #         self.radio1 = QtW.QRadioButton("Radio button 1")
