@@ -39,7 +39,8 @@ class RenderFarmingBarnUI(QtW.QDialog):
         self._sheep = [
             ToggleSphericalWidget(),
             ClearMaterial(),
-            WireColorEdits()
+            WireColorEdits(),
+            VisibilityToggle()
         ]
 
         # ---------------------------------------------------
@@ -70,10 +71,22 @@ class RenderFarmingSheep(QtW.QWidget):
         super(RenderFarmingSheep, self).__init__(parent)
 
         self._super_layout = QtW.QVBoxLayout()
+        self._frame_interior_layout = QtW.QVBoxLayout()
         self.MainLayout = QtW.QVBoxLayout()
 
+        self._frame = QtW.QFrame()
+        self.Label = QtW.QLabel()
+        self.Label.setText("Untitled")
+
         self.setLayout(self._super_layout)
-        self._super_layout.addLayout(self.MainLayout)
+        self._super_layout.addWidget(self._frame)
+        self._frame.setLayout(self._frame_interior_layout)
+
+        self._frame_interior_layout.addWidget(self.Label)
+        self._frame_interior_layout.addLayout(self.MainLayout)
+        self._frame_interior_layout.addStretch()
+
+        self._frame.setFrameStyle(QtW.QFrame.Panel)
 
     def msg(self, message):
         self.Message.emit(RFMsg(message))
@@ -246,6 +259,57 @@ class ClearMaterial(RenderFarmingSheep):
 
         # Redraw the viewport
         rt.redrawViews()
+
+
+class VisibilityToggle(RenderFarmingSheep):
+    def __init__(self, parent=None):
+        super(VisibilityToggle, self).__init__(parent)
+
+        # ---------------------------------------------------
+        #                 Widget Definitions
+        # ---------------------------------------------------
+
+        self._visibility_on = QtW.QPushButton()
+        self.MainLayout.addWidget(self._visibility_on)
+        self._visibility_on.setText("Make Visible")
+
+        self._visibility_off = QtW.QPushButton()
+        self.MainLayout.addWidget(self._visibility_off)
+        self._visibility_off.setText("Make Invisible")
+
+        # ---------------------------------------------------
+        #               Function Connections
+        # ---------------------------------------------------
+
+        # noinspection PyUnresolvedReferences
+        self._visibility_on.clicked.connect(self._visibility_on_handler)
+        self._visibility_off.clicked.connect(self._visibility_off_handler)
+
+    # noinspection PyMethodMayBeStatic
+    def _visibility_on_handler(self):
+        with pymxs.undo(True, "Visibility On"):
+            # Collect selection
+            sel = rt.getCurrentselection()
+
+            # set visibility to be on
+            for obj in sel:
+                obj.visibility = True
+
+            # Redraw the viewport
+            rt.redrawViews()
+
+    # noinspection PyMethodMayBeStatic
+    def _visibility_off_handler(self):
+        with pymxs.undo(True, "Visibility Off"):
+            # Collect selection
+            sel = rt.getCurrentselection()
+
+            # set visibility to be on
+            for obj in sel:
+                obj.visibility = False
+
+            # Redraw the viewport
+            rt.redrawViews()
 
 
 class WireColorEdits(RenderFarmingSheep):

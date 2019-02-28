@@ -1,6 +1,6 @@
 import PySide2.QtWidgets as QtW
 import PySide2.QtGui as QtG
-from PySide2.QtCore import Signal, Qt, QRect, QMargins, QPointF, QSize
+from PySide2.QtCore import Signal, Qt, QRect, QMargins, QPointF
 
 import math
 
@@ -262,7 +262,7 @@ def center_poly_in_rect(poly, rect):
 
 def bold_font(font):
     """
-    Returns a copy of the font but bolded
+    Returns a copy of the font but bold'd
     :param font: a QFont
     :return: a QFont, bold set to True
     """
@@ -324,7 +324,7 @@ def attribute_store_and_set(widget, state, new_value, get_func, set_func):
 #         super(Window, self).__init__(parent)
 #
 #         self._main_layout = QtW.QVBoxLayout()
-# 
+#
 #         self._rollup_test1 = QMaxRollout()
 #         self._rollup_test1.setProperty("title", "DYNAMISM!")
 #         self._rollup_test2 = QMaxRollout()
