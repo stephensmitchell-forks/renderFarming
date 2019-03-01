@@ -37,6 +37,7 @@ import MaxPlus
 import os
 
 import renderFarmingUI as rFUI
+from _version import __version__
 
 rt = pymxs.runtime
 

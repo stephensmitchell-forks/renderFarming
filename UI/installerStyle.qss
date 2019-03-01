@@ -6,7 +6,6 @@
 QWidget {
     border: 0px solid #32414B;
     padding: 0px;
-    color: #28FBAC;
     font-family: "Franklin Gothic Medium", sans-serif;
 }
 
@@ -33,9 +32,24 @@ QDialog {
 /* QLabel ------------------------------------------------------------ */
 
 QLabel {
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    font-size: 10pt;
+    color: #FFFFFF;
+}
+
+QLabel[Error=true] {
+    font-size: 18pt;
+    color: #ff3232;
     padding-top: 0.25em;
     padding-bottom: 0.25em;
+}
+
+QLabel[Title=true] {
     font-size: 14pt;
+    color: #28FBAC;
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
 }
 /* QPixmap ------------------------------------------------------------ */
 

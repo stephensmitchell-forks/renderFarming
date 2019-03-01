@@ -5,6 +5,7 @@ import sys
 import time
 
 from renderFarmingClasses import TokenizedString
+from _version import __version__
 
 
 class Configuration:
@@ -27,7 +28,7 @@ class Configuration:
 
         self._username = os.getenv('username')
 
-        self._version = "0045"
+        self._version = __version__
 
         # Reading Config from Disk
 

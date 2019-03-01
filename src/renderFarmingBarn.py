@@ -75,14 +75,24 @@ class RenderFarmingSheep(QtW.QWidget):
         self.MainLayout = QtW.QVBoxLayout()
 
         self._frame = QtW.QFrame()
-        self.Label = QtW.QLabel()
-        self.Label.setText("Untitled")
+        self._label = QtW.QLabel()
+
+        # Labels have default text
+        self._label.setText("Untitled")
+
+        # Structure:
+        # - A super Layout containing the entire UI
+        #   - A Frame around the buttons
+        #       - A Layout for the frame interior
+        #           - A Label
+        #           - The MainLayout which is accesable from children
+        #           - A Stretch
 
         self.setLayout(self._super_layout)
         self._super_layout.addWidget(self._frame)
         self._frame.setLayout(self._frame_interior_layout)
 
-        self._frame_interior_layout.addWidget(self.Label)
+        self._frame_interior_layout.addWidget(self._label)
         self._frame_interior_layout.addLayout(self.MainLayout)
         self._frame_interior_layout.addStretch()
 
@@ -90,6 +100,11 @@ class RenderFarmingSheep(QtW.QWidget):
 
     def msg(self, message):
         self.Message.emit(RFMsg(message))
+
+    # Using Qt naming convention instead
+    # noinspection PyPep8Naming
+    def setLabel(self, text):
+        self._label.setText(text)
 
 
 class ToggleSphericalWidget(RenderFarmingSheep):
