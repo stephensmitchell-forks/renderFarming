@@ -37,6 +37,7 @@ import MaxPlus
 import os
 
 import renderFarmingUI as rFUI
+import renderFarmingBarn as rFB
 from _version import __version__
 
 rt = pymxs.runtime
@@ -56,3 +57,18 @@ def rf_open():
     app = MaxPlus.GetQMaxMainWindow()
     rf_ui = rFUI.RenderFarmingUI(uif, app)
     rf_ui.show()
+
+
+def rf_barn_open():
+    # Destroys instances of the dialog before recreating it
+    # noinspection PyBroadException
+    try:
+        # noinspection PyUnboundLocalVariable,PyUnresolvedReferences
+        rf_barn_ui.close()
+    except NameError:
+        pass
+
+    app = MaxPlus.GetQMaxMainWindow()
+
+    rf_barn_ui = rFB.RenderFarmingBarnUI()
+    rf_barn_ui.show()

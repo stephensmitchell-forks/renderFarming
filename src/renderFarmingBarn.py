@@ -111,6 +111,8 @@ class ToggleSphericalWidget(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(ToggleSphericalWidget, self).__init__(parent)
 
+        self.setLabel("Toggle Spherical")
+
         # ---------------------------------------------------
         #                 Attributes
         # ---------------------------------------------------
@@ -248,6 +250,8 @@ class ClearMaterial(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(ClearMaterial, self).__init__(parent)
 
+        self.setLabel("Material Clear")
+
         # ---------------------------------------------------
         #                 Widget Definitions
         # ---------------------------------------------------
@@ -279,6 +283,8 @@ class ClearMaterial(RenderFarmingSheep):
 class VisibilityToggle(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(VisibilityToggle, self).__init__(parent)
+
+        self.setLabel("Visibility Toggle")
 
         # ---------------------------------------------------
         #                 Widget Definitions
@@ -330,6 +336,8 @@ class VisibilityToggle(RenderFarmingSheep):
 class WireColorEdits(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(WireColorEdits, self).__init__(parent)
+
+        self.setLabel("Wire Color Editor")
 
         # ---------------------------------------------------
         #                 Widget Definitions
@@ -409,5 +417,5 @@ class WireColorEdits(RenderFarmingSheep):
         return rt.color(randrange(3, 255), randrange(3, 255), randrange(3, 255))
 
 
-ui = RenderFarmingBarnUI()
-ui.show()
+# ui = RenderFarmingBarnUI()
+# ui.show()

@@ -61,10 +61,13 @@ class ManifestTranslator:
 
             # chooses between a token or absolute path
             spl_dst = (spl[1]).replace('\"', '')
-            if spl_dst[0] is '$':
-                dst = self._expand_token(spl_dst)
+            if len(spl_dst) > 0:
+                if spl_dst[0] is '$':
+                    dst = self._expand_token(spl_dst)
+                else:
+                    dst = spl_dst
             else:
-                dst = spl[1].replace('\"', '')
+                dst = spl[1]
 
             dst = os.path.join(dst, os.path.split(src)[1])
             datum = InstallerItem(src, dst)

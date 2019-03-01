@@ -173,6 +173,7 @@ class DirectoryLocator:
         unprotected.append(self._logs)
         unprotected.append(self._bdf_dir)
         unprotected.append(self._install_dir)
+        unprotected.append(os.path.join(self._install_dir, "renderFarmingQWidgets"))
         unprotected.append(self._user_macros)
         unprotected.append(os.path.join(self._hashed_temp, "install"))
         return unprotected
