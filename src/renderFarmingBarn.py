@@ -8,6 +8,8 @@ import PySide2.QtWidgets as QtW
 import PySide2.QtCore as QtC
 import PySide2.QtGui as QtG
 
+from _version import __version__
+
 rt = pymxs.runtime
 
 vr = rFT.verify_vray(rt)
@@ -17,24 +19,40 @@ Slot = QtC.Slot
 
 
 class RFMsg(object):
-    def __init__(self, message):
+    def __init__(self, message, level):
         super(RFMsg, self).__init__()
         self._message = message
+        self._level = level
 
     def get_message(self):
         return self._message
+
+    def get_level(self):
+        return self._level
 
 
 class RenderFarmingBarnUI(QtW.QDialog):
     def __init__(self, parent=MaxPlus.GetQMaxMainWindow()):
         super(RenderFarmingBarnUI, self).__init__(parent)
 
-        self._main_layout = QtW.QHBoxLayout()
-        self.setLayout(self._main_layout)
+        # ---------------------------------------------------
+        #                 Layouts
+        # ---------------------------------------------------
+
+        self._main_layout = QtW.QVBoxLayout()
+        self._sheep_layout = QtW.QHBoxLayout()
+
+        # ---------------------------------------------------
+        #                 Window
+        # ---------------------------------------------------
+
+        self.setWindowTitle("Barn - RenderFarming{}".format(__version__))
 
         # ---------------------------------------------------
         #                 Widgets
         # ---------------------------------------------------
+
+        # A list of constructors for objects inheriting the Sheep class
 
         self._sheep = [
             ToggleSphericalWidget(),
@@ -43,17 +61,23 @@ class RenderFarmingBarnUI(QtW.QDialog):
             VisibilityToggle()
         ]
 
+        self._display_message_mw = MessageWidget()
+
         # ---------------------------------------------------
         #                 Initialization
         # ---------------------------------------------------
 
         for widget in self._sheep:
-            self._main_layout.addWidget(widget)
+            self._sheep_layout.addWidget(widget)
             widget.Message.connect(self._display_message_handler)
 
         # ---------------------------------------------------
-        #               Function Connections
+        #                 Final Setup
         # ---------------------------------------------------
+
+        self.setLayout(self._main_layout)
+        self._main_layout.addLayout(self._sheep_layout)
+        self._main_layout.addWidget(self._display_message_mw)
 
     # ---------------------------------------------------
     #                  Handler Function
@@ -61,7 +85,45 @@ class RenderFarmingBarnUI(QtW.QDialog):
 
     @ Slot(RFMsg)
     def _display_message_handler(self, message_object):
-        print(message_object.get_message())
+        self._display_message_mw.set_message(message_object)
+
+
+class MessageWidget(QtW.QWidget):
+    def __init__(self):
+        super(MessageWidget, self).__init__()
+        self._main_layout = QtW.QVBoxLayout()
+        self._message_layout = QtW.QHBoxLayout()
+
+        self._display_message_lb = QtW.QLabel()
+        self._frame = QtW.QFrame()
+
+        self._display_message_title_lb = QtW.QLabel()
+        self._display_message_title_lb.setText("Status: ")
+
+        self._frame.setFrameStyle(QtW.QFrame.Panel)
+        self._frame.setLayout(self._message_layout)
+
+        self._message_layout.addWidget(self._display_message_title_lb)
+        self._message_layout.addWidget(self._display_message_lb)
+
+        self._main_layout.addWidget(self._frame)
+
+        self.setLayout(self._main_layout)
+
+    def set_message(self, message):
+        self._display_message_lb.setText(message.get_message())
+        self._display_message_title_lb.setText("{}: ".format(message.get_level()))
+
+
+class QHLine(QtW.QFrame):
+    """
+    Credit to Stack Overflow User Michael Leonard: https://stackoverflow.com/a/41068447
+    From: https://stackoverflow.com/questions/5671354/how-to-programmatically-make-a-horizontal-line-in-qt
+    """
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QtW.QFrame.HLine)
+        self.setFrameShadow(QtW.QFrame.Sunken)
 
 
 class RenderFarmingSheep(QtW.QWidget):
@@ -75,10 +137,10 @@ class RenderFarmingSheep(QtW.QWidget):
         self.MainLayout = QtW.QVBoxLayout()
 
         self._frame = QtW.QFrame()
-        self._label = QtW.QLabel()
+        self._sheep_tilte_lb = QtW.QLabel()
 
-        # Labels have default text
-        self._label.setText("Untitled")
+        # Labels have default text set to untitled
+        self._sheep_tilte_lb.setText("Untitled")
 
         # Structure:
         # - A super Layout containing the entire UI
@@ -92,26 +154,26 @@ class RenderFarmingSheep(QtW.QWidget):
         self._super_layout.addWidget(self._frame)
         self._frame.setLayout(self._frame_interior_layout)
 
-        self._frame_interior_layout.addWidget(self._label)
+        self._frame_interior_layout.addWidget(self._sheep_tilte_lb)
         self._frame_interior_layout.addLayout(self.MainLayout)
         self._frame_interior_layout.addStretch()
 
         self._frame.setFrameStyle(QtW.QFrame.Panel)
 
-    def msg(self, message):
-        self.Message.emit(RFMsg(message))
+    def msg(self, message, level="info"):
+        self.Message.emit(RFMsg(message, level))
 
     # Using Qt naming convention instead
     # noinspection PyPep8Naming
-    def setLabel(self, text):
-        self._label.setText(text)
+    def setTitle(self, text):
+        self._sheep_tilte_lb.setText(text)
 
 
 class ToggleSphericalWidget(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(ToggleSphericalWidget, self).__init__(parent)
 
-        self.setLabel("Toggle Spherical")
+        self.setTitle("Toggle Spherical")
 
         # ---------------------------------------------------
         #                 Attributes
@@ -222,7 +284,7 @@ class ToggleSphericalWidget(RenderFarmingSheep):
         elif len(objects) > 1:
             # If there are more than one nodes, it gives a warning asking for the user to delete them
             self._VRayStereoscopic_node = objects[0]
-            self.msg("WARNING: Multiple VRayStereoscopic helpers found.  Please clean them up.")
+            self.msg("Multiple VRayStereoscopic helpers found.  Please clean them up.", "Warning")
             return True
         else:
             # Nothing found
@@ -238,7 +300,7 @@ class ToggleSphericalWidget(RenderFarmingSheep):
         try:
             new_helper.eye_distance = rt.units.decodeValue("63mm")
         except RuntimeError:
-            self.msg("ERROR: Unable to Decode Units.  Intraocular Distance may be incorrect.")
+            self.msg("Unable to Decode Units.  Intraocular Distance may be incorrect.", "Error")
 
         self._VRayStereoscopic_node = new_helper
 
@@ -250,7 +312,7 @@ class ClearMaterial(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(ClearMaterial, self).__init__(parent)
 
-        self.setLabel("Material Clear")
+        self.setTitle("Material Clear")
 
         # ---------------------------------------------------
         #                 Widget Definitions
@@ -272,19 +334,25 @@ class ClearMaterial(RenderFarmingSheep):
         # Collect selection
         sel = rt.getCurrentselection()
 
-        # set materials to be Undefined
-        for obj in sel:
-            obj.material = rt.undefined
+        sel_len = len(sel)
 
-        # Redraw the viewport
-        rt.redrawViews()
+        if sel_len < 1:
+            self.msg("No objects selected")
+        else:
+            # set materials to be Undefined
+            for obj in sel:
+                obj.material = rt.undefined
+
+            # Redraw the viewport
+            rt.redrawViews()
+            self.msg("Cleared Materials from {0} {1}".format(sel_len, pluralize("object", sel_len)))
 
 
 class VisibilityToggle(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(VisibilityToggle, self).__init__(parent)
 
-        self.setLabel("Visibility Toggle")
+        self.setTitle("Visibility Toggle")
 
         # ---------------------------------------------------
         #                 Widget Definitions
@@ -312,12 +380,18 @@ class VisibilityToggle(RenderFarmingSheep):
             # Collect selection
             sel = rt.getCurrentselection()
 
-            # set visibility to be on
-            for obj in sel:
-                obj.visibility = True
+            sel_len = len(sel)
 
-            # Redraw the viewport
-            rt.redrawViews()
+            if sel_len < 1:
+                self.msg("No objects selected")
+            else:
+                # set visibility to be on
+                for obj in sel:
+                    obj.visibility = True
+
+                # Redraw the viewport
+                rt.redrawViews()
+                self.msg("Visibility set to 1.0 on {0} {1}".format(sel_len, pluralize("object", sel_len)))
 
     # noinspection PyMethodMayBeStatic
     def _visibility_off_handler(self):
@@ -325,19 +399,25 @@ class VisibilityToggle(RenderFarmingSheep):
             # Collect selection
             sel = rt.getCurrentselection()
 
-            # set visibility to be on
-            for obj in sel:
-                obj.visibility = False
+            sel_len = len(sel)
 
-            # Redraw the viewport
-            rt.redrawViews()
+            if sel_len < 1:
+                self.msg("No objects selected")
+            else:
+                # set visibility to be on
+                for obj in sel:
+                    obj.visibility = False
+
+                # Redraw the viewport
+                rt.redrawViews()
+                self.msg("Visibility set to 0.0 on {0} {1}".format(sel_len, pluralize("object", sel_len)))
 
 
 class WireColorEdits(RenderFarmingSheep):
     def __init__(self, parent=None):
         super(WireColorEdits, self).__init__(parent)
 
-        self.setLabel("Wire Color Editor")
+        self.setTitle("Wire Color Editor")
 
         # ---------------------------------------------------
         #                 Widget Definitions
@@ -364,36 +444,48 @@ class WireColorEdits(RenderFarmingSheep):
         layers = list()
         to_fix = list()
 
-        # First step is to analyze the objects
-        for obj in sel:
-            # If objects are using layer colors, then they will get fixed as well
-            if obj.colorByLayer is True:
-                layers.append(obj.layer)
-            else:
+        sel_len = len(sel)
+
+        if sel_len < 1:
+            self.msg("No objects selected")
+        else:
+            # First step is to analyze the objects
+            for obj in sel:
+                # If objects are using layer colors, then they will get fixed as well
+                if obj.colorByLayer is True:
+                    layers.append(obj.layer)
+                else:
+                    # Bad colors go into the to_fix list
+                    if not self._analyze_wire_color(obj.wirecolor):
+                        to_fix.append(obj)
+
+            # Then analyze the Layers
+            for lay in layers:
                 # Bad colors go into the to_fix list
-                if not self._analyze_wire_color(obj.wirecolor):
-                    to_fix.append(obj)
+                if not self._analyze_wire_color(lay.wireColor):
+                    to_fix.append(lay)
 
-        # Then analyze the Layers
-        for lay in layers:
-            # Bad colors go into the to_fix list
-            if not self._analyze_wire_color(lay.wireColor):
-                to_fix.append(lay)
+            for obj in to_fix:
+                obj.wirecolor = self._random_color()
 
-        for obj in to_fix:
-            obj.wirecolor = self._random_color()
-
-        # Redraw the viewport
-        rt.redrawViews()
+            # Redraw the viewport
+            rt.redrawViews()
+            self.msg("Wire Color fixed on {0}/{1} {2}".format(len(to_fix), sel_len, pluralize("object", sel_len)))
 
     def _random_wire_color_handler(self):
         sel = rt.getCurrentselection()
 
-        for obj in sel:
-            obj.wirecolor = self._random_color()
+        sel_len = len(sel)
 
-        # Redraw the viewport
-        rt.redrawViews()
+        if sel_len < 1:
+            self.msg("No objects selected")
+        else:
+            for obj in sel:
+                obj.wirecolor = self._random_color()
+
+            # Redraw the viewport
+            rt.redrawViews()
+            self.msg("Wire Color randomized on {0} {1}".format(sel_len, pluralize("object", sel_len)))
 
     def _analyze_wire_color(self, color):
         # Checks saturation and value
@@ -417,5 +509,9 @@ class WireColorEdits(RenderFarmingSheep):
         return rt.color(randrange(3, 255), randrange(3, 255), randrange(3, 255))
 
 
-# ui = RenderFarmingBarnUI()
-# ui.show()
+def pluralize(text, count):
+    return text + 's' if (count > 1) else text
+
+
+ui = RenderFarmingBarnUI()
+ui.show()

@@ -103,6 +103,9 @@ class DirectoryLocator:
         self._config = os.path.join(self._bdf_dir, "logs")
         self._logs = os.path.join(self._bdf_dir, "config")
 
+        self._renderFarmingBarn = os.path.join(self._install_dir, "renderFarmingBarn")
+        self._renderFarmingQWidgets = os.path.join(self._install_dir, "renderFarmingQWidgets")
+
         self._light_icons, self._dark_icons = self._find_icons()
 
         self._unprotected = self._find_unprotected()
@@ -173,10 +176,23 @@ class DirectoryLocator:
         unprotected.append(self._logs)
         unprotected.append(self._bdf_dir)
         unprotected.append(self._install_dir)
-        unprotected.append(os.path.join(self._install_dir, "renderFarmingQWidgets"))
+        unprotected.append(self._renderFarmingQWidgets),
+        unprotected.append(self._renderFarmingBarn),
         unprotected.append(self._user_macros)
         unprotected.append(os.path.join(self._hashed_temp, "install"))
         return unprotected
+
+    def get_tokens(self):
+        token_dict = {
+            "$(main)": self._install_dir,
+            "$(renderFarmingQWidgets)": self._renderFarmingQWidgets,
+            "$(renderFarmingBarn)": self._renderFarmingBarn,
+            "$(macro)": self._user_macros,
+            "$(startup)": self._user_startup,
+            "$(dark_icons)": self._dark_icons,
+            "$(light_icons)": self._light_icons
+        }
+        return token_dict
 
     def _find_user_macros_dir(self):
         """

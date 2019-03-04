@@ -7,21 +7,13 @@ class ManifestTranslator:
     Translates the raw manifest file to a list of InstallerItem objects
     """
     def __init__(self, directory, manifest):
-        self._dir = directory
         self._man = manifest
         self._man.read()
-        self._tmp = os.path.join(self._dir.get_hashed_temp(), "install")
+        self._tmp = os.path.join(directory.get_hashed_temp(), "install")
         self._wd = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         self._item_list = list()
 
-        self._dir_dict = {
-            "$(main)": self._dir.get_render_farming_install(),
-            "$(renderFarmingQWidgets)": os.path.join(self._dir.get_render_farming_install(), "renderFarmingQWidgets"),
-            "$(macro)": self._dir.get_user_macros(),
-            "$(startup)": self._dir.get_user_startup(),
-            "$(dark_icons)": self._dir.get_dark_icons(),
-            "$(light_icons)": self._dir.get_light_icons()
-        }
+        self._token_dict = directory.get_tokens()
 
         self._translate()
 
@@ -85,7 +77,7 @@ class ManifestTranslator:
         :return: the resolved string from the dictionary
         """
         try:
-            exp = self._dir_dict[token]
+            exp = self._token_dict[token]
         # Raises a Manifest error if a key error is caught
         except KeyError as e:
             raise ManifestError("Key Error: {} does not resolve.".format(e))
