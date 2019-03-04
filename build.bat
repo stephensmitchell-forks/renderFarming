@@ -12,7 +12,7 @@ python .\generateManifest.py .\src
 pyinstaller --noconfirm --log-level=INFO ^
  --onefile^
  --clean^
- --name RenderFarming0045_INSTALLER^
+ --name RenderFarming0046_INSTALLER^
  --uac-admin^
  --icon=UI/renderFarmingInstaller.ico^
  --add-data "install.zip;."^
