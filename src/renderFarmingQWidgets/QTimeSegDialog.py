@@ -5,20 +5,18 @@ import PySide2.QtWidgets as QtW
 import PySide2.QtCore as QtC
 import PySide2.QtGui as QtG
 
-import renderFarmingTools as rFT
-
 import pymxs
 rt = pymxs.runtime
 
 
-class RenderFarmingSATSDialogUI(QtW.QDialog):
+class QTimeSegDialogUI(QtW.QDialog):
 
     def __init__(self, parent=MaxPlus.GetQMaxMainWindow()):
-        super(RenderFarmingSATSDialogUI, self).__init__(parent)
+        super(QTimeSegDialogUI, self).__init__(parent)
 
         self._clg = logging.getLogger("renderFarming.UI.SATSDialog")
 
-        self._dialog_box = RenderFarmingSATSDialogDefinition()
+        self._dialog_box = QTimeSegDialogDefinition()
 
         main_layout = QtW.QVBoxLayout()
         main_layout.addWidget(self._dialog_box)
@@ -64,8 +62,7 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
         self._nth_frame = self._sats_evr_nth_frm_sb.value()
 
         if self._end_frame < self._start_frame:
-            er = rFT.html_color_text("ERROR:", "#ff3232")
-            self._status_message = ("{} Start Frame is greater than End Frame".format(er))
+            self._status_message = "ERROR: Start Frame is greater than End Frame"
             self.reject()
 
         self._set_time_segment()
@@ -91,12 +88,12 @@ class RenderFarmingSATSDialogUI(QtW.QDialog):
         return self._nth_frame
 
 
-class RenderFarmingSATSDialogDefinition(QtW.QWidget):
+class QTimeSegDialogDefinition(QtW.QWidget):
     """
     Generated using pyside2-uic and then cleaned up
     """
     def __init__(self):
-        super(RenderFarmingSATSDialogDefinition, self).__init__()
+        super(QTimeSegDialogDefinition, self).__init__()
 
         self.verticalLayout = QtW.QVBoxLayout()
 

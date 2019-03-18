@@ -9,8 +9,8 @@ import renderFarmingConfig as rFCfg
 import renderFarmingSpinach as rFS
 import renderFarmingKale as rFK
 import renderFarmingTools as rFT
-import renderFarmingSATSDialogUI as rFSATS
-import renderFarmingQWidgets as rFQtW
+from renderFarmingQWidgets import QTimeSegDialog
+from renderFarmingQWidgets.QMaxRollout import QMaxRollout
 import renderFarmingColors as rCL
 
 # 3DS Max Specific
@@ -86,7 +86,7 @@ class RenderFarmingUI(QtW.QDialog):
         ui_file.open(QtC.QFile.ReadOnly)
 
         loader = QUiLoader()
-        loader.registerCustomWidget(rFQtW.QMaxRollout)
+        loader.registerCustomWidget(QMaxRollout)
         self._tabbed_widget = loader.load(ui_file)
 
         ui_file.close()
@@ -591,8 +591,8 @@ class SpinachTBDG(QtC.QObject):
         #             Layout Element Definitions
         # ---------------------------------------------------
 
-        self._sp_gi_settings_mro = self._tab.findChild(rFQtW.QMaxRollout, 'sp_gi_settings_mro')
-        self._sp_frame_buffer_mro = self._tab.findChild(rFQtW.QMaxRollout, 'sp_frame_buffer_mro')
+        self._sp_gi_settings_mro = self._tab.findChild(QMaxRollout, 'sp_gi_settings_mro')
+        self._sp_frame_buffer_mro = self._tab.findChild(QMaxRollout, 'sp_frame_buffer_mro')
 
         # ---------------------------------------------------
         #               Combo Box Connections
@@ -881,7 +881,7 @@ class SpinachTBDG(QtC.QObject):
 
     def sats_dialog_opener(self):
         self._clg.debug("Opening the \"Set Active Time Segment\" dialog")
-        dialog = rFSATS.RenderFarmingSATSDialogUI()
+        dialog = QTimeSegDialog.QTimeSegDialogUI()
         if not dialog.exec_():
             self.set_spinach_status(dialog.get_status_message())
             self.set_nth_frame(dialog.get_nth_frame())
@@ -954,10 +954,10 @@ class ConfigTBDG(QtC.QObject):
         #               Layout Definitions
         # ---------------------------------------------------
 
-        self._config_project_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_project_mro')
-        self._config_paths_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_paths_mro')
-        self._config_backburner_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_backburner_mro')
-        self._config_logging_mro = self._tab.findChild(rFQtW.QMaxRollout, 'config_logging_mro')
+        self._config_project_mro = self._tab.findChild(QMaxRollout, 'config_project_mro')
+        self._config_paths_mro = self._tab.findChild(QMaxRollout, 'config_paths_mro')
+        self._config_backburner_mro = self._tab.findChild(QMaxRollout, 'config_backburner_mro')
+        self._config_logging_mro = self._tab.findChild(QMaxRollout, 'config_logging_mro')
 
         # ---------------------------------------------------
         #               Function Connections

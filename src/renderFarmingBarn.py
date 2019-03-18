@@ -88,27 +88,21 @@ class RenderFarmingBarnUI(QtW.QDialog):
         self._display_message_mw.set_message(message_object)
 
 
-class MessageWidget(QtW.QWidget):
+class MessageWidget(QtW.QFrame):
     def __init__(self):
         super(MessageWidget, self).__init__()
-        self._main_layout = QtW.QVBoxLayout()
         self._message_layout = QtW.QHBoxLayout()
 
         self._display_message_lb = QtW.QLabel()
-        self._frame = QtW.QFrame()
 
         self._display_message_title_lb = QtW.QLabel()
         self._display_message_title_lb.setText("Status: ")
 
-        self._frame.setFrameStyle(QtW.QFrame.Panel)
-        self._frame.setLayout(self._message_layout)
+        self.setFrameStyle(QtW.QFrame.Panel)
+        self.setLayout(self._message_layout)
 
         self._message_layout.addWidget(self._display_message_title_lb)
         self._message_layout.addWidget(self._display_message_lb)
-
-        self._main_layout.addWidget(self._frame)
-
-        self.setLayout(self._main_layout)
 
     def set_message(self, message):
         self._display_message_lb.setText(message.get_message())
