@@ -2,6 +2,8 @@ import MaxPlus
 import pymxs
 from random import randrange
 
+import os
+
 import renderFarmingTools as rFT
 
 import PySide2.QtWidgets as QtW
@@ -58,7 +60,8 @@ class RenderFarmingBarnUI(QtW.QDialog):
             ToggleSphericalWidget(),
             ClearMaterial(),
             WireColorEdits(),
-            VisibilityToggle()
+            VisibilityToggle(),
+            QuickExporter()
         ]
 
         self._display_message_mw = MessageWidget()
@@ -70,6 +73,8 @@ class RenderFarmingBarnUI(QtW.QDialog):
         for widget in self._sheep:
             self._sheep_layout.addWidget(widget)
             widget.Message.connect(self._display_message_handler)
+            widget.StatusBar.connect(self._display_status_bar_handler)
+            widget.Add.connect(self._add_status_bar_handler)
 
         # ---------------------------------------------------
         #                 Final Setup
@@ -87,6 +92,14 @@ class RenderFarmingBarnUI(QtW.QDialog):
     def _display_message_handler(self, message_object):
         self._display_message_mw.set_message(message_object)
 
+    @Slot(int)
+    def _display_status_bar_handler(self, amount):
+        self._display_message_mw.set_message(amount)
+
+    @Slot(int)
+    def _add_status_bar_handler(self, add):
+        self._display_message_mw.set_message(add)
+
 
 class MessageWidget(QtW.QFrame):
     def __init__(self):
@@ -97,6 +110,7 @@ class MessageWidget(QtW.QFrame):
 
         self._display_message_title_lb = QtW.QLabel()
         self._display_message_title_lb.setText("Status: ")
+        self._display_message_title_lb.setSizePolicy(QtW.QSizePolicy.Maximum, QtW.QSizePolicy.Preferred)
 
         self.setFrameStyle(QtW.QFrame.Panel)
         self.setLayout(self._message_layout)
@@ -122,6 +136,8 @@ class QHLine(QtW.QFrame):
 
 class RenderFarmingSheep(QtW.QWidget):
     Message = Signal(RFMsg)
+    StatusBar = Signal(int)
+    Add = Signal(int)
 
     def __init__(self, parent=None):
         super(RenderFarmingSheep, self).__init__(parent)
@@ -505,6 +521,168 @@ class WireColorEdits(RenderFarmingSheep):
 
 def pluralize(text, count):
     return text + 's' if (count > 1) else text
+
+
+class QuickExporter(RenderFarmingSheep):
+    def __init__(self):
+        super(QuickExporter, self).__init__()
+
+        self.setTitle("Quick Export")
+
+        self._directory = str()
+
+        # ---------------------------------------------------
+        #                 Widget Definitions
+        # ---------------------------------------------------
+
+        # Main ----------------------------------------------
+
+        self._exp_dir_le = QtW.QLineEdit()
+        self._exp_dir_browse_btn = QtW.QToolButton()
+        self._export_btn = QtW.QPushButton()
+
+        self._exp_dir_browse_btn.setText("...")
+        self._exp_dir_le.setText("Export Directory")
+        self._export_btn.setText("Export")
+
+        self._exp_dir_layout = QtW.QHBoxLayout()
+        self._exp_dir_layout.addWidget(self._exp_dir_le)
+        self._exp_dir_layout.addWidget(self._exp_dir_browse_btn)
+
+        # Options -------------------------------------------
+
+        self._options_gb = QtW.QGroupBox()
+        self._options_layout = QtW.QVBoxLayout()
+
+        self._pivot_to_origin_chbx = QtW.QCheckBox("Pivot to Origin")
+        self._pivot_to_origin_chbx.setChecked(True)
+        self._options_layout.addWidget(self._pivot_to_origin_chbx)
+
+        self._collapse_stack_chbx = QtW.QCheckBox("Collapse Modifier Stack")
+        self._collapse_stack_chbx.setChecked(True)
+        self._options_layout.addWidget(self._collapse_stack_chbx)
+
+        self._rotate_for_unity_chbx = QtW.QCheckBox("Rotate for Unity")
+        self._rotate_for_unity_chbx.setChecked(True)
+        self._options_layout.addWidget(self._rotate_for_unity_chbx)
+
+        self._reset_x_form = QtW.QCheckBox("Reset X-Forms")
+        self._reset_x_form.setChecked(True)
+        self._options_layout.addWidget(self._reset_x_form)
+
+        self._options_gb.setLayout(self._options_layout)
+
+        # Layouts -------------------------------------------
+
+        self.MainLayout.addLayout(self._exp_dir_layout)
+        self.MainLayout.addWidget(self._options_gb)
+        self.MainLayout.addWidget(self._export_btn)
+
+        # File Dialog ---------------------------------------
+
+        self._dialog = QtW.QFileDialog()
+        self._dialog.setFileMode(QtW.QFileDialog.Directory)
+        self._dialog.setViewMode(QtW.QFileDialog.Detail)
+
+        # ---------------------------------------------------
+        #               Function Connections
+        # ---------------------------------------------------
+
+        self._exp_dir_browse_btn.clicked.connect(self._exp_dir_browse_btn_handler)
+        self._export_btn.clicked.connect(self._export_handler)
+
+    def _set_dir(self, directory):
+        if os.path.isdir(directory):
+            self._exp_dir_le.setText(directory)
+            self._exp_dir_le.setToolTip(directory)
+
+            self._dialog.setDirectory(directory)
+            self._directory = directory
+        else:
+            self.msg("Directory: {} does not exist".format(directory))
+
+    def _exp_dir_browse_btn_handler(self):
+        if self._dialog.exec_():
+            self._set_dir(self._dialog.selectedFiles()[0])
+
+    def _export_handler(self):
+        if os.path.isdir(self._directory):
+            self._export_selection()
+        else:
+            self.msg("Directory: {} does not exist".format(self._directory))
+
+    def _options_enabled(self):
+        for widget in self._options_layout.children():
+            if widget.isChecked():
+                return True
+        return False
+
+    def _export_selection(self):
+        # Translated to python from "3dsmax 2016 small export script" by lops
+        # http://www.scriptspot.com/3ds-max/scripts/3dsmax-2016-small-export-script
+
+        sel = rt.getCurrentselection()
+
+        sel_len = len(sel)
+
+        if sel_len < 1:
+            self.msg("No objects selected")
+        else:
+            if self._options_enabled():
+                for obj in sel:
+                    self._export_object_options(
+                        obj,
+                        pivot_to_origin=self._pivot_to_origin_chbx.isChecked(),
+                        rotate_for_unity=self._rotate_for_unity_chbx.isChecked(),
+                        collapse_stack=self._collapse_stack_chbx.isChecked(),
+                        reset_x_forms=self._reset_x_form.isChecked()
+                    )
+            else:
+                for obj in sel:
+                    self._export_object(obj)
+
+            # Redraw the viewport
+            rt.redrawViews()
+            self.msg("Exported {0} {1}".format(sel_len, pluralize("object", sel_len)))
+
+    def _export_object(self, obj):
+        rt.select(obj)
+        file_name = os.path.join(self._directory, "{}.fbx".format(obj.name))
+        rt.exportFile(file_name, rt.name("noPrompt"), using=rt.FBXEXP, selectedOnly=True)
+
+    def _export_object_options(self, obj, **kwargs):
+        pivot_to_origin = kwargs.get("pivot_to_origin", False)
+        rotate_for_unity = kwargs.get("rotate_for_unity", False)
+        collapse_stack = kwargs.get("collapse_stack", False)
+        reset_x_forms = kwargs.get("reset_x_forms", False)
+
+        # clone object
+        obj_clone = rt.copy(obj)
+        rt.select(obj_clone)
+
+        if rotate_for_unity:
+            # rotate clone by 90 degrees
+            current_xform = obj.transform
+            rt.PreRotate(current_xform, rt.eulerToQuat(rt.EulerAngles(90, 0, 0)))
+            obj_clone.transform = current_xform
+
+        # Reset X-Froms
+        if reset_x_forms:
+            rt.ResetXForm(obj_clone)
+        if collapse_stack:
+            rt.macros.run("Modifier Stack", "Convert_to_Poly")
+
+        # Record Info
+        obj_name = obj.name
+        obj_clone.name = obj_name
+
+        # Set pivot to origin
+        if pivot_to_origin:
+            obj_clone.position = rt.Point3(0, 0, 0)
+
+        self._export_object(obj_clone)
+
+        rt.delete(obj_clone)
 
 
 ui = RenderFarmingBarnUI()
