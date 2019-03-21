@@ -23,8 +23,8 @@ Slot = QtC.Slot
 class RFMsg(object):
     def __init__(self, message, level):
         super(RFMsg, self).__init__()
-        self._message = message
-        self._level = level
+        self._message = str(message)
+        self._level = str(level)
 
     def get_message(self):
         return self._message
@@ -73,8 +73,8 @@ class RenderFarmingBarnUI(QtW.QDialog):
         for widget in self._sheep:
             self._sheep_layout.addWidget(widget)
             widget.Message.connect(self._display_message_handler)
-            widget.StatusBar.connect(self._display_status_bar_handler)
-            widget.Add.connect(self._add_status_bar_handler)
+            widget.InitStatusBar.connect(self._display_status_bar_handler)
+            widget.StAdd.connect(self._add_status_bar_handler)
 
         # ---------------------------------------------------
         #                 Final Setup
@@ -136,8 +136,8 @@ class QHLine(QtW.QFrame):
 
 class RenderFarmingSheep(QtW.QWidget):
     Message = Signal(RFMsg)
-    StatusBar = Signal(int)
-    Add = Signal(int)
+    InitStatusBar = Signal(int)
+    StAdd = Signal(int)
 
     def __init__(self, parent=None):
         super(RenderFarmingSheep, self).__init__(parent)
@@ -172,6 +172,12 @@ class RenderFarmingSheep(QtW.QWidget):
 
     def msg(self, message, level="info"):
         self.Message.emit(RFMsg(message, level))
+
+    def stadd(self, amount=1):
+        self.StAdd.emit(amount)
+
+    def initialize_status_bar(self, length):
+        self.InitStatusBar.emit(length)
 
     # Using Qt naming convention instead
     # noinspection PyPep8Naming
@@ -529,25 +535,60 @@ class QuickExporter(RenderFarmingSheep):
 
         self.setTitle("Quick Export")
 
-        self._directory = str()
+        self._exp_directory = str()
+        self._exp_filename = str()
+        self._exp_format = str()
+
+        self._mesh_classes_list = [
+            "editable_poly",
+            "polymeshobject",
+            "editable_mesh",
+            "sphere",
+            "ProBoolean",
+            "box"
+        ]
+
+        self._export_formats_list = {
+            "OBJ": rt.ObjExp,
+            "DAE": rt.DAEEXP,
+            "FBX": rt.FBXEXP
+        }
+
+        self._export_context = True
+        self._export_context_list = {
+            "Single File": False,
+            "One File Per Object": True
+        }
 
         # ---------------------------------------------------
         #                 Widget Definitions
         # ---------------------------------------------------
 
         # Main ----------------------------------------------
+        # ---- Export Directory -----------------------------
 
         self._exp_dir_le = QtW.QLineEdit()
         self._exp_dir_browse_btn = QtW.QToolButton()
-        self._export_btn = QtW.QPushButton()
 
         self._exp_dir_browse_btn.setText("...")
         self._exp_dir_le.setText("Export Directory")
-        self._export_btn.setText("Export")
 
         self._exp_dir_layout = QtW.QHBoxLayout()
         self._exp_dir_layout.addWidget(self._exp_dir_le)
         self._exp_dir_layout.addWidget(self._exp_dir_browse_btn)
+
+        # ---- Other ----------------------------------------
+
+        self._export_btn = QtW.QPushButton()
+        self._export_format_cmbx = QtW.QComboBox()
+        self._export_context_cmbx = QtW.QComboBox()
+
+        self._export_btn.setText("Export")
+        self._export_format_cmbx.addItems(self._export_formats_list.keys())
+        self._export_format_cmbx.setCurrentText("FBX")
+
+        self._export_context_cmbx.addItems(self._export_context_list.keys())
+        self._export_context_cmbx.setCurrentText("One File Per Object")
 
         # Options -------------------------------------------
 
@@ -574,15 +615,12 @@ class QuickExporter(RenderFarmingSheep):
 
         # Layouts -------------------------------------------
 
+        self.MainLayout.addWidget(self._export_context_cmbx)
+        self.MainLayout.addWidget(QHLine())
         self.MainLayout.addLayout(self._exp_dir_layout)
+        self.MainLayout.addWidget(self._export_format_cmbx)
         self.MainLayout.addWidget(self._options_gb)
         self.MainLayout.addWidget(self._export_btn)
-
-        # File Dialog ---------------------------------------
-
-        self._dialog = QtW.QFileDialog()
-        self._dialog.setFileMode(QtW.QFileDialog.Directory)
-        self._dialog.setViewMode(QtW.QFileDialog.Detail)
 
         # ---------------------------------------------------
         #               Function Connections
@@ -590,99 +628,201 @@ class QuickExporter(RenderFarmingSheep):
 
         self._exp_dir_browse_btn.clicked.connect(self._exp_dir_browse_btn_handler)
         self._export_btn.clicked.connect(self._export_handler)
+        self._export_context_cmbx.activated.connect(self._export_type_cmbx_handler)
+
+    def _single_mesh_context(self):
+        self._pivot_to_origin_chbx.setChecked(False)
+        self._pivot_to_origin_chbx.setVisible(False)
+        self._export_format_cmbx.setVisible(False)
+        self._export_context = False
+
+    def _one_per_file_context(self):
+        self._pivot_to_origin_chbx.setChecked(True)
+        self._pivot_to_origin_chbx.setVisible(True)
+        self._export_format_cmbx.setVisible(True)
+        self._export_context = True
 
     def _set_dir(self, directory):
         if os.path.isdir(directory):
             self._exp_dir_le.setText(directory)
             self._exp_dir_le.setToolTip(directory)
-
-            self._dialog.setDirectory(directory)
-            self._directory = directory
+            self._exp_directory = directory
         else:
-            self.msg("Directory: {} does not exist".format(directory))
+            self.msg("Directory: {} does not exist".format(directory), "Warning")
 
     def _exp_dir_browse_btn_handler(self):
-        if self._dialog.exec_():
-            self._set_dir(self._dialog.selectedFiles()[0])
+        if self._export_context:
+            # noinspection PyCallByClass
+            file_name = QtW.QFileDialog.getExistingDirectory(
+                self,
+                "Choose Export Directory",
+                self._exp_directory,
+            )
+            if file_name is not str():
+                self._set_dir(file_name)
+        else:
+            # noinspection PyCallByClass
+            file_names_list = QtW.QFileDialog.getSaveFileName(
+                self,
+                "Export Selected",
+                self._exp_directory,
+                "*.fbx;;*.dae;;*.obj"
+            )
+            if file_names_list[0] is not str():
+                directory, file_name = os.path.split(file_names_list[0])
+                self._set_dir(directory)
+                self._exp_filename = file_name
 
     def _export_handler(self):
-        if os.path.isdir(self._directory):
-            self._export_selection()
+        if self._export_context:
+            if os.path.isdir(self._exp_directory):
+                    self._process_file_per_object()
+            else:
+                self.msg("Directory: {} does not exist".format(self._exp_directory), "Warning")
         else:
-            self.msg("Directory: {} does not exist".format(self._directory))
+            if os.path.isdir(self._exp_directory):
+                self._process_single_file()
+            else:
+                self.msg("Directory: {} does not exist".format(self._exp_directory), "Warning")
 
-    def _options_enabled(self):
-        for widget in self._options_layout.children():
-            if widget.isChecked():
-                return True
-        return False
+    def _export_type_cmbx_handler(self):
+        if self._export_context_list.get(self._export_context_cmbx.currentText()):
+            self._one_per_file_context()
+        else:
+            self._single_mesh_context()
 
-    def _export_selection(self):
-        # Translated to python from "3dsmax 2016 small export script" by lops
-        # http://www.scriptspot.com/3ds-max/scripts/3dsmax-2016-small-export-script
-
+    def _process_file_per_object(self):
         sel = rt.getCurrentselection()
-
         sel_len = len(sel)
+        count = 0
 
         if sel_len < 1:
             self.msg("No objects selected")
         else:
-            if self._options_enabled():
+            # disables viewport redraw
+            with pymxs.redraw(False):
                 for obj in sel:
-                    self._export_object_options(
-                        obj,
-                        pivot_to_origin=self._pivot_to_origin_chbx.isChecked(),
-                        rotate_for_unity=self._rotate_for_unity_chbx.isChecked(),
-                        collapse_stack=self._collapse_stack_chbx.isChecked(),
-                        reset_x_forms=self._reset_x_form.isChecked()
-                    )
-            else:
-                for obj in sel:
-                    self._export_object(obj)
+                    # clone object
+                    obj_clone = rt.copy(obj)
+                    try:
+                        if (str(rt.classof(obj))).lower() in self._mesh_classes_list:
+                            self._prep_for_export(
+                                obj,
+                                obj_clone,
+                                pivot_to_origin=self._pivot_to_origin_chbx.isChecked(),
+                                rotate_for_unity=self._rotate_for_unity_chbx.isChecked(),
+                                collapse_stack=self._collapse_stack_chbx.isChecked(),
+                                reset_x_forms=self._reset_x_form.isChecked()
+                            )
+                            count += 1
+                            self._export_file_per_object(obj_clone, self._export_format_cmbx.currentText())
+                    except RuntimeError as e:
+                        self.msg(e, "Error")
+                        return
+                    except AttributeError as e:
+                        self.msg(e, "Error")
+                        return
+                    finally:
+                        rt.redrawViews()
+                        rt.delete(obj_clone)
 
-            # Redraw the viewport
-            rt.redrawViews()
-            self.msg("Exported {0} {1}".format(sel_len, pluralize("object", sel_len)))
+            self.msg("Exported {0}/{1} {2}".format(count, sel_len, pluralize("object", sel_len)))
 
-    def _export_object(self, obj):
+    def _process_single_file(self):
+        sel = rt.getCurrentselection()
+        sel_len = len(sel)
+        count = 0
+
+        clones = list()
+
+        if sel_len < 1:
+            self.msg("No objects selected")
+        else:
+            # disables viewport redraw
+            with pymxs.redraw(False):
+                try:
+                    # prep clones
+                    for obj in sel:
+                        # clone object
+                        obj_clone = rt.copy(obj)
+                        if (str(rt.classof(obj))).lower() in self._mesh_classes_list:
+                            self._prep_for_export(
+                                obj,
+                                obj_clone,
+                                pivot_to_origin=False,
+                                rotate_for_unity=self._rotate_for_unity_chbx.isChecked(),
+                                collapse_stack=self._collapse_stack_chbx.isChecked(),
+                                reset_x_forms=self._reset_x_form.isChecked()
+                            )
+                            clones.append(obj_clone)
+                            count += 1
+                    # export clones
+                    self._export_single(clones)
+                except RuntimeError as e:
+                    self.msg(e, "Error")
+                    return
+                except AttributeError as e:
+                    self.msg(e, "Error")
+                    return
+                finally:
+                    rt.redrawViews()
+                    rt.delete(clones)
+
+            self.msg("Exported {0}/{1} {2}".format(count, sel_len, pluralize("object", sel_len)))
+
+    def _export_file_per_object(self, obj, exp_format):
         rt.select(obj)
-        file_name = os.path.join(self._directory, "{}.fbx".format(obj.name))
-        rt.exportFile(file_name, rt.name("noPrompt"), using=rt.FBXEXP, selectedOnly=True)
+        file_name = os.path.join(
+            self._exp_directory, "{0}.{1}".format(
+                obj.name,
+                exp_format.lower()
+            )
+        )
+        rt.exportFile(
+            file_name,
+            rt.name("noPrompt"),
+            using=self._export_formats_list.get(exp_format, rt.FBXEXP),
+            selectedOnly=True
+        )
 
-    def _export_object_options(self, obj, **kwargs):
-        pivot_to_origin = kwargs.get("pivot_to_origin", False)
-        rotate_for_unity = kwargs.get("rotate_for_unity", False)
-        collapse_stack = kwargs.get("collapse_stack", False)
-        reset_x_forms = kwargs.get("reset_x_forms", False)
+    def _export_single(self, objects):
+        rt.select(*rt.array(objects))
+        file_name = os.path.join(
+            self._exp_directory, self._exp_filename
+        )
+        rt.exportFile(
+            file_name,
+            rt.name("noPrompt"),
+            using=self._export_formats_list.get(self._exp_format, rt.FBXEXP),
+            selectedOnly=True
+        )
 
-        # clone object
-        obj_clone = rt.copy(obj)
-        rt.select(obj_clone)
+    # noinspection PyMethodMayBeStatic
+    def _prep_for_export(self, original, clone, **kwargs):
+        # Translated to python from "3dsmax 2016 small export script" by lops
+        # http://www.scriptspot.com/3ds-max/scripts/3dsmax-2016-small-export-script
 
-        if rotate_for_unity:
+        rt.select(clone)
+
+        if kwargs.get("rotate_for_unity", False):
             # rotate clone by 90 degrees
-            current_xform = obj.transform
+            current_xform = original.transform
             rt.PreRotate(current_xform, rt.eulerToQuat(rt.EulerAngles(90, 0, 0)))
-            obj_clone.transform = current_xform
+            clone.transform = current_xform
 
         # Reset X-Froms
-        if reset_x_forms:
-            rt.ResetXForm(obj_clone)
-        if collapse_stack:
+        if kwargs.get("reset_x_forms", False):
+            rt.ResetXForm(clone)
+        if kwargs.get("collapse_stack", False):
             rt.macros.run("Modifier Stack", "Convert_to_Poly")
 
         # Record Info
-        obj_name = obj.name
-        obj_clone.name = obj_name
+        obj_name = original.name
+        clone.name = obj_name
 
         # Set pivot to origin
-        if pivot_to_origin:
-            obj_clone.position = rt.Point3(0, 0, 0)
-
-        self._export_object(obj_clone)
-
-        rt.delete(obj_clone)
+        if kwargs.get("pivot_to_origin", False):
+            clone.position = rt.Point3(0, 0, 0)
 
 
 ui = RenderFarmingBarnUI()
