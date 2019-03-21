@@ -630,15 +630,21 @@ class QuickExporter(RenderFarmingSheep):
         self._export_btn.clicked.connect(self._export_handler)
         self._export_context_cmbx.activated.connect(self._export_type_cmbx_handler)
 
+        self._set_dir(rt.GetDir(rt.name("export")))
+
     def _single_mesh_context(self):
         self._pivot_to_origin_chbx.setChecked(False)
         self._pivot_to_origin_chbx.setVisible(False)
+        self._rotate_for_unity_chbx.setChecked(False)
+        self._rotate_for_unity_chbx.setVisible(False)
         self._export_format_cmbx.setVisible(False)
         self._export_context = False
 
     def _one_per_file_context(self):
         self._pivot_to_origin_chbx.setChecked(True)
         self._pivot_to_origin_chbx.setVisible(True)
+        self._rotate_for_unity_chbx.setChecked(True)
+        self._rotate_for_unity_chbx.setVisible(True)
         self._export_format_cmbx.setVisible(True)
         self._export_context = True
 
@@ -650,6 +656,9 @@ class QuickExporter(RenderFarmingSheep):
         else:
             self.msg("Directory: {} does not exist".format(directory), "Warning")
 
+    def _set_filename(self, file_name):
+        self._exp_filename = file_name
+
     def _exp_dir_browse_btn_handler(self):
         if self._export_context:
             # noinspection PyCallByClass
@@ -658,7 +667,7 @@ class QuickExporter(RenderFarmingSheep):
                 "Choose Export Directory",
                 self._exp_directory,
             )
-            if file_name is not str():
+            if file_name:
                 self._set_dir(file_name)
         else:
             # noinspection PyCallByClass
@@ -668,10 +677,10 @@ class QuickExporter(RenderFarmingSheep):
                 self._exp_directory,
                 "*.fbx;;*.dae;;*.obj"
             )
-            if file_names_list[0] is not str():
+            if file_names_list[0]:
                 directory, file_name = os.path.split(file_names_list[0])
                 self._set_dir(directory)
-                self._exp_filename = file_name
+                self._set_filename(file_name)
 
     def _export_handler(self):
         if self._export_context:
@@ -750,7 +759,7 @@ class QuickExporter(RenderFarmingSheep):
                                 obj,
                                 obj_clone,
                                 pivot_to_origin=False,
-                                rotate_for_unity=self._rotate_for_unity_chbx.isChecked(),
+                                rotate_for_unity=False,
                                 collapse_stack=self._collapse_stack_chbx.isChecked(),
                                 reset_x_forms=self._reset_x_form.isChecked()
                             )
